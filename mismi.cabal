@@ -13,7 +13,18 @@ description:           mismi.
 library
   build-depends:
                        base                            >= 3          && < 5
+                     , p
                      , template-haskell
+                     , aws                             == 0.11.*
+                     , exceptions                      == 0.6.*
+                     , http-client                     == 0.4.*
+                     , http-conduit                    == 2.1.*
+                     , mtl                             == 2.2.*
+                     , process                         == 1.2.*
+                     , resourcet                       == 1.1.*
+                     , semigroups                      == 0.16.*
+                     , text                            == 1.2.*
+                     , transformers                    == 0.4.*
 
   ghc-options:
                        -Wall
@@ -25,6 +36,10 @@ library
   exposed-modules:
                        Paths_mismi
                        Mismi
+                       Mismi.Control
+                       Mismi.S3.Commands
+                       Mismi.S3.Control
+                       Mismi.S3.Data
 
 
 test-suite test
@@ -34,4 +49,12 @@ test-suite test
   hs-source-dirs:      test
   build-depends:       base
                      , mismi
+                     , aws
+                     , exceptions
+                     , p
+                     , http-client
+                     , text
+                     , transformers
                      , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+                     , unix                            == 2.7.*

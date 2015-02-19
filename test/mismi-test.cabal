@@ -1,0 +1,21 @@
+name:                  mismi-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base
+                     , p
+                     , mismi
+                     , aws
+                     , exceptions
+                     , http-client
+                     , QuickCheck
+                     , quickcheck-instances
+                     , text
+                     , transformers
+                     , unix
+
+  exposed-modules:
+                       Mismi.Test.S3
