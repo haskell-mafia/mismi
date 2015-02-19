@@ -16,9 +16,12 @@ library
                      , p
                      , template-haskell
                      , aws                             == 0.11.*
+                     , bytestring                      == 0.10.*
+                     , conduit                         == 1.2.*
                      , exceptions                      == 0.6.*
                      , http-client                     == 0.4.*
                      , http-conduit                    == 2.1.*
+                     , http-types                      == 0.8.*
                      , mtl                             == 2.2.*
                      , process                         == 1.2.*
                      , resourcet                       == 1.1.*
