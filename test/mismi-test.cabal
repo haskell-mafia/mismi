@@ -18,4 +18,5 @@ library
                      , unix
 
   exposed-modules:
+                       Mismi.Arbitrary
                        Mismi.Test.S3

@@ -1,6 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Mismi.Test.S3 where
 
 import qualified Aws.S3 as S3
@@ -14,19 +13,13 @@ import           Network.HTTP.Client (RequestBody(..))
 
 import           System.Posix.Env
 
+import           Mismi.Arbitrary ()
 import           Mismi.Control
 import           Mismi.S3.Control
 import           Mismi.S3.Data
 import           Mismi.Test
 
 
-instance Arbitrary Key where
-  -- The max length of S3 Paths is 1024 - and we append some of them in the tests
-  arbitrary = Key . T.dropWhileEnd ('/' ==) . T.take 256 . T.intercalate "/" <$> listOf1 (T.intercalate "" <$> listOf1 genPath)
-    where
-      -- Unfortunately unicode characters aren't supported in the Haskell AWS library
-      -- https://github.com/ambiata/vee/issues/7
-      genPath = elements ["happy", "sad", ".", ":", "-"]
 
 
 testBucket :: IO Bucket
