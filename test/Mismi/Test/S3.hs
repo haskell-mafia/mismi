@@ -39,7 +39,7 @@ testBucket :: IO Bucket
 testBucket =
   Bucket . T.pack . fromMaybe "ambiata-dev-view" <$> getEnv "AWS_TEST_BUCKET"
 
-withTmpKey :: Testable t => KeyTmp -> (S3Action t) -> S3Action t
+withTmpKey :: KeyTmp -> (S3Action t) -> S3Action t
 withTmpKey (KeyTmp (Key tmpPath') body') f = do
   (Bucket bucket') <- liftIO $ testBucket
   bracket_
