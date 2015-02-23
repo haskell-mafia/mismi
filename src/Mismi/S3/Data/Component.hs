@@ -23,6 +23,7 @@ data ComponentParseError =
 componentText :: Component -> T.Text
 componentText = _unComponent
 
+-- TESTME
 parseComponent :: T.Text -> Either (ComponentParseError, T.Text) Component
 parseComponent t
     | T.null t                                                  = Left (ComponentParseErrorEmpty, t)
