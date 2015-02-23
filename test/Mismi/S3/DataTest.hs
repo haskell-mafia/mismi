@@ -12,8 +12,11 @@ import           Mismi.Test.S3 ()
 
 prop_append :: Key -> Key -> Property
 prop_append p1 p2 =
-  T.count "//" (unKey (p1 </> p2)) === 0
+  T.count "//" (showKey (p1 </> p2)) === 0
 
+
+prop_parseShowKeyWeakInverse :: Key -> Property
+prop_parseShowKeyWeakInverse p = (parseKey . showKey) p === p
 
 return []
 tests :: IO Bool

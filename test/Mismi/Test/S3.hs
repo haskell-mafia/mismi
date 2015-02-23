@@ -29,7 +29,7 @@ data KeyTmp = KeyTmp {
 
 -- Ensure everything is under our own key space for debugging
 instance Arbitrary KeyTmp where
-  arbitrary = KeyTmp  <$> ((Key "tmp/vee" </>) <$> arbitrary) <*> arbitrary
+  arbitrary = KeyTmp  <$> ((Key ["tmp", "vee"] </>) <$> arbitrary) <*> arbitrary
 
 
 (<//>) :: KeyTmp -> Key -> KeyTmp
@@ -39,10 +39,10 @@ testBucket :: IO Bucket
 testBucket =
   Bucket . T.pack . fromMaybe "ambiata-dev-view" <$> getEnv "AWS_TEST_BUCKET"
 
-withTmpKey :: KeyTmp -> (S3Action t) -> S3Action t
-withTmpKey (KeyTmp (Key tmpPath') body') f = do
-  (Bucket bucket') <- liftIO $ testBucket
+withTmpKey :: KeyTmp -> S3Action t -> S3Action t
+withTmpKey (KeyTmp tmpPath' body') f = do
+  (Bucket bucket') <- liftIO testBucket
   bracket_
-    (awsRequest (S3.putObject bucket' tmpPath' (RequestBodyBS (T.encodeUtf8 body'))))
-    (awsRequest $ S3.DeleteObject tmpPath' bucket')
+    (awsRequest (S3.putObject bucket' (showKey tmpPath') (RequestBodyBS (T.encodeUtf8 body'))))
+    (awsRequest $ S3.DeleteObject (showKey tmpPath') bucket')
     f

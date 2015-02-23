@@ -40,7 +40,7 @@ prop_getObjects prefix p1 p2 = p1 /= p2 ==> ioProperty $ do
     withTmpKey (prefix <//> p1) .
     withTmpKey (prefix <//> p2) $ do
       objs <- getObjects $ Address bucket' (tmpPath prefix)
-      pure $ on (===) sort (fmap S3.objectKey objs) (fmap (unKey . tmpPath) [prefix <//> p1, prefix <//> p2])
+      pure $ on (===) sort (fmap S3.objectKey objs) (fmap (showKey . tmpPath) [prefix <//> p1, prefix <//> p2])
 
 
 return []
