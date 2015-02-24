@@ -3,10 +3,14 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Mismi.Arbitrary where
 
-import           Data.Text as T
+import           P
 
 import           Mismi.S3.Data
 import           Mismi.Test
+
+import qualified Data.Text as T
+import           Data.List ( take )
+
 
 
 instance Arbitrary Key where

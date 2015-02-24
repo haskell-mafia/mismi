@@ -44,7 +44,8 @@ library
                        Mismi.S3.Commands
                        Mismi.S3.Control
                        Mismi.S3.Data
-                       Mismi.S3.Data.Component
+                       Mismi.S3.Data.Component.Word
+                       Mismi.S3.Data.Component.QQ
 
 
 test-suite test
@@ -58,6 +59,7 @@ test-suite test
                      , exceptions
                      , p
                      , http-client
+                     , semigroups                      == 0.16.*
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*
