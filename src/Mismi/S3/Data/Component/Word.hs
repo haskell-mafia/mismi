@@ -33,7 +33,6 @@ instance Semigroup ComponentWord where
 componentWordText :: ComponentWord -> T.Text
 componentWordText = _unComponentWord
 
--- TESTME
 parseComponentWord :: T.Text -> Either (ComponentWordParseError, T.Text) ComponentWord
 parseComponentWord t
     | T.null t                                  = Left (ComponentWordParseErrorEmpty, t)
