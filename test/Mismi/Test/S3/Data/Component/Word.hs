@@ -15,20 +15,20 @@ import Data.List.NonEmpty ( fromList )
 import Data.Semigroup ( sconcat )
 
 instance Arbitrary ComponentWord where
-    arbitary = do
-        ws <- fromList . listOf1 $ elements testComponents -- listOf1 returning [] is stupid.. (`fromList` is unsafe...)
+    arbitrary = do
+        ws <- fromList <$> listOf1 (elements testComponents) -- listOf1 returning [] is stupid.. (`Data.List.NonEmpty.fromList` is unsafe...)
         return $ sconcat ws
 
 testComponents :: [ComponentWord]
 testComponents =
-    [   [qcomponentword|"happy"|]
-    ,   [qcomponentword|"sad"|]
-    ,   [qcomponentword|"foo"|]
-    ,   [qcomponentword|"bar"|]
-    ,   [qcomponentword|"stark"|]
-    ,   [qcomponentword|"quill"|]
-    ,   [qcomponentword|"hankpym"|]
-    ,   [qcomponentword|"lukecage"|]
-    ,   [qcomponentword|"miguel"|]
-    ,   [qcomponentword|"."|]
+    [   [qcomponentword|happy|]
+    ,   [qcomponentword|sad|]
+    ,   [qcomponentword|foo|]
+    ,   [qcomponentword|bar|]
+    ,   [qcomponentword|stark|]
+    ,   [qcomponentword|quill|]
+    ,   [qcomponentword|hankpym|]
+    ,   [qcomponentword|lukecage|]
+    ,   [qcomponentword|miguel|]
+    ,   [qcomponentword|.|]
     ]

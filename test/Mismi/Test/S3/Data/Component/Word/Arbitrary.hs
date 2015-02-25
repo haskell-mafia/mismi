@@ -10,6 +10,7 @@ import P
 
 import Mismi.Test
 
+import Data.List ( (++), take, zipWith )
 import qualified Data.Text as T
 
 -- |
@@ -48,7 +49,7 @@ instance Arbitrary ReservedComponentText where
 -- helpers
 
 safeWords :: [T.Text]
-safeWords = ["12", "34", "happy", "sad", ".", ":", "-"]
+safeWords = ["12", "34", "happy", "sad", "."]
 
 reservedChars :: [T.Text]
 reservedChars = [":", "-"]

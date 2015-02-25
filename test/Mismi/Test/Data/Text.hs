@@ -10,7 +10,7 @@ import qualified Data.Text as T
 
 newtype ControlCharText = ControlCharText T.Text deriving (Show, Eq)
 
-{-# ANN module ("HLint: ignore Use string literal" :: T.Text) #-}
+{-# ANN module "HLint: ignore Use string literal" #-}
 
 instance Arbitrary ControlCharText where
   arbitrary = ControlCharText . T.pack <$> listOf1 (elements
