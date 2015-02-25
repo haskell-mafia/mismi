@@ -59,6 +59,7 @@ test-suite test
   build-depends:       base
                      , mismi
                      , aws
+                     , bifunctors                      == 4.2.*
                      , exceptions
                      , p
                      , http-client

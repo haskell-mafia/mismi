@@ -26,6 +26,7 @@ infixl 5 <->
 data ComponentConcept =
         SingleWord ComponentWord
     |   ComponentConcept :-: ComponentWord
+        deriving (Show, Eq)
 
 (<->) :: ComponentConcept -> ComponentWord -> ComponentConcept
 (<->) = (:-:)
