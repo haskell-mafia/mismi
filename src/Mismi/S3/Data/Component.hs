@@ -48,4 +48,4 @@ parseDelimitedText = fmap Component . filter (not . T.null) . T.split (== '/')
 -- helpers
 
 checkComponentChar :: Char -> Bool
-checkComponentChar = (== '/')
+checkComponentChar = (/= '/')

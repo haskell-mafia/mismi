@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Mismi.Test.S3 where
 
 import qualified Aws.S3 as S3
@@ -18,6 +19,10 @@ import           Mismi.Arbitrary ()
 import           Mismi.Control
 import           Mismi.S3.Control
 import           Mismi.S3.Data
+import           Mismi.S3.Data.Component
+import           Mismi.S3.Data.Component.QQ
+
+import           Mismi.Test.S3.Data.Component
 import           Mismi.Test
 
 
@@ -29,10 +34,10 @@ data KeyTmp = KeyTmp {
 
 -- Ensure everything is under our own key space for debugging
 instance Arbitrary KeyTmp where
-  arbitrary = KeyTmp  <$> ((Key ["tmp", "vee"] </>) <$> arbitrary) <*> arbitrary
+  arbitrary = KeyTmp  <$> (([qcomponent|tmp|] <:/> [qcomponent|vee|] </>) <$> arbitrary) <*> arbitrary
 
 
-(<//>) :: KeyTmp -> Key -> KeyTmp
+(<//>) :: KeyTmp -> Component -> KeyTmp
 (<//>) (KeyTmp k1 b) k2 = KeyTmp (k1 </> k2) b
 
 testBucket :: IO Bucket

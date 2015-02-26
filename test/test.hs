@@ -1,8 +1,7 @@
 import           Control.Monad
 
 import qualified Mismi.S3.CommandsTest
-import qualified Mismi.S3.Data.Component.ConceptTest
-import qualified Mismi.S3.Data.Component.WordTest
+import qualified Mismi.S3.Data.ComponentTest
 import qualified Mismi.S3.DataTest
 
 import           System.Exit
@@ -13,6 +12,5 @@ main =
   hSetBuffering stdout LineBuffering >> mapM id [
       Mismi.S3.CommandsTest.tests
     , Mismi.S3.DataTest.tests
-    , Mismi.S3.Data.Component.ConceptTest.tests
-    , Mismi.S3.Data.Component.WordTest.tests
+    , Mismi.S3.Data.ComponentTest.tests
     ] >>= \rs -> when (not . all id $ rs) exitFailure

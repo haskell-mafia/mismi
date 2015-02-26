@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-module Mismi.Test.S3.Data.Component.Word.Arbitrary (
+module Mismi.Test.S3.Data.Component.Arbitrary (
     -- * Types
         SafeComponentText(..)
     ,   SlashedComponentText(..)
@@ -20,7 +20,7 @@ newtype SafeComponentText = SafeComponentText T.Text deriving (Show, Eq)
 
 instance Arbitrary SafeComponentText where
     arbitrary = SafeComponentText <$> do
-        xs <- listOf1 $ elements safeWords
+        xs <- listOf1 $ elements safeComponents
         return . T.concat . take 16 $ xs
 
 -- |
@@ -30,7 +30,7 @@ newtype SlashedComponentText = SlashedComponentText T.Text deriving (Show, Eq)
 
 instance Arbitrary SlashedComponentText where
     arbitrary = SlashedComponentText <$> do
-        xs <- listOf1 $ elements safeWords
+        xs <- listOf1 $ elements safeComponents
         fs <- vectorOf (length xs) $ elements [(<> "/"), ("/" <>)]
         return . T.concat . take 16 $ zipWith id fs xs
 
@@ -41,15 +41,15 @@ newtype ReservedComponentText = ReservedComponentText T.Text
 
 instance Arbitrary ReservedComponentText where
     arbitrary = ReservedComponentText <$> do
-        xs <- listOf1 $ elements safeWords
+        xs <- listOf1 $ elements safeComponents
         fs <- vectorOf (length xs) . elements $ fmap (<>) reservedChars ++ fmap (flip (<>)) reservedChars
         return . T.concat . take 16 $ zipWith id fs xs
 
 
 -- helpers
 
-safeWords :: [T.Text]
-safeWords = ["12", "34", "happy", "sad", "."]
+safeComponents :: [T.Text]
+safeComponents = ["12", "34", "happy", "sad", "."]
 
 reservedChars :: [T.Text]
 reservedChars = [":", "-"]

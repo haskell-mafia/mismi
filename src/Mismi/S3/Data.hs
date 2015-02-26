@@ -5,6 +5,7 @@ module Mismi.S3.Data (
   , Address (..)
   , Key (..)
   , (</>)
+  , (<:/>)
   , parseKey
   , showAddress
   , showKey
@@ -18,7 +19,7 @@ import           P
 
 
 newtype Bucket = Bucket
-    { unBucket :: Component
+    { unBucket :: T.Text
     } deriving (Eq, Show)
 
 data Address = Address
@@ -32,6 +33,7 @@ infixl 5 :/
 data Key =
         EmptyKey
     |   Key :/ Component
+        deriving (Eq, Show)
 
 showKey :: Key -> T.Text
 showKey EmptyKey = ""
@@ -45,8 +47,12 @@ parseKey :: T.Text -> Key
 parseKey = foldl' (</>) EmptyKey . parseDelimitedText
 
 showAddress :: Address -> T.Text
-showAddress (Address (Bucket b) k) = "s3://" <> componentText b <> "/" <> showKey k
+showAddress (Address (Bucket b) k) = "s3://" <> b <> "/" <> showKey k
 
 infixl 5 </>
 (</>) :: Key -> Component -> Key
 (</>) = (:/)
+
+infixl 5 <:/>
+(<:/>) :: Component -> Component -> Key
+c1 <:/> c2 = EmptyKey </> c1 </> c2

@@ -49,7 +49,7 @@ getObjects (Address (Bucket b) k) = getObjects' $ (S3.getBucket b) { S3.gbPrefix
       if S3.gbrIsTruncated resp
         then
           maybe
-            (error "vee: error: truncated response with empty contents list.")
+            (error "s3 (GET Bucket): error: truncated response with empty contents list.")
             (go x)
             (NEL.nonEmpty $ S3.gbrContents resp)
         else
