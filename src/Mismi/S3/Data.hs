@@ -10,13 +10,15 @@ module Mismi.S3.Data (
   , showKey
   ) where
 
-import           Data.Text as T
+import           Mismi.S3.Data.Component
+
+import qualified Data.Text as T
 
 import           P
 
 
 newtype Bucket = Bucket
-    { unBucket :: Text
+    { unBucket :: Component
     } deriving (Eq, Show)
 
 data Address = Address
@@ -26,22 +28,25 @@ data Address = Address
 
 -- NOTE: This is not a "safe" data type, and makes no guarantee about what is _actually_ supported for S3
 -- https://github.com/ambiata/mismi/issues/2
-newtype Key = Key
-    { unKey :: [Text]
-    } deriving (Eq, Show)
+infixl 5 :/
+data Key =
+        EmptyKey
+    |   Key :/ Component
 
 showKey :: Key -> T.Text
-showKey (Key ps) = T.intercalate "/" ps
+showKey EmptyKey = ""
+showKey (k :/ c) = T.intercalate "/" [showKey k, componentText c]
 
 -- |
 -- Right now this doesnt check for and reject invalid characters,
 -- We need to wrap `Key` around something else
 --
 parseKey :: T.Text -> Key
-parseKey = Key . P.filter (not . T.null) . T.splitOn "/"
+parseKey = foldl' (</>) EmptyKey . parseDelimitedText
 
 showAddress :: Address -> T.Text
-showAddress (Address (Bucket b) k) = "s3://" <> b <> "/" <> showKey k
+showAddress (Address (Bucket b) k) = "s3://" <> componentText b <> "/" <> showKey k
 
-(</>) :: Key -> Key -> Key
-(</>) (Key p1) (Key p2) = Key $ p1 <> p2
+infixl 5 </>
+(</>) :: Key -> Component -> Key
+(</>) = (:/)

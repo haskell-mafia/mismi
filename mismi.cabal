@@ -18,7 +18,6 @@ library
                      , aws                             == 0.11.*
                      , bytestring                      == 0.10.*
                      , conduit                         == 1.2.*
-                     , distributive                    == 0.4.*
                      , exceptions                      == 0.6.*
                      , http-client                     == 0.4.*
                      , http-conduit                    == 2.1.*
@@ -46,8 +45,6 @@ library
                        Mismi.S3.Control
                        Mismi.S3.Data
                        Mismi.S3.Data.Component
-                       Mismi.S3.Data.Component.Concept
-                       Mismi.S3.Data.Component.Word
                        Mismi.S3.Data.Component.QQ
 
 

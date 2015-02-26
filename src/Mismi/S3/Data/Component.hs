@@ -1,44 +1,51 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, OverloadedStrings #-}
 module Mismi.S3.Data.Component (
     -- * Types
-        ComponentConcept(..)
-    -- * Operators
-    ,   (<:>)
+        Component
+    ,   ComponentParseError(..)
     -- * Functions
     ,   componentText
     ,   parseComponent
+    ,   parseDelimitedText
     ) where
 
-import P
+import P hiding ( (<>) )
 
-import Mismi.S3.Data.Component.Concept
-import Mismi.S3.Data.Component.Word
-
-import Data.List.NonEmpty ( head, nonEmpty, tail )
+import Data.Char ( isControl )
+import Data.Data ( Data )
+import Data.Semigroup ( Semigroup(..) )
 import qualified Data.Text as T
+import Data.Typeable ( Typeable )
 
-infixl 6 :::
-infixl 6 <:>
+data Component = Component { _unComponent :: T.Text } deriving (Eq, Typeable, Data)
 
--- |
--- Essentially a Reverse NonEmpty Snoc List
---
-data Component =
-        SingleConcept ComponentConcept
-    |   Component ::: ComponentConcept
+data ComponentParseError =
+        ComponentParseErrorInvalidChars T.Text
+    |   ComponentParseErrorEmpty
+        deriving (Show, Eq)
 
-(<:>) :: Component -> ComponentConcept -> Component
-(<:>) = (:::)
+instance Show Component where
+    show (Component t) = concat ["[qcomponent|", T.unpack t,"|]"]
 
--- TESTME
+instance Semigroup Component where
+    (Component t1) <> (Component t2) = Component $ t1 <> t2
+
 componentText :: Component -> T.Text
-componentText (SingleConcept concept) = componentConceptText concept
-componentText (component ::: concept) = T.concat [componentText component, ":", componentConceptText concept]
+componentText = _unComponent
+
+parseComponent :: T.Text -> Either (ComponentParseError, T.Text) Component
+parseComponent t
+    | T.null t                                  = Left (ComponentParseErrorEmpty, t)
+    | T.any (not . checkComponentChar) t        = Left (ComponentParseErrorInvalidChars $ T.filter (not . checkComponentChar) t, t)
+    | otherwise                                 = pure $ Component t
 
 -- TESTME
-parseComponent :: T.Text -> Either (ComponentWordParseError, T.Text) Component
-parseComponent t = do
-    cs <- traverse parseComponentConcept . T.split (== ':') $ t
-    nonEmptyComps <- maybe (Left (ComponentWordParseErrorEmpty, t)) return . nonEmpty $ cs
-    return $ foldl' (<:>) (SingleConcept $ head nonEmptyComps) $ tail nonEmptyComps
+parseDelimitedText :: T.Text -> [Component]
+parseDelimitedText = fmap Component . filter (not . T.null) . T.split (== '/')
+
+-- some helpful operators for some of our common applications of components
+
+-- helpers
+
+checkComponentChar :: Char -> Bool
+checkComponentChar = (== '/')

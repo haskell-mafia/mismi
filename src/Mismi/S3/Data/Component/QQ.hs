@@ -1,23 +1,23 @@
 {-# LANGUAGE NoImplicitPrelude, TemplateHaskell #-}
 module Mismi.S3.Data.Component.QQ (
     -- * QuasiQuoters
-        qcomponentword
+        qcomponent
     ) where
 
 import P
 
-import Mismi.S3.Data.Component.Word
+import Mismi.S3.Data.Component
 
 import qualified Prelude as P ( error )
 import Data.Generics ( extQ )
 import Data.String ( String )
 import qualified Data.Text as T
 
-import Language.Haskell.TH ( ExpQ, Lit(..), appE, conE, varE, litE )
+import Language.Haskell.TH ( ExpQ, Lit(..), appE, varE, litE )
 import Language.Haskell.TH.Quote ( QuasiQuoter(..), dataToExpQ )
 
-qcomponentword :: QuasiQuoter
-qcomponentword = QuasiQuoter
+qcomponent :: QuasiQuoter
+qcomponent = QuasiQuoter
     {   quoteExp    = componentExp
     ,   quotePat    = P.error "not able to qq pats"
     ,   quoteType   = P.error "not able to qq types"
@@ -29,7 +29,7 @@ qcomponentword = QuasiQuoter
         -- @
         -- Illegal data constructor name: ‘pack’
         --     When splicing a TH expression:
-        --           Mismi.S3.Data.Component.Word.ComponentWord (Data.Text.Internal.pack ((GHC.Types.:) '"' ((GHC.Types.:) 'h' ((GHC.Types.:) 'a' ((GHC.Types.:) 'p' ((GHC.Types.:) 'p' ((GHC.Types.:) 'y' ((GHC.Types.:) '"' GHC.Types.[]))))))))
+        --           Mismi.S3.Data.Component.Component (Data.Text.Internal.pack ((GHC.Types.:) '"' ((GHC.Types.:) 'h' ((GHC.Types.:) 'a' ((GHC.Types.:) 'p' ((GHC.Types.:) 'p' ((GHC.Types.:) 'y' ((GHC.Types.:) '"' GHC.Types.[]))))))))
         -- @
         --
         -- hence `textExp`
@@ -38,5 +38,5 @@ qcomponentword = QuasiQuoter
         textExp = pure . appE (varE 'T.pack) . litE . StringL . T.unpack
 
         componentExp :: String -> ExpQ
-        componentExp s = either (P.error . show) (dataToExpQ (const Nothing `extQ` textExp)) (parseComponentWord (T.pack s) :: Either (ComponentWordParseError, T.Text) ComponentWord)
+        componentExp s = either (P.error . show) (dataToExpQ (const Nothing `extQ` textExp)) (parseComponent (T.pack s))
 
