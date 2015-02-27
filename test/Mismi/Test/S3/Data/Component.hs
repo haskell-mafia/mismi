@@ -34,4 +34,6 @@ testComponents =
     ,   [qcomponent|lukecage|]
     ,   [qcomponent|miguel|]
     ,   [qcomponent|.|]
+    ,   [qcomponent|-|]
+    ,   [qcomponent|:|]
     ]

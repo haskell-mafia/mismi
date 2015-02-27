@@ -19,8 +19,12 @@ prop_parseSafeComponent (SafeComponentText t) = (componentText <$> parseComponen
 prop_rejectSlashes :: SlashedComponentText -> Property
 prop_rejectSlashes (SlashedComponentText t) = parseComponent t === Left (ComponentParseErrorInvalidChars (T.filter (== '/') t), t)
 
-prop_rejectControls :: ControlCharText -> Property
-prop_rejectControls (ControlCharText t) = parseComponent t === Left (ComponentParseErrorInvalidChars t, t)
+-- We probably wouldnt put these in our own S3 paths, but we want to be able to
+-- "support" weird corner cases like this that might occur in buckets thats are
+-- maintained by others.
+--
+prop_parseAcceptControls :: ControlCharText -> Property
+prop_parseAcceptControls (ControlCharText t) = (componentText <$> parseComponent t) === pure t
 
 prop_rejectEmptyStrings :: Property
 prop_rejectEmptyStrings = parseComponent "" === Left (ComponentParseErrorEmpty, "")

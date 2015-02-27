@@ -22,7 +22,7 @@ import           Mismi.S3.Data
 import           Mismi.S3.Data.Component
 import           Mismi.S3.Data.Component.QQ
 
-import           Mismi.Test.S3.Data.Component
+import           Mismi.Test.S3.Data.Component ()
 import           Mismi.Test
 
 
