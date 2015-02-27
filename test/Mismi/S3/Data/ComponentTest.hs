@@ -36,6 +36,9 @@ prop_parseDelimitedText_RepeatedSlashes (SlashedText t) =
 
     in compareSquashedResults t
 
+prop_parseDelimitedText_length :: T.Text -> Property
+prop_parseDelimitedText_length t = length (parseDelimitedText t) === length (wordsBy (== '/') t)
+
 prop_rejectSlashes :: SlashedComponentText -> Property
 prop_rejectSlashes (SlashedComponentText t) = parseComponent t === Left (ComponentParseErrorInvalidChars (T.filter (== '/') t), t)
 
