@@ -26,6 +26,7 @@ library
                      , process                         == 1.2.*
                      , resourcet                       == 1.1.*
                      , semigroups                      == 0.16.*
+                     , syb                             == 0.4.*
                      , text                            == 1.2.*
                      , transformers                    == 0.4.*
 
@@ -43,6 +44,8 @@ library
                        Mismi.S3.Commands
                        Mismi.S3.Control
                        Mismi.S3.Data
+                       Mismi.S3.Data.Component
+                       Mismi.S3.Data.Component.QQ
 
 
 test-suite test
@@ -53,9 +56,12 @@ test-suite test
   build-depends:       base
                      , mismi
                      , aws
+                     , bifunctors                      == 4.2.*
                      , exceptions
                      , p
                      , http-client
+                     , semigroups                      == 0.16.*
+                     , split                           == 0.2.*
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*

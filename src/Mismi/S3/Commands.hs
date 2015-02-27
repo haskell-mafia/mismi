@@ -31,14 +31,13 @@ import           Prelude (error)
 
 
 getTextUtf8 :: Address -> S3Action (Maybe Text)
-getTextUtf8 (Address (Bucket b) (Key k)) =
-  (awsRequest (S3.getObject b k) >>=
+getTextUtf8 (Address (Bucket b) k) =
+  (awsRequest (S3.getObject b (showKey k)) >>=
     fmap Just . lift . fmap (T.decodeUtf8 . BS.concat) . ($$+- C.consume) . responseBody . S3.gorResponse)
     `catch` (\(e :: S3.S3Error) -> if S3.s3StatusCode e == status404 then pure Nothing else throwM e)
 
 getObjects :: Address -> S3Action [S3.ObjectInfo]
-getObjects (Address (Bucket b) (Key k)) =
-  getObjects' $ (S3.getBucket b) { S3.gbPrefix = Just $ k <> "/" }
+getObjects (Address (Bucket b) k) = getObjects' $ (S3.getBucket b) { S3.gbPrefix = Just $ showKey k <> "/" }
   where
     -- Hoping this will have ok performance in cases where the results are large, it shouldnt
     -- affect correctness since we search through the list for it anyway
@@ -50,7 +49,7 @@ getObjects (Address (Bucket b) (Key k)) =
       if S3.gbrIsTruncated resp
         then
           maybe
-            (error "vee: error: truncated response with empty contents list.")
+            (error "s3 (GET Bucket): error: truncated response with empty contents list.")
             (go x)
             (NEL.nonEmpty $ S3.gbrContents resp)
         else

@@ -6,14 +6,23 @@ module Mismi.S3.DataTest where
 import           Data.Text as T
 
 import           Mismi.S3.Data
+import           Mismi.S3.Data.Component
+
 import           Mismi.Test
 import           Mismi.Test.S3 ()
+import           Mismi.Test.S3.Data.Component ()
 
 
-prop_append :: Key -> Key -> Property
+prop_append :: Key -> Component -> Property
 prop_append p1 p2 =
-  T.count "//" (unKey (p1 </> p2)) === 0
+  T.count "//" (showKey (p1 </> p2)) === 0
 
+prop_noDoubleSlashesAfterBucket :: T.Text -> Key -> Property
+prop_noDoubleSlashesAfterBucket b k =
+  (T.count "//" . T.drop 5 . showAddress $ Address (Bucket (T.filter (/= '/') b)) k) === 0
+
+prop_parseShowKeyWeakInverse :: Key -> Property
+prop_parseShowKeyWeakInverse p = (parseKey . showKey) p === p
 
 return []
 tests :: IO Bool
