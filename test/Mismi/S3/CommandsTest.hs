@@ -33,7 +33,7 @@ prop_getObjects_empty p = ioProperty $ do
   objs <- runS3WithDefaults . getObjects $ Address bucket' (tmpPath p)
   pure $ fmap S3.objectKey objs === []
 
-prop_getObjects :: KeyTmp -> Component -> Component -> Property
+prop_getObjects :: KeyTmp -> Key -> Key -> Property
 prop_getObjects prefix p1 p2 = p1 /= p2 ==> ioProperty $ do
   bucket' <- testBucket
   runS3WithDefaults .

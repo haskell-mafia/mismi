@@ -37,8 +37,8 @@ instance Arbitrary KeyTmp where
   arbitrary = KeyTmp  <$> (([qcomponent|tmp|] <:/> [qcomponent|vee|] </>) <$> arbitrary) <*> arbitrary
 
 
-(<//>) :: KeyTmp -> Component -> KeyTmp
-(<//>) (KeyTmp k1 b) k2 = KeyTmp (k1 </> k2) b
+(<//>) :: KeyTmp -> Key -> KeyTmp
+(<//>) (KeyTmp k1 b) k2 = KeyTmp (k1 <++> k2) b
 
 testBucket :: IO Bucket
 testBucket =

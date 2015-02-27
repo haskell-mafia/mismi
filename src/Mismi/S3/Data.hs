@@ -7,6 +7,7 @@ module Mismi.S3.Data (
   , (</>)
   , (<\>)
   , (<:/>)
+  , (<++>)
   , foldKey
   , parseKey
   , showAddress
@@ -63,11 +64,18 @@ infixl 5 </>
 
 infixr 5 <\>
 -- |
--- Lets you prepend a component to the beginning of a key,
+-- Lets you cons a component to the beginning of a key,
 -- This is kind of inefficent as it means its traversing to the end of the list to put something at the bottom
 --
 (<\>) :: Component -> Key -> Key
 (<\>) c = foldKey (EmptyKey </> c) (</>)
+
+infixl 4 <++>
+-- |
+-- lets you prepend a key to the front of another
+--
+(<++>) :: Key -> Key -> Key
+(<++>) k = foldKey k (</>)
 
 infixl 5 <:/>
 (<:/>) :: Component -> Component -> Key
