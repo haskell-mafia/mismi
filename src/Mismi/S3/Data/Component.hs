@@ -39,7 +39,6 @@ parseComponent t
     | T.any (not . checkComponentChar) t        = Left (ComponentParseErrorInvalidChars $ T.filter (not . checkComponentChar) t, t)
     | otherwise                                 = pure $ Component t
 
--- TESTME
 parseDelimitedText :: T.Text -> [Component]
 parseDelimitedText = fmap Component . filter (not . T.null) . T.split (== '/')
 
