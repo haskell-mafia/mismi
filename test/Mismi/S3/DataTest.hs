@@ -17,6 +17,9 @@ prop_append :: Key -> Component -> Property
 prop_append p1 p2 =
   T.count "//" (showKey (p1 </> p2)) === 0
 
+prop_noDoubleSlashesAfterBucket :: T.Text -> Key -> Property
+prop_noDoubleSlashesAfterBucket b k =
+  T.count "//" (T.drop 5 $ showAddress $ Address (Bucket (T.filter (/= '/') b)) k) === 0
 
 prop_parseShowKeyWeakInverse :: Key -> Property
 prop_parseShowKeyWeakInverse p = (parseKey . showKey) p === p

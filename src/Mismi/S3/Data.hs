@@ -38,8 +38,9 @@ data Key =
         deriving (Eq, Show)
 
 showKey :: Key -> T.Text
-showKey EmptyKey = ""
-showKey (k :/ c) = T.intercalate "/" [showKey k, componentText c]
+showKey EmptyKey        = ""
+showKey (EmptyKey :/ c) = componentText c
+showKey (k :/ c)        = T.intercalate "/" [showKey k, componentText c]
 
 foldKey :: a -> (a -> Component -> a) -> Key -> a
 foldKey nil _ EmptyKey = nil
