@@ -11,7 +11,6 @@ module Mismi.S3.Data.Component (
 
 import P hiding ( (<>) )
 
-import Data.Char ( isControl )
 import Data.Data ( Data )
 import Data.Semigroup ( Semigroup(..) )
 import qualified Data.Text as T

@@ -19,7 +19,6 @@ import           Mismi.Arbitrary ()
 import           Mismi.Control
 import           Mismi.S3.Control
 import           Mismi.S3.Data
-import           Mismi.S3.Data.Component
 import           Mismi.S3.Data.Component.QQ
 
 import           Mismi.Test.S3.Data.Component ()
@@ -38,7 +37,7 @@ instance Arbitrary KeyTmp where
 
 
 (<//>) :: KeyTmp -> Key -> KeyTmp
-(<//>) (KeyTmp k1 b) k2 = KeyTmp (k1 <++> k2) b
+(<//>) (KeyTmp k1 b) k2 = KeyTmp (k1 <> k2) b
 
 testBucket :: IO Bucket
 testBucket =

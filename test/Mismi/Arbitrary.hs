@@ -9,7 +9,6 @@ import           Mismi.S3.Data
 import           Mismi.Test
 
 import qualified Data.Text as T
-import           Data.List ( take )
 
 
 

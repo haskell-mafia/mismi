@@ -10,7 +10,6 @@ import           Data.List (sort)
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
-import           Mismi.S3.Data.Component
 import           Mismi.Test
 import           Mismi.Test.S3
 

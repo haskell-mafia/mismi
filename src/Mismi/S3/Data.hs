@@ -7,7 +7,6 @@ module Mismi.S3.Data (
   , (</>)
   , (<\>)
   , (<:/>)
-  , (<++>)
   , foldKey
   , parseKey
   , showAddress
@@ -37,6 +36,10 @@ data Key =
         EmptyKey
     |   Key :/ Component
         deriving (Eq, Show)
+
+instance Monoid Key where
+    mempty = EmptyKey
+    mappend k = foldKey k (</>)
 
 showKey :: Key -> T.Text
 showKey EmptyKey        = ""
@@ -69,13 +72,6 @@ infixr 5 <\>
 --
 (<\>) :: Component -> Key -> Key
 (<\>) c = foldKey (EmptyKey </> c) (</>)
-
-infixl 4 <++>
--- |
--- lets you prepend a key to the front of another
---
-(<++>) :: Key -> Key -> Key
-(<++>) k = foldKey k (</>)
 
 infixl 5 <:/>
 (<:/>) :: Component -> Component -> Key
