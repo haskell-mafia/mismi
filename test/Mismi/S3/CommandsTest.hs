@@ -14,7 +14,6 @@ import           Mismi.S3.Data.Component
 import           Mismi.Test
 import           Mismi.Test.S3
 
-
 prop_getTextUtf8_empty :: Key -> Property
 prop_getTextUtf8_empty k = ioProperty $ do
   bucket' <- testBucket

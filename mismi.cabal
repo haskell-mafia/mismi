@@ -61,6 +61,7 @@ test-suite test
                      , p
                      , http-client
                      , semigroups                      == 0.16.*
+                     , split                           == 0.2.*
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*

@@ -26,7 +26,7 @@ instance Arbitrary SafeComponentText where
 -- |
 -- Text that should fail to be parsed as a `ComponentWord` as it contains slashes
 --
-newtype SlashedComponentText = SlashedComponentText T.Text deriving (Show, Eq)
+newtype SlashedComponentText = SlashedComponentText { _slashedText ::  T.Text } deriving (Show, Eq)
 
 instance Arbitrary SlashedComponentText where
     arbitrary = SlashedComponentText <$> do

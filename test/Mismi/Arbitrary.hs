@@ -21,11 +21,10 @@ instance Arbitrary Key where
       -- https://github.com/ambiata/vee/issues/7
       genPath = elements ["happy", "sad", ".", ":", "-"]
 
-      -- We dont want the possibility of "../" coming up until we have a path at least 2 levels deep (?)
-      --
+      -- We dont want the possibility of "../" coming up at the root level
+      -- <https://github.com/ambiata/mismi/commit/e9beff0162ef26eec0fc1b368eb23731160ffdc3#commitcomment-9949978>
       fixPaths :: [T.Text] -> [T.Text]
-      fixPaths ("..":t:u:ts) = t:u:"..":ts
-      fixPaths (t:"..":u:ts) = t:u:"..":ts
+      fixPaths ("..":t:ts) = t:"..":ts
       fixPaths ts
-        | length ts <= 2    = filter (/= "..") ts
+        | length ts < 2     = filter (/= "..") ts
         | otherwise         = ts

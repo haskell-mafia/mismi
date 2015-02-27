@@ -16,6 +16,26 @@ import qualified Data.Text as T
 prop_parseSafeComponent :: SafeComponentText -> Property
 prop_parseSafeComponent (SafeComponentText t) = (componentText <$> parseComponent t) === pure t
 
+prop_parseDelimitedText_ComponentsValid :: T.Text -> Property
+prop_parseDelimitedText_ComponentsValid t = (=== pure (parseDelimitedText t)) . traverse (parseComponent . componentText) . parseDelimitedText $ t
+
+-- the result of parsing a string of text into a Key should be the same regardless of how many '/'s appear consecutively
+-- This prop also shows that the reasult is also invariant to any '/'s that appear at the front or the end....
+--
+prop_parseDelimitedText_RepeatedSlashes :: SlashedText -> Property
+prop_parseDelimitedText_RepeatedSlashes (SlashedText t) =
+    let
+        squashSlashes :: T.Text -> T.Text
+        squashSlashes = T.intercalate "/" . wordsBy (== '/')
+
+        compareParseResults :: T.Text -> T.Text -> Property
+        compareParseResults = (===) `on` parseDelimitedText
+
+        compareSquashedResults :: T.Text -> Property
+        compareSquashedResults = squashSlashes >>= compareParseResults
+
+    in compareSquashedResults t
+
 prop_rejectSlashes :: SlashedComponentText -> Property
 prop_rejectSlashes (SlashedComponentText t) = parseComponent t === Left (ComponentParseErrorInvalidChars (T.filter (== '/') t), t)
 
