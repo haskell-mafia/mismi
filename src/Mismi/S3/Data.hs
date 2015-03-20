@@ -5,9 +5,12 @@ module Mismi.S3.Data (
   , Address (..)
   , Key (..)
   , (</>)
+  , dirname
   ) where
 
-import           Data.Text as T
+import qualified Data.Text as T
+import           Data.Text (Text)
+import           Data.List (init)
 
 import           P
 
@@ -28,8 +31,12 @@ newtype Key = Key {
   } deriving (Eq, Show)
 
 instance Show Address where
-  show (Address (Bucket b) (Key k)) =
-    T.unpack $ "s3://" <> b <> "/" <> k
+  show (Address b k) =
+    "Address (" <> show b <> ") (" <> show k <> ")"
 
 (</>) :: Key -> Key -> Key
 (</>) (Key p1) (Key p2) = Key $ p1 <> "/" <> p2
+
+dirname :: Key -> Key
+dirname =
+  Key . T.intercalate "/" . init . T.split (=='/') . unKey
