@@ -14,3 +14,8 @@ fi
 make .cabal-sandbox/.cairn
 cabal configure --enable-tests
 cabal test --log=/dev/stdout
+
+VERSION=$(date '+%Y%m%d%H%M%S')-$(git log --pretty=format:%h -n 1)
+
+cabal haddock --hoogle
+aws s3 --region=ap-southeast-2 cp dist/doc/html/mismi/mismi.txt s3://ambiata-dist/mismi-hoogle/$VERSION/mismi-hoogle-$VERSION.txt
