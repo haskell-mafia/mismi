@@ -11,7 +11,7 @@ import           Control.Exception (SomeException)
 
 import           Data.Bool
 import           Data.List (sort)
-import           Data.Text
+import           Data.Text as T
 
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
@@ -108,9 +108,11 @@ prop_list a = monadicIO $ do
       listRecursively (a { key = dirname $ key a })
   stop $ a `elem` r == True
 
-prop_dirname :: Address -> Key -> Bool
-prop_dirname a k =
-  (dirname $ key a </> k) == key a
+prop_dirname :: Address -> Text -> Property
+prop_dirname a t =
+  let k = Key t in
+  (T.all (/= '/') t) ==>
+    (dirname $ key a </> k) === key a
 
 return []
 tests :: IO Bool
