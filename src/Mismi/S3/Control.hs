@@ -18,7 +18,7 @@ import           System.IO
 
 
 -- | Specilised AwsAction for S3 operations
-type S3Action a = ReaderT (Aws.Configuration, S3.S3Configuration Aws.NormalQuery, Manager) (ResourceT IO) a
+type S3Action = ReaderT (Aws.Configuration, S3.S3Configuration Aws.NormalQuery, Manager) (ResourceT IO)
 
 runS3WithDefaults :: S3Action a -> IO a
 runS3WithDefaults action = do
