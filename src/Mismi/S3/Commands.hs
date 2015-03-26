@@ -59,12 +59,13 @@ read a =
 download :: Address -> FilePath -> S3Action ()
 download a p =
   let get = S3.getObject (unBucket $ bucket a) (unKey $ key a) in do
+    whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
     liftIO $ createDirectoryIfMissing True (dropFileName p)
     (awsRequest get >>= lift . ($$+- (sinkFile p)) . responseBody . S3.gorResponse)
 
 write :: Address -> Text -> S3Action ()
 write a t =
-  ifM (exists a) (fail ("Can not write to a file that already exists. (" <> show a <> ").")) (
+  ifM (exists a) (fail ("Can not write to a file that already exists [" <> show a <> "].")) (
     let body = RequestBodyBS $ T.encodeUtf8 t in
     void . awsRequest $ S3.putObject (unBucket $ bucket a) (unKey $ key a) body)
 
