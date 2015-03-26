@@ -5,6 +5,7 @@ module Mismi.S3.Commands (
     exists
   , delete
   , read
+  , download
   , write
   , getObjects
   , listRecursively
@@ -12,11 +13,13 @@ module Mismi.S3.Commands (
 
 import qualified Aws.S3 as S3
 
+import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Catch (catch, throwM)
 
 import           Data.ByteString as BS
 import           Data.Conduit
+import           Data.Conduit.Binary (sinkFile)
 import           Data.Conduit.List as C
 import qualified Data.List.NonEmpty as NEL
 import           Data.Text as T
@@ -32,6 +35,10 @@ import           Network.HTTP.Types.Status (status404)
 import           P
 
 import           Prelude (error)
+
+import           System.FilePath
+import           System.Directory
+
 
 exists :: Address -> S3Action Bool
 exists a =
@@ -49,9 +56,16 @@ read a =
    fmap Just . lift . fmap (T.decodeUtf8 . BS.concat) . ($$+- C.consume) . responseBody . S3.gorResponse)
   `catch` (\(e :: S3.S3Error) -> if S3.s3StatusCode e == status404 then pure Nothing else throwM e)
 
+download :: Address -> FilePath -> S3Action ()
+download a p =
+  let get = S3.getObject (unBucket $ bucket a) (unKey $ key a) in do
+    whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
+    liftIO $ createDirectoryIfMissing True (dropFileName p)
+    (awsRequest get >>= lift . ($$+- (sinkFile p)) . responseBody . S3.gorResponse)
+
 write :: Address -> Text -> S3Action ()
 write a t =
-  ifM (exists a) (fail ("Can not write to a file that already exists. (" <> show a <> ").")) (
+  ifM (exists a) (fail ("Can not write to a file that already exists [" <> show a <> "].")) (
     let body = RequestBodyBS $ T.encodeUtf8 t in
     void . awsRequest $ S3.putObject (unBucket $ bucket a) (unKey $ key a) body)
 

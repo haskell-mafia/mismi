@@ -4,7 +4,7 @@ SANDBOX = .cabal-sandbox
 CABAL_FLAGS =
 LIB = lib
 DEPS = ${SANDBOX}/.cairn
-SUBMODULES = ${LIB}/p/p.cabal
+SUBMODULES = ${LIB}/p/p.cabal ${LIB}/orphanarium/orphanarium-corpus/orphanarium-corpus.cabal
 
 .PHONY: build test repl repl-test quick tags
 
@@ -17,6 +17,7 @@ ${SUBMODULES}:
 ${SANDBOX} cabal.sandbox.config: ${SUBMODULES}
 	cabal sandbox --sandbox ${SANDBOX} init
 	cabal sandbox --sandbox ${SANDBOX} add-source ${LIB}/p
+	cabal sandbox --sandbox ${SANDBOX} add-source ${LIB}/orphanarium/orphanarium-corpus
 
 ${DEPS}: ${SANDBOX} $(wildcard *.cabal) cabal.sandbox.config
 	cabal install -j --only-dependencies --enable-tests

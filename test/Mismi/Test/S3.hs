@@ -7,18 +7,22 @@ import qualified Aws.S3 as S3
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Catch (bracket_, finally)
 
+import qualified Data.List as L
 import           Data.Text as T
 import           Data.Text.Encoding as T
 
 import           Network.HTTP.Client (RequestBody(..))
 
 import           System.Posix.Env
+import           System.FilePath hiding ((</>))
 
 import           Mismi.Arbitrary ()
 import           Mismi.Control
 import           Mismi.S3.Control
 import           Mismi.S3.Data
 import           Mismi.Test
+
+import           Orphanarium.Corpus
 
 
 data KeyTmp = KeyTmp {
@@ -30,6 +34,17 @@ data KeyTmp = KeyTmp {
 -- Ensure everything is under our own key space for debugging
 instance Arbitrary KeyTmp where
   arbitrary = KeyTmp  <$> ((Key "tmp/vee" </>) <$> arbitrary) <*> arbitrary
+
+data LocalPath =
+  LocalPath {
+      localPath :: FilePath
+    } deriving (Eq, Show)
+
+instance Arbitrary LocalPath where
+  arbitrary = do
+    x <- elements weather
+    xs <- listOf $ elements simpsons
+    pure . LocalPath $ L.intercalate "/" (T.unpack <$> x : xs)
 
 testBucket :: IO Bucket
 testBucket =

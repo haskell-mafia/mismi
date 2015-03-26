@@ -18,7 +18,10 @@ library
                      , aws                             == 0.11.*
                      , bytestring                      == 0.10.*
                      , conduit                         == 1.2.*
+                     , conduit-extra                   == 1.1.*
+                     , directory                       == 1.2.*
                      , exceptions                      == 0.6.*
+                     , filepath                        == 1.3.*
                      , http-client                     == 0.4.*
                      , http-conduit                    == 2.1.*
                      , http-types                      == 0.8.*
@@ -54,10 +57,13 @@ test-suite test
                      , mismi
                      , aws
                      , exceptions
+                     , filepath
                      , p
                      , http-client
+                     , orphanarium-corpus
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
+                     , temporary                       == 1.2.*

@@ -6,18 +6,24 @@ module Mismi.S3.CommandsTest where
 
 import qualified Aws.S3 as S3
 
+import           Control.Monad.IO.Class
 import           Control.Monad.Catch (catch)
 import           Control.Exception (SomeException)
 
 import           Data.Bool
 import           Data.List (sort)
 import           Data.Text as T
+import qualified Data.Text.IO as T
 
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
 import           Mismi.Test
 import           Mismi.Test.S3
+
+import           System.FilePath hiding ((</>))
+import qualified System.FilePath as F
+import           System.IO.Temp
 
 import           Test.QuickCheck.Monadic
 
@@ -66,6 +72,17 @@ prop_read_write a d = monadicIO $ do
         write a d
         read a
     stop $ r === Just d
+
+prop_write_download :: Address -> Text -> LocalPath -> Property
+prop_write_download a d l = monadicIO $ do
+    r <- run $ do
+      withSystemTempDirectory "mismi" $ \p -> do
+        runS3WithDefaults . withAddress a $ do
+          write a d
+          let t = p F.</> localPath  l
+          download a t
+          liftIO $ T.readFile t
+    stop $ r === d
 
 prop_write_failure :: Address -> Text -> Property
 prop_write_failure a d = monadicIO $ do
