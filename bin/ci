@@ -18,4 +18,4 @@ cabal test --log=/dev/stdout
 VERSION=$(date '+%Y%m%d%H%M%S')-$(git log --pretty=format:%h -n 1)
 
 cabal haddock --hoogle
-aws s3 --region=ap-southeast-2 cp --recursive dist/doc/html/mismi/ s3://ambiata-doc/mismi-hackage/$VERSION
+aws s3 --region=ap-southeast-2 cp --recursive dist/doc/html/mismi/ s3://ambiata-doc/mismi-haddock/$VERSION
