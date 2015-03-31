@@ -31,6 +31,7 @@ library
                      , semigroups                      == 0.16.*
                      , text                            == 1.2.*
                      , transformers                    == 0.4.*
+                     , attoparsec                      == 0.12.*
 
   ghc-options:
                        -Wall
