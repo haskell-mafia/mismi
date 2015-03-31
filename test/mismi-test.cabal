@@ -6,16 +6,19 @@ build-type:            Simple
 library
   build-depends:
                        base
-                     , p
                      , mismi
                      , aws
                      , exceptions
+                     , filepath
+                     , p
                      , http-client
-                     , QuickCheck
-                     , quickcheck-instances
+                     , orphanarium-corpus
                      , text
                      , transformers
+                     , QuickCheck
+                     , quickcheck-instances
                      , unix
+                     , temporary
 
   exposed-modules:
                        Mismi.Arbitrary
