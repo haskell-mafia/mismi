@@ -9,6 +9,7 @@ module Mismi.S3.Data (
   , addressFromText
   , addressToText
   , withKey
+  , s3Parser
   ) where
 
 import           Data.Attoparsec.Text hiding (parse)
