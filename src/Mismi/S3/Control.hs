@@ -29,8 +29,7 @@ import           System.IO
 type S3Action = ReaderT (Aws.Configuration, S3.S3Configuration Aws.NormalQuery, Manager) (ResourceT IO)
 
 runS3WithDefaults :: S3Action a -> IO a
-runS3WithDefaults action = do
-  baseConfiguration' >>= \cfg -> runS3WithCfg cfg action
+runS3WithDefaults action = baseConfiguration' >>= \cfg -> runS3WithCfg cfg action
 
 runS3WithCfg :: Aws.Configuration -> S3Action a -> IO a
 runS3WithCfg cfg action =
@@ -58,7 +57,7 @@ loadCredentialsDefault' = do
 loadCredentialsFromEnvOrFileOrInstanceMetadata' :: MonadIO io => Maybe FilePath -> T.Text -> io (Maybe Credentials)
 loadCredentialsFromEnvOrFileOrInstanceMetadata' file key =
   loadCredentialsFromEnv >>=
-    maybe (loadCredentialsFromInstanceMetadata) (return . return) >>=
+    maybe loadCredentialsFromInstanceMetadata (return . return) >>=
     maybe (loadCredentialsFromFile' key file) (return . return)
 
 loadCredentialsFromFile' :: MonadIO io => T.Text -> Maybe FilePath -> io (Maybe Credentials)
