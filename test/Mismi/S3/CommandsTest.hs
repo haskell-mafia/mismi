@@ -21,6 +21,8 @@ import           Mismi.S3.Data
 import           Mismi.Test
 import           Mismi.Test.S3
 
+import           Orphanarium.Core.UniquePair
+
 import qualified System.FilePath as F
 import           System.IO.Temp
 
@@ -30,52 +32,52 @@ prop_exists :: Address -> Property
 prop_exists a = monadicIO $ do
   r <- run $ do
     runS3WithDefaults . withAddress a $ do
-      write a ""
+      write Fail a ""
       exists a
   stop $ r === True
 
 prop_exists_empty :: Address -> Property
 prop_exists_empty a = monadicIO $ do
-  r <- run $ do
-    runS3WithDefaults . withAddress a $ do
+  r <- run $
+    runS3WithDefaults . withAddress a $
       exists a
   stop $ r === False
 
-prop_delete :: Address -> Property
-prop_delete a = monadicIO $ do
-  r <- run $ do
+prop_delete :: WriteMode -> Address -> Property
+prop_delete w a = monadicIO $ do
+  r <- run $
     runS3WithDefaults . withAddress a $ do
-      write a ""
+      write w a ""
       x <- exists a
       delete a
       y <- exists a
-      pure $ (x, y)
+      pure (x, y)
   stop $ r == (True, False)
 
 prop_delete_empty :: Address -> Property
 prop_delete_empty a = monadicIO $ do
-    r <- run $ (do
+    r <- run $ (
       runS3WithDefaults . withAddress a $ do
         delete a
-        pure $ True)
+        pure True)
          `catch`
-         (\(_ :: SomeException) -> pure $ False)
+         (\(_ :: SomeException) -> pure False)
     stop $ r === True
 
 prop_read_write :: Address -> Text -> Property
 prop_read_write a d = monadicIO $ do
-    r <- run $ do
+    r <- run $
       runS3WithDefaults . withAddress a $ do
-        write a d
+        write Fail a d
         read a
     stop $ r === Just d
 
 prop_write_download :: Address -> Text -> LocalPath -> Property
 prop_write_download a d l = monadicIO $ do
-    r <- run $ do
-      withSystemTempDirectory "mismi" $ \p -> do
+    r <- run $
+      withSystemTempDirectory "mismi" $ \p ->
         runS3WithDefaults . withAddress a $ do
-          write a d
+          write Fail a d
           let t = p F.</> localPath  l
           download a t
           liftIO $ T.readFile t
@@ -83,14 +85,34 @@ prop_write_download a d l = monadicIO $ do
 
 prop_write_failure :: Address -> Text -> Property
 prop_write_failure a d = monadicIO $ do
-    r <- run $ (do
+    r <- run $ (
       runS3WithDefaults . withAddress a $ do
-        write a d
-        write a d
-        pure $ False)
+        write Fail a d
+        write Fail a d
+        pure False)
          `catch`
-         (\(_ :: SomeException) -> pure $ True)
+         (\(_ :: SomeException) -> pure True)
     stop $ r === True
+
+prop_write_overwrite :: Address -> UniquePair Text -> Property
+prop_write_overwrite a (UniquePair x y) = monadicIO $ do
+    r <- run $
+        runS3WithDefaults . withAddress a $ do
+            write Fail a x
+            write Overwrite a y
+            read a
+    stop $ r === pure y
+
+-- |
+-- If the object does not exist, then the behaviour should be invariant with the WriteMode
+--
+prop_write_nonexisting :: WriteMode -> Address -> Text -> Property
+prop_write_nonexisting w a t = monadicIO $ do
+    r <- run $
+        runS3WithDefaults . withAddress a $ do
+            write w a t
+            read a
+    stop $ r === pure t
 
 prop_read_empty :: Key -> Property
 prop_read_empty k = ioProperty $ do
@@ -116,17 +138,18 @@ prop_getObjects prefix p1 p2 = p1 /= p2 ==> ioProperty $ do
 
 prop_list :: Address -> Property
 prop_list a = monadicIO $ do
-  r <- run $ do
+  r <- run $
     runS3WithDefaults . withAddress a $ do
-      write a ""
+      write Fail a ""
       listRecursively (a { key = dirname $ key a })
-  stop $ a `elem` r == True
+  stop $ a `elem` r
 
 prop_dirname :: Address -> Text -> Property
 prop_dirname a t =
   let k = Key t in
-  (T.all (/= '/') t) ==>
-    (dirname $ key a </> k) === key a
+  T.all (/= '/') t ==>
+    dirname (key a </> k) === key a
+
 
 return []
 tests :: IO Bool

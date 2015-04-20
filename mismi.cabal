@@ -61,6 +61,7 @@ test-suite test
                      , filepath
                      , p
                      , http-client
+                     , orphanarium-core
                      , orphanarium-corpus
                      , text
                      , transformers

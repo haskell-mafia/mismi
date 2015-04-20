@@ -66,7 +66,7 @@ download a p =
 write :: WriteMode -> Address -> Text -> S3Action ()
 write w a t = do
   case w of
-    Fail        -> exists a >>= (`when` fail ("Can not write to a file that already exists [" <> show a <> "]."))
+    Fail        -> whenM (exists a) . fail $ "Can not write to a file that already exists [" <> show a <> "]."
     Overwrite   -> return ()
   let body = RequestBodyBS $ T.encodeUtf8 t
   void . awsRequest $ S3.putObject (unBucket $ bucket a) (unKey $ key a) body
