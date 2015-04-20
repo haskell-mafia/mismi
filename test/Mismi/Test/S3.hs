@@ -63,8 +63,8 @@ withTmpKey (KeyTmp (Key tmpPath') body') f = do
 
 withKey :: Key -> (S3Action t) -> S3Action t
 withKey k f = do
-  (Bucket bucket) <- liftIO $ testBucket
-  finally f (awsRequest $ S3.DeleteObject (unKey k) bucket)
+  (Bucket bucket') <- liftIO $ testBucket
+  finally f (awsRequest $ S3.DeleteObject (unKey k) bucket')
 
 withAddress :: Address -> (S3Action t) -> S3Action t
 withAddress a f = do

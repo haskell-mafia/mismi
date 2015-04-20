@@ -25,7 +25,7 @@ ${DEPS}: ${SANDBOX} $(wildcard *.cabal) cabal.sandbox.config
 	touch $@
 
 build: ${DEPS}
-	cabal build
+	cabal build --ghc-option="-Werror"
 
 test: ${DEPS}
 	cabal test --log=/dev/stdout

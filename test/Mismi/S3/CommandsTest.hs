@@ -21,13 +21,10 @@ import           Mismi.S3.Data
 import           Mismi.Test
 import           Mismi.Test.S3
 
-import           System.FilePath hiding ((</>))
 import qualified System.FilePath as F
 import           System.IO.Temp
 
 import           Test.QuickCheck.Monadic
-
-import Prelude (putStrLn)
 
 prop_exists :: Address -> Property
 prop_exists a = monadicIO $ do
@@ -62,7 +59,7 @@ prop_delete_empty a = monadicIO $ do
         delete a
         pure $ True)
          `catch`
-         (\(e :: SomeException) -> pure $ False)
+         (\(_ :: SomeException) -> pure $ False)
     stop $ r === True
 
 prop_read_write :: Address -> Text -> Property
@@ -92,7 +89,7 @@ prop_write_failure a d = monadicIO $ do
         write a d
         pure $ False)
          `catch`
-         (\(e :: SomeException) -> pure $ True)
+         (\(_ :: SomeException) -> pure $ True)
     stop $ r === True
 
 prop_read_empty :: Key -> Property
