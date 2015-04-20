@@ -15,7 +15,6 @@ import           Data.Text as T
 
 import           Control.Monad.Catch
 import           Control.Monad.Reader hiding (forM)
-import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource (ResourceT)
 
 import           Network.HTTP.Client (Manager)

@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Mismi.Arbitrary where
 
-import qualified Aws.S3 as S3
+import qualified Aws.S3 as S3 ()
 
 import           Data.Text as T
 
