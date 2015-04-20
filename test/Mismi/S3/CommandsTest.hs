@@ -6,9 +6,9 @@ module Mismi.S3.CommandsTest where
 
 import qualified Aws.S3 as S3
 
+import           Control.Monad.Catch (catchAll)
+
 import           Control.Monad.IO.Class
-import           Control.Monad.Catch (catch)
-import           Control.Exception (SomeException)
 
 import           Data.Bool
 import           Data.List (sort)
@@ -59,9 +59,9 @@ prop_delete_empty a = monadicIO $ do
     r <- run $ (
       runS3WithDefaults . withAddress a $ do
         delete a
-        pure True)
-         `catch`
-         (\(_ :: SomeException) -> pure False)
+        pure $ True)
+         `catchAll`
+         (\(_) -> pure $ False)
     stop $ r === True
 
 prop_read_write :: Address -> Text -> Property
@@ -90,8 +90,8 @@ prop_write_failure a d = monadicIO $ do
         write Fail a d
         write Fail a d
         pure False)
-         `catch`
-         (\(_ :: SomeException) -> pure True)
+         `catchAll`
+         (\(_) -> pure $ True)
     stop $ r === True
 
 prop_write_overwrite :: Address -> UniquePair Text -> Property
