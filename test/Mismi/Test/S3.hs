@@ -53,19 +53,18 @@ testBucket =
 (<//>) :: KeyTmp -> Key -> KeyTmp
 (<//>) (KeyTmp k1 b) k2 = KeyTmp (k1 </> k2) b
 
-withTmpKey :: KeyTmp -> (S3Action t) -> S3Action t
+withTmpKey :: KeyTmp -> S3Action t -> S3Action t
 withTmpKey (KeyTmp (Key tmpPath') body') f = do
-  (Bucket bucket') <- liftIO $ testBucket
+  (Bucket bucket') <- liftIO testBucket
   bracket_
     (awsRequest (S3.putObject bucket' tmpPath' (RequestBodyBS (T.encodeUtf8 body'))))
     (awsRequest $ S3.DeleteObject tmpPath' bucket')
     f
 
-withKey :: Key -> (S3Action t) -> S3Action t
+withKey :: Key -> S3Action t -> S3Action t
 withKey k f = do
-  (Bucket bucket') <- liftIO $ testBucket
+  (Bucket bucket') <- liftIO testBucket
   finally f (awsRequest $ S3.DeleteObject (unKey k) bucket')
 
-withAddress :: Address -> (S3Action t) -> S3Action t
-withAddress a f = do
-  finally f (awsRequest $ S3.DeleteObject (unKey $ key a) (unBucket $ bucket a))
+withAddress :: Address -> S3Action t -> S3Action t
+withAddress a f = finally f (awsRequest $ S3.DeleteObject (unKey $ key a) (unBucket $ bucket a))

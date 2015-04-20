@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Mismi.S3.Data (
-    Bucket(..)
+    WriteMode(..)
+  , Bucket(..)
   , Address (..)
   , Key (..)
   , (</>)
@@ -20,6 +21,13 @@ import           Data.List (init)
 
 import           P
 
+-- |
+-- Describes the behaviour to display when a write is attempted on a location where an object already exists.
+--
+data WriteMode =
+        Fail        -- ^ Returns an error if there is already an object at the given address.
+    |   Overwrite   -- ^ If an object already exists at the given address, overwrite it
+        deriving (Eq, Show)
 
 newtype Bucket = Bucket {
     unBucket :: Text
@@ -52,7 +60,7 @@ dirname =
 
 addressToText :: Address -> Text
 addressToText a =
-  "s3://" <> (unBucket $ bucket a) <> "/" <> (unKey $ key a)
+  "s3://" <> unBucket (bucket a) <> "/" <> unKey (key a)
 
 addressFromText :: Text -> Maybe Address
 addressFromText =

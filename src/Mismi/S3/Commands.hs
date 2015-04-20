@@ -43,7 +43,7 @@ import           System.Directory
 exists :: Address -> S3Action Bool
 exists a =
   let req = S3.headObject (unBucket $ bucket a) (unKey $ key a) in
-  (awsRequest req) >>= pure . isJust . S3.horMetadata
+  awsRequest req >>= pure . isJust . S3.horMetadata
 
 delete :: Address -> S3Action ()
 delete a =
@@ -61,13 +61,15 @@ download a p =
   let get = S3.getObject (unBucket $ bucket a) (unKey $ key a) in do
     whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
     liftIO $ createDirectoryIfMissing True (dropFileName p)
-    (awsRequest get >>= lift . ($$+- (sinkFile p)) . responseBody . S3.gorResponse)
+    awsRequest get >>= lift . ($$+- sinkFile p) . responseBody . S3.gorResponse
 
-write :: Address -> Text -> S3Action ()
-write a t =
-  ifM (exists a) (fail ("Can not write to a file that already exists [" <> show a <> "].")) (
-    let body = RequestBodyBS $ T.encodeUtf8 t in
-    void . awsRequest $ S3.putObject (unBucket $ bucket a) (unKey $ key a) body)
+write :: WriteMode -> Address -> Text -> S3Action ()
+write w a t = do
+  case w of
+    Fail        -> whenM (exists a) . fail $ "Can not write to a file that already exists [" <> show a <> "]."
+    Overwrite   -> return ()
+  let body = RequestBodyBS $ T.encodeUtf8 t
+  void . awsRequest $ S3.putObject (unBucket $ bucket a) (unKey $ key a) body
 
 getObjects :: Address -> S3Action [S3.ObjectInfo]
 getObjects (Address (Bucket b) (Key ky)) =
