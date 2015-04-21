@@ -69,3 +69,4 @@ test-suite test
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
                      , temporary                       == 1.2.*
+                     , uuid                            == 1.3.*
