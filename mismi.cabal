@@ -63,9 +63,10 @@ test-suite test
                      , http-client
                      , orphanarium-core
                      , orphanarium-corpus
+                     , temporary                       == 1.2.*
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
-                     , temporary                       == 1.2.*
+                     , uuid                            == 1.3.*
