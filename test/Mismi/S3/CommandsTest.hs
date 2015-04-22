@@ -120,20 +120,18 @@ prop_read_empty k = ioProperty $ do
   t <- runS3WithDefaults . read $ Address bucket' k
   pure $ t === Nothing
 
-prop_getObjects_empty :: KeyTmp -> Property
-prop_getObjects_empty p = ioProperty $ do
-  bucket' <- testBucket
-  objs <- runS3WithDefaults . getObjects $ Address bucket' (tmpPath p)
+prop_getObjects_empty :: Token -> Property
+prop_getObjects_empty t = ioProperty . runS3WithDefaults . withToken t $ \a -> do
+  objs <- getObjects $ a
   pure $ fmap S3.objectKey objs === []
 
-prop_getObjects :: Token -> KeyTmp -> Key -> Key -> Property
-prop_getObjects token prefix p1 p2 = p1 /= p2 ==> ioProperty .
+prop_getObjects :: Token -> Text -> Key -> Key -> Property
+prop_getObjects token t p1 p2 = p1 /= p2 ==> ioProperty .
   runS3WithDefaults . withToken token $ \root -> do
-    withTmpKey root $ prefix <//> p1
-    withTmpKey root $ prefix <//> p2 <//> p1
-    withTmpKey root $ prefix <//> p2 <//> p2
+    let keys = [p1, p2 </> p1, p2 </> p2]
+    forM_ keys $ \k -> write Fail (withKey (</> k) root) t
     objs <- getObjects root
-    pure $ on (===) sort (fmap S3.objectKey objs) (fmap (unKey . (</>) (key root) . tmpPath) [prefix <//> p1, prefix <//> p2 <//> p1, prefix <//> p2 <//> p2])
+    pure $ on (===) sort (S3.objectKey <$> objs) (unKey . (</>) (key root) <$> keys)
 
 prop_list :: Token -> Property
 prop_list t = monadicIO $

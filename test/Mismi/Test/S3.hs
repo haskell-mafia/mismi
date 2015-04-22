@@ -2,12 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.Test.S3 (
     Token
-  , KeyTmp (..)
   , LocalPath (..)
   , testBucket
-  , withTmpKey
   , withToken
-  , (<//>)
   ) where
 
 import           Control.Monad.IO.Class (liftIO)
@@ -41,16 +38,6 @@ instance Arbitrary Token where
     m <- elements muppets
     pure . Token . T.intercalate "." $ [c, m, n]
 
-data KeyTmp = KeyTmp {
-    tmpPath :: Key
-  , tmpBody :: Text
-  } deriving (Eq, Show)
-
-
--- Ensure everything is under our own key space for debugging
-instance Arbitrary KeyTmp where
-  arbitrary = KeyTmp  <$> arbitrary <*> arbitrary
-
 data LocalPath =
   LocalPath {
       localPath :: FilePath
@@ -66,16 +53,9 @@ testBucket :: IO Bucket
 testBucket =
   Bucket . T.pack . fromMaybe "ambiata-dev-view" <$> getEnv "AWS_TEST_BUCKET"
 
-(<//>) :: KeyTmp -> Key -> KeyTmp
-(<//>) (KeyTmp k1 b) k2 = KeyTmp (k1 </> k2) b
-
 withToken :: Token -> (Address -> S3Action a) -> S3Action a
 withToken t f = do
   b <- liftIO testBucket
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom
   let a = Address b (Key . T.intercalate "/" $ [u, unToken t])
   bracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
-
-withTmpKey :: Address -> KeyTmp -> S3Action ()
-withTmpKey prefix (KeyTmp k body') =
-  write Fail (withKey (</> k) prefix) body'
