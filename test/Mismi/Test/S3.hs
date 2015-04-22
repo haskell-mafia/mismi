@@ -57,5 +57,5 @@ withToken :: Token -> (Address -> S3Action a) -> S3Action a
 withToken t f = do
   b <- liftIO testBucket
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom
-  let a = Address b (Key . T.intercalate "/" $ [u, unToken t])
+  let a = Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
   bracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
