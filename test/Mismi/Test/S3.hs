@@ -1,29 +1,45 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Mismi.Test.S3 where
-
-import qualified Aws.S3 as S3
+module Mismi.Test.S3 (
+    Token
+  , KeyTmp (..)
+  , LocalPath (..)
+  , testBucket
+  , withTmpKey
+  , withToken
+  , (<//>)
+  ) where
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Catch (bracket_, finally)
+import           Control.Monad.Catch (bracket_)
 
 import qualified Data.List as L
 import           Data.Text as T
-import           Data.Text.Encoding as T
-
-import           Network.HTTP.Client (RequestBody(..))
+import           Data.UUID as U
+import           Data.UUID.V4 as U
 
 import           System.Posix.Env
 import           System.FilePath hiding ((</>))
 
 import           Mismi.Arbitrary ()
-import           Mismi.Control
 import           Mismi.S3.Control
+import           Mismi.S3.Commands
 import           Mismi.S3.Data
 import           Mismi.Test
 
 import           Orphanarium.Corpus
 
+data Token =
+  Token {
+      unToken :: Text
+    } deriving (Eq, Show)
+
+instance Arbitrary Token where
+  arbitrary = do
+    n <- T.pack . show <$> (choose (0, 10000) :: Gen Int)
+    c <- elements cooking
+    m <- elements muppets
+    pure . Token . T.intercalate "." $ [c, m, n]
 
 data KeyTmp = KeyTmp {
     tmpPath :: Key
@@ -33,7 +49,7 @@ data KeyTmp = KeyTmp {
 
 -- Ensure everything is under our own key space for debugging
 instance Arbitrary KeyTmp where
-  arbitrary = KeyTmp  <$> ((Key "tmp/vee" </>) <$> arbitrary) <*> arbitrary
+  arbitrary = KeyTmp  <$> arbitrary <*> arbitrary
 
 data LocalPath =
   LocalPath {
@@ -53,18 +69,13 @@ testBucket =
 (<//>) :: KeyTmp -> Key -> KeyTmp
 (<//>) (KeyTmp k1 b) k2 = KeyTmp (k1 </> k2) b
 
-withTmpKey :: KeyTmp -> S3Action t -> S3Action t
-withTmpKey (KeyTmp (Key tmpPath') body') f = do
-  (Bucket bucket') <- liftIO testBucket
-  bracket_
-    (awsRequest (S3.putObject bucket' tmpPath' (RequestBodyBS (T.encodeUtf8 body'))))
-    (awsRequest $ S3.DeleteObject tmpPath' bucket')
-    f
+withToken :: Token -> (Address -> S3Action a) -> S3Action a
+withToken t f = do
+  b <- liftIO testBucket
+  u <- liftIO $ T.pack . U.toString <$> U.nextRandom
+  let a = Address b (Key . T.intercalate "/" $ [u, unToken t])
+  bracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
 
-withKey :: Key -> S3Action t -> S3Action t
-withKey k f = do
-  (Bucket bucket') <- liftIO testBucket
-  finally f (awsRequest $ S3.DeleteObject (unKey k) bucket')
-
-withAddress :: Address -> S3Action t -> S3Action t
-withAddress a f = finally f (awsRequest $ S3.DeleteObject (unKey $ key a) (unBucket $ bucket a))
+withTmpKey :: Address -> KeyTmp -> S3Action ()
+withTmpKey prefix (KeyTmp k body') =
+  write Fail (withKey (</> k) prefix) body'

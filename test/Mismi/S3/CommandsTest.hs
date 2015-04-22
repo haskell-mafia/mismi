@@ -28,25 +28,25 @@ import           System.IO.Temp
 
 import           Test.QuickCheck.Monadic
 
-prop_exists :: Address -> Property
-prop_exists a = monadicIO $ do
+prop_exists :: Token -> Property
+prop_exists t = monadicIO $ do
   r <- run $ do
-    runS3WithDefaults . withAddress a $ do
+    runS3WithDefaults . withToken t $ \a -> do
       write Fail a ""
       exists a
   stop $ r === True
 
-prop_exists_empty :: Address -> Property
-prop_exists_empty a = monadicIO $ do
+prop_exists_empty :: Token -> Property
+prop_exists_empty t = monadicIO $ do
   r <- run $
-    runS3WithDefaults . withAddress a $
+    runS3WithDefaults . withToken t $ \a ->
       exists a
   stop $ r === False
 
-prop_delete :: WriteMode -> Address -> Property
-prop_delete w a = monadicIO $ do
+prop_delete :: WriteMode -> Token -> Property
+prop_delete w t = monadicIO $ do
   r <- run $
-    runS3WithDefaults . withAddress a $ do
+    runS3WithDefaults . withToken t $ \a -> do
       write w a ""
       x <- exists a
       delete a
@@ -54,39 +54,39 @@ prop_delete w a = monadicIO $ do
       pure (x, y)
   stop $ r == (True, False)
 
-prop_delete_empty :: Address -> Property
-prop_delete_empty a = monadicIO $ do
+prop_delete_empty :: Token -> Property
+prop_delete_empty t = monadicIO $ do
     r <- run $ (
-      runS3WithDefaults . withAddress a $ do
+      runS3WithDefaults . withToken t $ \a -> do
         delete a
         pure $ True)
          `catchAll`
          (\(_) -> pure $ False)
     stop $ r === True
 
-prop_read_write :: Address -> Text -> Property
-prop_read_write a d = monadicIO $ do
+prop_read_write :: Token -> Text -> Property
+prop_read_write t d = monadicIO $ do
     r <- run $
-      runS3WithDefaults . withAddress a $ do
+      runS3WithDefaults . withToken t $ \a -> do
         write Fail a d
         read a
     stop $ r === Just d
 
-prop_write_download :: Address -> Text -> LocalPath -> Property
-prop_write_download a d l = monadicIO $ do
+prop_write_download :: Token -> Text -> LocalPath -> Property
+prop_write_download tt d l = monadicIO $ do
     r <- run $
       withSystemTempDirectory "mismi" $ \p ->
-        runS3WithDefaults . withAddress a $ do
+        runS3WithDefaults . withToken tt $ \a -> do
           write Fail a d
           let t = p F.</> localPath  l
           download a t
           liftIO $ T.readFile t
     stop $ r === d
 
-prop_write_failure :: Address -> Text -> Property
-prop_write_failure a d = monadicIO $ do
+prop_write_failure :: Token -> Text -> Property
+prop_write_failure t d = monadicIO $ do
     r <- run $ (
-      runS3WithDefaults . withAddress a $ do
+      runS3WithDefaults . withToken t $ \a -> do
         write Fail a d
         write Fail a d
         pure False)
@@ -94,10 +94,10 @@ prop_write_failure a d = monadicIO $ do
          (\(_) -> pure $ True)
     stop $ r === True
 
-prop_write_overwrite :: Address -> UniquePair Text -> Property
-prop_write_overwrite a (UniquePair x y) = monadicIO $ do
+prop_write_overwrite :: Token -> UniquePair Text -> Property
+prop_write_overwrite t (UniquePair x y) = monadicIO $ do
     r <- run $
-        runS3WithDefaults . withAddress a $ do
+        runS3WithDefaults . withToken t $ \a -> do
             write Fail a x
             write Overwrite a y
             read a
@@ -106,10 +106,10 @@ prop_write_overwrite a (UniquePair x y) = monadicIO $ do
 -- |
 -- If the object does not exist, then the behaviour should be invariant with the WriteMode
 --
-prop_write_nonexisting :: WriteMode -> Address -> Text -> Property
-prop_write_nonexisting w a t = monadicIO $ do
+prop_write_nonexisting :: WriteMode -> Token -> Text -> Property
+prop_write_nonexisting w tt t = monadicIO $ do
     r <- run $
-        runS3WithDefaults . withAddress a $ do
+        runS3WithDefaults . withToken tt $ \a -> do
             write w a t
             read a
     stop $ r === pure t
@@ -126,23 +126,21 @@ prop_getObjects_empty p = ioProperty $ do
   objs <- runS3WithDefaults . getObjects $ Address bucket' (tmpPath p)
   pure $ fmap S3.objectKey objs === []
 
-prop_getObjects :: KeyTmp -> Key -> Key -> Property
-prop_getObjects prefix p1 p2 = p1 /= p2 ==> ioProperty $ do
-  bucket' <- testBucket
-  runS3WithDefaults .
-    withTmpKey (prefix <//> p1) .
-    withTmpKey (prefix <//> p2 <//> p1 ) .
-    withTmpKey (prefix <//> p2 <//> p2) $ do
-      objs <- getObjects $ Address bucket' (tmpPath prefix)
-      pure $ on (===) sort (fmap S3.objectKey objs) (fmap (unKey . tmpPath) [prefix <//> p1, prefix <//> p2 <//> p1, prefix <//> p2 <//> p2])
+prop_getObjects :: Token -> KeyTmp -> Key -> Key -> Property
+prop_getObjects token prefix p1 p2 = p1 /= p2 ==> ioProperty .
+  runS3WithDefaults . withToken token $ \root -> do
+    withTmpKey root $ prefix <//> p1
+    withTmpKey root $ prefix <//> p2 <//> p1
+    withTmpKey root $ prefix <//> p2 <//> p2
+    objs <- getObjects root
+    pure $ on (===) sort (fmap S3.objectKey objs) (fmap (unKey . (</>) (key root) . tmpPath) [prefix <//> p1, prefix <//> p2 <//> p1, prefix <//> p2 <//> p2])
 
-prop_list :: Address -> Property
-prop_list a = monadicIO $ do
-  r <- run $
-    runS3WithDefaults . withAddress a $ do
-      write Fail a ""
-      listRecursively (a { key = dirname $ key a })
-  stop $ a `elem` r
+prop_list :: Token -> Property
+prop_list t = monadicIO $
+  stop =<< (run . runS3WithDefaults . withToken t $ \a -> do
+    write Fail a ""
+    r' <- listRecursively (a { key = dirname $ key a })
+    pure $ a `elem` r')
 
 prop_dirname :: Address -> Text -> Property
 prop_dirname a t =
