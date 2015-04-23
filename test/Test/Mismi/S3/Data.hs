@@ -30,6 +30,18 @@ prop_withKey_key :: Address -> Key -> Property
 prop_withKey_key a k =
   key (withKey (</> k) a) === (key a) </> k
 
+prop_basename :: Key -> Text -> Property
+prop_basename k bn = T.all (/= '/') bn && not (T.null bn) ==>
+  basename (k </> (Key bn)) === Just bn
+
+prop_basename_prefix :: Key -> Text -> Property
+prop_basename_prefix k bn =
+  basename (k </> (Key $ bn <> "/")) === Nothing
+
+prop_basename_root :: Property
+prop_basename_root =
+  basename (Key "") === Nothing
+
 return []
 tests :: IO Bool
 tests = $quickCheckAll

@@ -7,6 +7,7 @@ module Mismi.S3.Data (
   , Key (..)
   , (</>)
   , dirname
+  , basename
   , addressFromText
   , addressToText
   , withKey
@@ -20,6 +21,7 @@ import           Data.Text (Text)
 import           Data.List (init)
 
 import           P
+import           Prelude (reverse)
 
 -- |
 -- Describes the behaviour to display when a write is attempted on a location where an object already exists.
@@ -57,6 +59,12 @@ withKey f (Address b k) = Address b $ f k
 dirname :: Key -> Key
 dirname =
   Key . T.intercalate "/" . init . T.split (=='/') . unKey
+
+-- | Get the basename for a given key (eg. basename "/foo/bar" == "bar").
+--   Return 'Nothing' for the empty 'Key' _and_ when the name ends with a '/'.
+basename :: Key -> Maybe Text
+basename =
+  mfilter (not . T.null) . listToMaybe . reverse . T.split (== '/') . unKey
 
 addressToText :: Address -> Text
 addressToText a =
