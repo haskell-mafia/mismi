@@ -19,6 +19,7 @@ library
                      , quickcheck-instances
                      , unix
                      , temporary
+                     , uuid
 
   exposed-modules:
                        Mismi.Arbitrary
