@@ -22,5 +22,5 @@ library
                      , uuid
 
   exposed-modules:
-                       Mismi.Arbitrary
-                       Mismi.Test.S3
+                       Test.Mismi.Arbitrary
+                       Test.Mismi.S3

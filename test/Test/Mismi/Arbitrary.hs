@@ -1,12 +1,13 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Mismi.Arbitrary where
+module Test.Mismi.Arbitrary where
 
 import           Data.Text as T
 
 import           Mismi.S3.Data
-import           Mismi.Test
+
+import           Test.Mismi
 
 instance Arbitrary WriteMode where
   arbitrary = elements [Fail, Overwrite]

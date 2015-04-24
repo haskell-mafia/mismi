@@ -1,13 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-module Mismi.S3.DataTest where
+module Test.Mismi.S3.Data where
 
 import           Data.Text as T
 
 import           Mismi.S3.Data
-import           Mismi.Test
-import           Mismi.Test.S3 ()
+
+import           Test.Mismi
+import           Test.Mismi.S3 ()
 
 prop_append :: Key -> Key -> Property
 prop_append p1 p2 =

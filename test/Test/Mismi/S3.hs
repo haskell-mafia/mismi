@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Mismi.Test.S3 (
+module Test.Mismi.S3 (
     Token
   , LocalPath (..)
   , testBucket
@@ -18,13 +18,14 @@ import           Data.UUID.V4 as U
 import           System.Posix.Env
 import           System.FilePath hiding ((</>))
 
-import           Mismi.Arbitrary ()
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
-import           Mismi.Test
 
 import           Orphanarium.Corpus
+
+import           Test.Mismi
+import           Test.Mismi.Arbitrary ()
 
 data Token =
   Token {

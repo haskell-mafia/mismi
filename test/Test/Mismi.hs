@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-module Mismi.Test (
+module Test.Mismi (
     module X
   ) where
 

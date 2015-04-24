@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
-module Mismi.S3.CommandsTest where
+module Test.Mismi.S3.Commands where
 
 import qualified Aws.S3 as S3
 
@@ -18,14 +18,14 @@ import qualified Data.Text.IO as T
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
-import           Mismi.Test
-import           Mismi.Test.S3
 
 import           Orphanarium.Core.UniquePair
 
 import qualified System.FilePath as F
 import           System.IO.Temp
 
+import           Test.Mismi
+import           Test.Mismi.S3
 import           Test.QuickCheck.Monadic
 
 prop_exists :: Token -> Property
