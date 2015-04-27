@@ -39,7 +39,6 @@ import           Prelude (error)
 import           System.FilePath
 import           System.Directory
 
-
 exists :: Address -> S3Action Bool
 exists a =
   let req = S3.headObject (unBucket $ bucket a) (unKey $ key a) in
