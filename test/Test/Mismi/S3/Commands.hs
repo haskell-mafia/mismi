@@ -21,6 +21,7 @@ import           Mismi.S3.Data
 
 import           Orphanarium.Core.UniquePair
 
+import qualified System.Directory as D
 import qualified System.FilePath as F
 import           System.IO.Temp
 
@@ -82,6 +83,18 @@ prop_write_download tt d l = monadicIO $ do
           download a t
           liftIO $ T.readFile t
     stop $ r === d
+
+prop_upload :: Token -> Text -> LocalPath -> Property
+prop_upload tt d l = monadicIO $ do
+    r <- run $ do
+      withSystemTempDirectory "mismi" $ \p -> do
+        runS3WithDefaults . withToken tt $ \a -> do
+          let t = p F.</> localPath l
+          liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
+          liftIO $ T.writeFile t d
+          upload t a
+          read a
+    stop $ r === Just d
 
 prop_write_failure :: Token -> Text -> Property
 prop_write_failure t d = monadicIO $ do
