@@ -47,6 +47,8 @@ library
                        Mismi.S3.Commands
                        Mismi.S3.Control
                        Mismi.S3.Data
+                       Mismi.SQS
+                       Mismi.SQS.Data
 
 
 test-suite test
