@@ -50,7 +50,8 @@ library
                        Mismi.S3.Data
                        Mismi.SQS
                        Mismi.SQS.Data
-
+                       Mismi.SQS.Control
+                       Mismi.SQS.Commands
 
 test-suite test
   type:                exitcode-stdio-1.0

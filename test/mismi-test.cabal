@@ -24,3 +24,4 @@ library
   exposed-modules:
                        Test.Mismi.Arbitrary
                        Test.Mismi.S3
+                       Test.Mismi.SQS
