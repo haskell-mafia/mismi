@@ -6,6 +6,7 @@ module Mismi.S3.Commands (
   , delete
   , read
   , download
+  , upload
   , write
   , getObjects
   , listRecursively
@@ -36,6 +37,9 @@ import           P
 
 import           Prelude (error)
 
+import           System.Posix.Files
+import           System.IO
+
 import           System.FilePath
 import           System.Directory
 
@@ -59,8 +63,19 @@ download :: Address -> FilePath -> S3Action ()
 download a p =
   let get = S3.getObject (unBucket $ bucket a) (unKey $ key a) in do
     whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
+    unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
     liftIO $ createDirectoryIfMissing True (dropFileName p)
     awsRequest get >>= lift . ($$+- sinkFile p) . responseBody . S3.gorResponse
+
+upload :: FilePath -> Address -> S3Action ()
+upload file a =
+  let put = \d -> S3.putObject (unBucket $ bucket a) (unKey $ key a) d in do
+    whenM (exists a) . fail $ "Can not upload to a target that already exists [" <> (T.unpack $ addressToText a) <> "]."
+    unlessM (liftIO $ doesFileExist file) . fail $ "Can not upload when the source does not exist [" <> file <> "]."
+    let streamer sink = withFile file ReadMode $ \h -> sink $ BS.hGet h (1024 * 100)
+    size <- liftIO $ (fromIntegral . fileSize <$> getFileStatus file)
+    let body = RequestBodyStream (fromInteger size) streamer
+    void $ awsRequest (put body)
 
 write :: WriteMode -> Address -> Text -> S3Action ()
 write w a t = do
