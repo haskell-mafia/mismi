@@ -22,7 +22,7 @@ instance Arbitrary Key where
   -- https://github.com/ambiata/vee/issues/7
   arbitrary =
     let genPath = elements ["happy", "sad", ".", ":", "-"]
-        path = T.dropWhileEnd ('/' ==) . T.take 256 . T.intercalate "/" <$> listOf1 (T.intercalate "" <$> listOf1 genPath)
+        path = T.take 256 . T.intercalate "/" <$> listOf1 (T.intercalate "" <$> listOf1 genPath)
     in (Key . append "tests/") <$> path
 
 instance Arbitrary QueueName where
