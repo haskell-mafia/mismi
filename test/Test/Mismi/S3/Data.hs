@@ -6,6 +6,7 @@ module Test.Mismi.S3.Data where
 import           Data.Text as T
 
 import           Mismi.S3.Data
+import           Orphanarium.Corpus
 
 import           Test.Mismi
 import           Test.Mismi.S3 ()
@@ -13,6 +14,13 @@ import           Test.Mismi.S3 ()
 prop_append :: Key -> Key -> Property
 prop_append p1 p2 =
   T.count "//" (unKey (p1 </> p2)) === 0
+
+prop_appendEdge :: Property
+prop_appendEdge = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> conjoin [
+    (Key (m <> "/") </> Key s) === (Key $ m <> "/" <> s)
+  , (Key m </> Key ("/" <> s)) === (Key $ m <> "/" <> s)
+  , (Key m </> Key s) === (Key $ m <> "/" <> s)
+  ]
 
 prop_parse :: Address -> Property
 prop_parse a =

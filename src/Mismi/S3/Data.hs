@@ -51,7 +51,10 @@ instance Show Address where
     "Address (" <> show b <> ") (" <> show k <> ")"
 
 (</>) :: Key -> Key -> Key
-(</>) (Key p1) (Key p2) = Key $ p1 <> "/" <> p2
+(</>) (Key p1) (Key p2) =
+  if  ("/" `T.isSuffixOf` p1 || p1 == "" || "/" `T.isPrefixOf` p2)
+    then Key $ p1 <> p2
+    else Key $ p1 <> "/" <> p2
 
 withKey :: (Key -> Key) -> Address -> Address
 withKey f (Address b k) = Address b $ f k

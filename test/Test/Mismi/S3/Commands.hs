@@ -156,9 +156,8 @@ prop_list t = monadicIO $
 prop_dirname :: Address -> Text -> Property
 prop_dirname a t =
   let k = Key t in
-  T.all (/= '/') t ==>
-    dirname (key a </> k) === key a
-
+  T.all (/= '/') t==>
+    dirname (key a </> k) === Key (dropWhileEnd ('/' ==) . unKey . key $ a)
 
 return []
 tests :: IO Bool
