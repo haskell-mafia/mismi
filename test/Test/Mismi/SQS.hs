@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Test.Mismi.SQS (
     NonEmptyMessage(..)
-  , withQueue
+  , withQueue'
   ) where
 
 import           Data.Text
@@ -28,10 +28,9 @@ genSQSText =
            let invalid = P.concat [['\x9'],['\xA'],['\xD'], ['\x20'..'\xD7FF'], ['\xE000'..'\xFFFD'], ['\x10000'..'\x10FFFF']]
            in suchThat (pack . P.filter (\x -> P.elem x invalid) <$> arbitrary) (not . Data.Text.null)
 
-withQueue :: QueueName -> (QueueUrl -> SQSAction a) -> IO a
-withQueue q f =
-   runSQSWithDefaults $ do
-     qUrl <- createQueue q
-     a <- f qUrl
-     _ <- deleteQueue qUrl
-     pure a
+withQueue' :: QueueName -> (QueueUrl -> SQSAction a) -> IO a
+withQueue' q f =
+     withQueue q $ \qUrl -> do
+       a <- f qUrl
+       _ <- deleteQueue qUrl
+       pure a
