@@ -69,7 +69,7 @@ download a p =
 
 upload :: FilePath -> Address -> S3Action ()
 upload file a =
-  let put = \d -> S3.putObject (unBucket $ bucket a) (unKey $ key a) d in do
+  let put = \d -> putObject a d sse in do
     whenM (exists a) . fail $ "Can not upload to a target that already exists [" <> (T.unpack $ addressToText a) <> "]."
     unlessM (liftIO $ doesFileExist file) . fail $ "Can not upload when the source does not exist [" <> file <> "]."
     let streamer sink = withFile file ReadMode $ \h -> sink $ BS.hGet h (1024 * 100)
@@ -83,7 +83,11 @@ write w a t = do
     Fail        -> whenM (exists a) . fail $ "Can not write to a file that already exists [" <> show a <> "]."
     Overwrite   -> return ()
   let body = RequestBodyBS $ T.encodeUtf8 t
-  void . awsRequest $ S3.putObject (unBucket $ bucket a) (unKey $ key a) body
+  void . awsRequest $ putObject a body sse
+
+putObject :: Address -> RequestBody -> S3.ServerSideEncryption -> S3.PutObject
+putObject a body e =
+  (S3.putObject (unBucket $ bucket a) (unKey $ key a) body) { S3.poServerSideEncryption = Just e }
 
 getObjects :: Address -> S3Action [S3.ObjectInfo]
 getObjects (Address (Bucket b) (Key ky)) =
