@@ -5,6 +5,7 @@ module Mismi.SQS.Data (
   ) where
 
 import           Data.Text
+
 import           P
 
 -- Queue names are limited to 80 characters. Alphanumeric characters
