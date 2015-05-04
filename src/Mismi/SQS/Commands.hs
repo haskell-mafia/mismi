@@ -1,12 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.SQS.Commands (
-    QueueUrl
-  , MessageId
+    MessageId
+  , QueueUrl
+  , withQueue
   , createQueue
   , deleteQueue
-  , readMessage
+  , readMessages
   , writeMessage
+  , deleteMessage
   ) where
 
 import qualified Aws.Sqs as SQS
@@ -19,43 +21,49 @@ import           Mismi.SQS.Data
 
 import           P
 
-newtype QueueUrl = QueueUrl SQS.QueueName deriving (Eq, Show)
+import           System.IO
+
+newtype QueueUrl = QueueUrl { unQueueUrl :: SQS.QueueName } deriving (Eq, Show)
 newtype MessageId = MessageId SQS.MessageId deriving (Eq, Show)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
 defaultVisibilityTimeout :: Maybe Int
 defaultVisibilityTimeout = Just 8400 -- seconds
 
--- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
-waitTimeSeconds :: Maybe Int
-waitTimeSeconds = Just 20 -- seconds
+withQueue :: QueueName -> (QueueUrl -> SQSAction a) -> IO a
+withQueue qName f =
+   runSQSWithDefaults $ createQueue qName defaultVisibilityTimeout >>= f
 
--- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
-delaySeconds :: Maybe Int
-delaySeconds = Just 0 -- seconds
-
-createQueue :: QueueName -> SQSAction QueueUrl
-createQueue q = do
-  let createQReq = SQS.CreateQueue defaultVisibilityTimeout . unQueueName $ q
+-- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
+createQueue :: QueueName -> Maybe Int-> SQSAction QueueUrl
+createQueue q v = do
+  let createQReq = SQS.CreateQueue v . unQueueName $ q
   SQS.CreateQueueResponse qUrl <-  awsRequest $ createQReq
   maybe (fail "Failed to parse aws account number from queue url.") (\x -> pure . QueueUrl $ SQS.QueueName (unQueueName q) x) (awsAccountNum qUrl)
 
+-- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html
 deleteQueue :: QueueUrl -> SQSAction ()
 deleteQueue (QueueUrl q) =
   void . awsRequest . SQS.DeleteQueue $ q
 
-writeMessage :: QueueUrl -> Text -> SQSAction (MessageId)
-writeMessage (QueueUrl qName) msg = do
-  let sqsSendMessage = SQS.SendMessage msg qName [] delaySeconds
+-- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
+writeMessage :: QueueUrl -> Text -> Maybe Int -> SQSAction (MessageId)
+writeMessage (QueueUrl qName) msg d = do
+  let sqsSendMessage = SQS.SendMessage msg qName [] d
   SQS.SendMessageResponse _ mid _ <- awsRequest $ sqsSendMessage
   pure . MessageId $ mid
 
-readMessage :: QueueUrl -> SQSAction (Maybe Text)
-readMessage (QueueUrl qName) = do
-  let receiveMessageReq = SQS.ReceiveMessage Nothing [] (Just 1) [] qName waitTimeSeconds
+-- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
+readMessages :: QueueUrl -> Maybe Int -> Maybe Int -> SQSAction [SQS.Message]
+readMessages (QueueUrl qName) n w = do
+  let receiveMessageReq = SQS.ReceiveMessage Nothing [] n [] qName w
   SQS.ReceiveMessageResponse r <- awsRequest $ receiveMessageReq
-  forM_ r (\m -> awsRequest $ (SQS.DeleteMessage (SQS.mReceiptHandle m) qName))
-  pure . fmap SQS.mBody . listToMaybe $ r
+  pure r
+
+-- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteMessage.html
+deleteMessage :: QueueUrl -> SQS.Message -> SQSAction ()
+deleteMessage q m = do
+   void . awsRequest $ (SQS.DeleteMessage (SQS.mReceiptHandle m) (unQueueUrl q))
 
 awsAccountNum :: Text -> Maybe Text
 awsAccountNum url =
