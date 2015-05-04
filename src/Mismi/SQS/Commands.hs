@@ -7,6 +7,7 @@ module Mismi.SQS.Commands (
   , deleteQueue
   , readMessage
   , writeMessage
+  , withQueue
   ) where
 
 import qualified Aws.Sqs as SQS
@@ -19,8 +20,7 @@ import           Mismi.SQS.Data
 
 import           P
 
-newtype QueueUrl = QueueUrl SQS.QueueName deriving (Eq, Show)
-newtype MessageId = MessageId SQS.MessageId deriving (Eq, Show)
+import           System.IO
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
 defaultVisibilityTimeout :: Maybe Int
@@ -33,6 +33,10 @@ waitTimeSeconds = Just 20 -- seconds
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
 delaySeconds :: Maybe Int
 delaySeconds = Just 0 -- seconds
+
+withQueue :: QueueName -> (QueueUrl -> SQSAction a) -> IO a
+withQueue qName f =
+   runSQSWithDefaults $ createQueue qName >>= f
 
 createQueue :: QueueName -> SQSAction QueueUrl
 createQueue q = do

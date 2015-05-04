@@ -21,20 +21,18 @@ import           Test.QuickCheck
 
 prop_write_read :: QueueName -> NonEmptyMessage -> Property
 prop_write_read queueName msg =
-  testIO $ do
-    withQueue queueName $ \q -> do
-      _ <- writeMessage q $ unMessage msg
-      msg2 <- readMessage q
-      pure $ (unMessage msg) === fromJust msg2
+  testIO . withQueue' queueName $ \q -> do
+    _ <- writeMessage q $ unMessage msg
+    msg2 <- readMessage q
+    pure $ (unMessage msg) === fromJust msg2
 
 prop_write_read_read :: QueueName -> NonEmptyMessage -> Property
 prop_write_read_read queueName msg =
-  testIO $ do
-    withQueue queueName $ \q -> do
-      _ <- writeMessage q $ unMessage msg
-      _ <- readMessage q
-      msg3 <- readMessage q
-      pure $ Nothing === msg3
+  testIO . withQueue' queueName $ \q -> do
+    _ <- writeMessage q $ unMessage msg
+    _ <- readMessage q
+    msg3 <- readMessage q
+    pure $ Nothing === msg3
 
 return []
 tests :: IO Bool

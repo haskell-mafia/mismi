@@ -2,7 +2,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Mismi.SQS.Data (
     QueueName(..)
+  , QueueUrl(..)
+  , MessageId(..)
   ) where
+
+import qualified Aws.Sqs as SQS
 
 import           Data.Text
 
@@ -16,3 +20,6 @@ import           P
 newtype QueueName = QueueName {
     unQueueName :: Text
   } deriving (Eq, Show)
+
+newtype QueueUrl = QueueUrl SQS.QueueName deriving (Eq, Show)
+newtype MessageId = MessageId SQS.MessageId deriving (Eq, Show)
