@@ -45,6 +45,7 @@ library
                        Paths_mismi
                        Mismi
                        Mismi.Control
+                       Mismi.S3
                        Mismi.S3.Commands
                        Mismi.S3.Control
                        Mismi.S3.Data
