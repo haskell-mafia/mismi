@@ -3,9 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Test.Mismi.SQS.Commands where
 
-import           Control.Applicative
-
-import           Data.Maybe
+import qualified Aws.Sqs as SQS
 
 import           Mismi.SQS
 
@@ -22,19 +20,20 @@ import           Test.QuickCheck
 prop_write_read :: QueueName -> NonEmptyMessage -> Property
 prop_write_read queueName msg =
   testIO $ do
-    withQueue queueName $ \q -> do
-      _ <- writeMessage q $ unMessage msg
-      msg2 <- readMessage q
-      pure $ (unMessage msg) === fromJust msg2
+    withQueue' queueName $ \q -> do
+      _ <- writeMessage q (unMessage msg) Nothing
+      msg2 <- readMessages q (Just 1) Nothing
+      pure $ [unMessage msg] === fmap SQS.mBody msg2
 
-prop_write_read_read :: QueueName -> NonEmptyMessage -> Property
-prop_write_read_read queueName msg =
+prop_write_delete_read :: QueueName -> NonEmptyMessage -> Property
+prop_write_delete_read queueName msg =
   testIO $ do
-    withQueue queueName $ \q -> do
-      _ <- writeMessage q $ unMessage msg
-      _ <- readMessage q
-      msg3 <- readMessage q
-      pure $ Nothing === msg3
+    withQueue' queueName $ \q -> do
+      _ <- writeMessage q (unMessage msg) Nothing
+      msg2 <- readMessages q (Just 1) Nothing
+      forM_ msg2 (deleteMessage q)
+      msg3 <- readMessages q (Just 1) Nothing
+      pure $ [] === msg3
 
 return []
 tests :: IO Bool

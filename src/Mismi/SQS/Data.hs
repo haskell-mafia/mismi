@@ -2,7 +2,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Mismi.SQS.Data (
     QueueName(..)
+  , module M
   ) where
+
+import           Aws.Sqs.Commands.Message as M
 
 import           Data.Text
 
