@@ -51,6 +51,12 @@ prop_basename_root :: Property
 prop_basename_root =
   basename (Key "") === Nothing
 
+prop_dirname :: Address -> Text -> Property
+prop_dirname a t =
+  let k = Key t in
+  T.all (/= '/') t==>
+    dirname (key a </> k) === Key (dropWhileEnd ('/' ==) . unKey . key $ a)
+
 return []
 tests :: IO Bool
 tests = $quickCheckAll

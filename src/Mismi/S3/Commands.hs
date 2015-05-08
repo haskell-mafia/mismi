@@ -7,6 +7,7 @@ module Mismi.S3.Commands (
   , read
   , download
   , upload
+  , calculateChunks
   , write
   , getObjects
   , listRecursively
@@ -51,6 +52,10 @@ f' :: (Text -> Text -> a) -> Address -> a
 f' f a =
   uncurry f (unBucket $ bucket a, unKey $ key a)
 
+ff' :: (Text -> Text -> a) -> Address -> a
+ff' f a =
+  uncurry f (unKey $ key a, unBucket $ bucket a)
+
 exists :: Address -> S3Action Bool
 exists a =
   let req = f' S3.headObject a in
@@ -58,7 +63,7 @@ exists a =
 
 delete :: Address -> S3Action ()
 delete a =
-  void . awsRequest $ f' S3.DeleteObject a
+  void . awsRequest $ ff' S3.DeleteObject a
 
 read :: Address -> S3Action (Maybe Text)
 read a =
@@ -92,13 +97,16 @@ upload file a = do
 
 upload' :: FilePath -> Address -> S3Action ()
 upload' file a = do
+  liftIO $ System.IO.putStrLn "Running small upload"
   x <- liftIO $ LBS.readFile file
   void . awsRequest $ putObject a (RequestBodyLBS x) sse
 
 multipartUpload' :: FilePath -> Address -> Integer -> Integer -> S3Action ()
 multipartUpload' file a fileSize chunk = do
-  let mpu = f' S3.postInitiateMultipartUpload a
+  liftIO $ System.IO.putStrLn "Running multipart upload"
+  let mpu = (f' S3.postInitiateMultipartUpload a) { imuServerSideEncryption = Just sse }
   mpur <- awsRequest mpu
+  liftIO $ System.IO.putStrLn "init"
   let upi :: Text = S3.imurUploadId mpur
   let p = calculateChunks (fromInteger fileSize) (fromInteger chunk)
   let x :: (Int, Int, Int) -> IO (Either S3.S3Error S3.UploadPartResponse) = (\(o :: Int, c :: Int, i :: Int) ->
@@ -106,7 +114,8 @@ multipartUpload' file a fileSize chunk = do
               hSeek h AbsoluteSeek (toInteger o)
               cont <- LBS.hGetContents h
               let body = RequestBodyLBS (LBS.take (fromInteger . toInteger $ c) cont)
-              let up = (f' S3.uploadPart a (toInteger i) upi body) { upServerSideEncryption = Just sse }
+              let up = (f' S3.uploadPart a (toInteger i) upi body)
+--              let up = (f' S3.uploadPart a (toInteger i) upi body) { upServerSideEncryption = Just sse }
               let req = awsRequest up >>= (pure . Right)
               (runS3WithDefaults req) `catch` (\(e :: S3.S3Error) -> pure $ Left e)
           )
@@ -132,7 +141,7 @@ calculateChunks size chunk =
               let c' = (size - o) in -- last chunk
               [(o, c', i)]
   in
-    go 0 0
+    go 1 0
 
 write :: WriteMode -> Address -> Text -> S3Action ()
 write w a t = do

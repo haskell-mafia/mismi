@@ -77,3 +77,29 @@ test-suite test
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
                      , uuid                            == 1.3.*
+
+test-suite test-io
+  type:                exitcode-stdio-1.0
+  main-is:             test-io.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , mismi
+                     , aws
+                     , exceptions
+                     , filepath
+                     , directory                       == 1.2.*
+                     , p
+                     , http-client
+                     , orphanarium-core
+                     , orphanarium-corpus
+                     , temporary                       == 1.2.*
+                     , text
+                     , transformers
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+                     , unix                            == 2.7.*
+                     , uuid                            == 1.3.*
+                     , bytestring                      == 0.10.*
+                     , lens                            == 4.9.*
+                     , either                          == 4.3.*
