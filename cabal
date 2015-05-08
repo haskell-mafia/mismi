@@ -24,7 +24,7 @@ EOF
 
 fail () {
      message="${1:-}"
-     [ -z "$message" ] || echo message 1>&2
+     [ -z "$message" ] || echo "${message}" 1>&2
      usage 1 1>&2
 }
 
@@ -44,8 +44,10 @@ project_name () {
 initialize () {
     # sandbox has all sources
     project=$(project_name)
+    SANDBOX_DIR=.cabal-sandbox
     [ ! -f "${project}.sandbox" ] || {
-        SANDBOX="--sandbox $(cat ${project}.sandbox)"
+        SANDBOX_DIR=$(cat ${project}.sandbox)
+        SANDBOX="--sandbox ${SANDBOX_DIR}"
     }
 
     # sandbox initialized if required, this should support sandboxes in parent directories
@@ -64,8 +66,9 @@ initialize () {
         )
 
         cat $project.submodules | while read submodule; do
-            # ideally this would be conditional but yeh, stuff
-            cabal sandbox add-source ${SANDBOX:-} "$submodule"
+            if ! grep -q "${submodule}\"" ${SANDBOX_DIR}/add-source-timestamps; then
+                cabal sandbox add-source ${SANDBOX:-} "$submodule"
+            fi
         done
     }
 
@@ -103,7 +106,12 @@ run_repl () {
 #
 run_quick () {
     initialize
-    ghci -package-db=$(find .cabal-sandbox -name '*-packages.conf.d') -isrc -itest test/test.hs
+    [ $# -eq 1 ] || fail "Quick requires a single argument, specifying the entry point you want to load."
+    [ -f "$1" ] || fail "The entry point does not exist."
+    [ ! -d src ] || SRC_DIRS="-isrc"
+    [ ! -d test ] || SRC_DIRS="${SRC_DIRS:-} -itest"
+    [ ! -d dist/build/autogen ] || SRC_DIRS="${SRC_DIRS:-} -idist/build/autogen"
+    ghci -package-db=$(find .cabal-sandbox -name '*-packages.conf.d') ${SRC_DIRS:-} "$1"
 }
 
 #
