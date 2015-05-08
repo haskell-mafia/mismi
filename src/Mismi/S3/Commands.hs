@@ -20,7 +20,12 @@ import           Control.Concurrent.Async
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Catch (catch, throwM)
+import           Control.Monad.Catch (Handler (..), catch)
+import           Control.Monad.Trans.Reader
+import           Control.Monad.Trans.Resource
+
+
+import           Control.Retry
 
 import           Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -37,6 +42,7 @@ import           Mismi.S3.Control
 import           Mismi.S3.Data
 
 import           Network.HTTP.Conduit (responseBody, RequestBody(..))
+import           Network.HTTP.Client (HttpException)
 import           Network.HTTP.Types.Status (status404)
 
 import           P
@@ -107,6 +113,7 @@ multipartUpload' file a fileSize chunk = do
   let mpu = (f' S3.postInitiateMultipartUpload a) { imuServerSideEncryption = Just sse }
   mpur <- awsRequest mpu
   liftIO $ System.IO.putStrLn "init"
+  (cfg, scfg, mgr) <- ask
   let upi :: Text = S3.imurUploadId mpur
   let p = calculateChunks (fromInteger fileSize) (fromInteger chunk)
   let x :: (Int, Int, Int) -> IO (Either S3.S3Error S3.UploadPartResponse) = (\(o :: Int, c :: Int, i :: Int) ->
@@ -115,9 +122,10 @@ multipartUpload' file a fileSize chunk = do
               cont <- LBS.hGetContents h
               let body = RequestBodyLBS (LBS.take (fromInteger . toInteger $ c) cont)
               let up = (f' S3.uploadPart a (toInteger i) upi body)
---              let up = (f' S3.uploadPart a (toInteger i) upi body) { upServerSideEncryption = Just sse }
-              let req = awsRequest up >>= (pure . Right)
-              (runS3WithDefaults req) `catch` (\(e :: S3.S3Error) -> pure $ Left e)
+              let fail' = \(e :: S3.S3Error) -> pure $ Left e
+              let runUpPart = flip runReaderT (cfg,scfg, mgr) $ awsRequest up
+              let res = runResourceT $ fmap Right runUpPart `catch` fail'
+              recovering (limitRetries 3) ([const $ Handler (\(_ :: HttpException) -> pure True) ]) res
           )
   prts <- liftIO $ mapConcurrently x p
   case sequence prts of
@@ -126,7 +134,6 @@ multipartUpload' file a fileSize chunk = do
     Right prts' -> do
       let prts'' = (uncurry (\(_, _, i) pr -> (toInteger i, uprETag pr))) <$> L.zip p prts'
       void . awsRequest $ (f' S3.postCompleteMultipartUpload a upi prts'')
---      void . awsRequest $ (f' S3.postCompleteMultipartUpload a upi prts'') { cmuServerSideEncryption = Just (T.pack $ show sse) }
 
 -- filesize -> Chunk -> [(offset, chunk, index)]
 calculateChunks :: Int -> Int -> [(Int, Int, Int)]
