@@ -8,11 +8,11 @@ library
                        base
                      , mismi
                      , aws
+                     , disorder-corpus
                      , exceptions
                      , filepath
                      , p
                      , http-client
-                     , orphanarium-corpus
                      , text
                      , transformers
                      , QuickCheck

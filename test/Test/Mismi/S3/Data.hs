@@ -5,8 +5,9 @@ module Test.Mismi.S3.Data where
 
 import           Data.Text as T
 
+import           Disorder.Corpus
+
 import           Mismi.S3.Data
-import           Orphanarium.Corpus
 
 import           Test.Mismi
 import           Test.Mismi.S3 ()

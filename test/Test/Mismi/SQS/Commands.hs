@@ -5,9 +5,9 @@ module Test.Mismi.SQS.Commands where
 
 import qualified Aws.Sqs as SQS
 
-import           Mismi.SQS
+import           Disorder.Core.IO
 
-import           Orphanarium.Core.IO
+import           Mismi.SQS
 
 import           P
 
