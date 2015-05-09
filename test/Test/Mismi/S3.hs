@@ -15,14 +15,14 @@ import           Data.Text as T
 import           Data.UUID as U
 import           Data.UUID.V4 as U
 
+import           Disorder.Corpus
+
 import           System.Posix.Env
 import           System.FilePath hiding ((</>))
 
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
-
-import           Orphanarium.Corpus
 
 import           Test.Mismi
 import           Test.Mismi.Arbitrary ()

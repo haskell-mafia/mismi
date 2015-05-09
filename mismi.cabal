@@ -65,10 +65,10 @@ test-suite test
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
+                     , disorder-core
+                     , disorder-corpus
                      , p
                      , http-client
-                     , orphanarium-core
-                     , orphanarium-corpus
                      , temporary                       == 1.2.*
                      , text
                      , transformers

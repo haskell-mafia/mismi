@@ -15,11 +15,11 @@ import           Data.List (sort)
 import           Data.Text as T
 import qualified Data.Text.IO as T
 
+import           Disorder.Core.UniquePair
+
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
-
-import           Orphanarium.Core.UniquePair
 
 import qualified System.Directory as D
 import qualified System.FilePath as F
