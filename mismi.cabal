@@ -101,8 +101,8 @@ test-suite test-io
                      , directory                       == 1.2.*
                      , p
                      , http-client
-                     , orphanarium-core
-                     , orphanarium-corpus
+                     , disorder-core
+                     , disorder-corpus
                      , temporary                       == 1.2.*
                      , text
                      , transformers

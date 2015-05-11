@@ -1,9 +1,9 @@
-import           Orphanarium.Core.Main
+import           Disorder.Core.Main
 
 import qualified Test.IO.Mismi.S3.Commands
 
 main :: IO ()
 main =
-  orphanariumMain [
+  disorderMain [
     Test.IO.Mismi.S3.Commands.tests
     ]

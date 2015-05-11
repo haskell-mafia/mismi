@@ -22,7 +22,7 @@ import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
 
-import           Orphanarium.Core.UniquePair
+import           Disorder.Core.UniquePair
 
 import qualified System.Directory as D
 import qualified System.FilePath as F
