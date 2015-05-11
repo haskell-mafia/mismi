@@ -7,7 +7,7 @@ copyright:             (c) 2015 Ambiata
 synopsis:              AWS library
 category:              AWS
 cabal-version:         >= 1.8
-build-type:            Simple
+build-type:            Custom
 description:           mismi.
 
 library
@@ -55,6 +55,15 @@ library
                        Mismi.SQS.Data
                        Mismi.SQS.Control
                        Mismi.SQS.Commands
+
+executable demo
+  main-is:             demo.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      main
+  build-depends:       base
+                     , mismi
+                     , text
+                     , transformers
 
 test-suite test
   type:                exitcode-stdio-1.0

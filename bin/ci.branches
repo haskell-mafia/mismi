@@ -1,12 +1,6 @@
 #!/bin/sh -exu
 
-export LC_COLLATE=en_US.UTF-8
-export LANG=en_US.UTF-8
+$(dirname $0)/ci.common
 
-git submodule sync
-git submodule init
-git submodule update
-
-./cabal update
-./cabal build
-./cabal test --log=/dev/stdout
+VERSION=$(cat $(dirname $0)/../dist/build/autogen/version.txt)
+aws s3 --region=ap-southeast-2 cp dist/build/demo/demo s3://ambiata-dist-branches/mismi-demo/linux/x86_64/$VERSION/mismi-demo-$VERSION

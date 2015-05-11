@@ -103,16 +103,13 @@ upload file a = do
 
 upload' :: FilePath -> Address -> S3Action ()
 upload' file a = do
-  liftIO $ System.IO.putStrLn "Running small upload"
   x <- liftIO $ LBS.readFile file
   void . awsRequest $ putObject a (RequestBodyLBS x) sse
 
 multipartUpload' :: FilePath -> Address -> Integer -> Integer -> S3Action ()
 multipartUpload' file a fileSize chunk = do
-  liftIO $ System.IO.putStrLn "Running multipart upload"
   let mpu = (f' S3.postInitiateMultipartUpload a) { imuServerSideEncryption = Just sse }
   mpur <- awsRequest mpu
-  liftIO $ System.IO.putStrLn "init"
   (cfg, scfg, mgr) <- ask
   let upi :: Text = S3.imurUploadId mpur
   let p = calculateChunks (fromInteger fileSize) (fromInteger chunk)
