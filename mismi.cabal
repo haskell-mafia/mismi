@@ -7,7 +7,7 @@ copyright:             (c) 2015 Ambiata
 synopsis:              AWS library
 category:              AWS
 cabal-version:         >= 1.8
-build-type:            Simple
+build-type:            Custom
 description:           mismi.
 
 library
@@ -33,6 +33,8 @@ library
                      , transformers                    >= 0.3        && < 0.5
                      , attoparsec                      == 0.12.*
                      , unix                            == 2.7.*
+                     , async                           == 2.0.*
+                     , retry                           == 0.6.*
 
   ghc-options:
                        -Wall
@@ -53,6 +55,15 @@ library
                        Mismi.SQS.Data
                        Mismi.SQS.Control
                        Mismi.SQS.Commands
+
+executable demo
+  main-is:             demo.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      main
+  build-depends:       base
+                     , mismi
+                     , text
+                     , transformers
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -76,3 +87,29 @@ test-suite test
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
                      , uuid                            == 1.3.*
+
+test-suite test-io
+  type:                exitcode-stdio-1.0
+  main-is:             test-io.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , mismi
+                     , aws
+                     , exceptions
+                     , filepath
+                     , directory                       == 1.2.*
+                     , p
+                     , http-client
+                     , disorder-core
+                     , disorder-corpus
+                     , temporary                       == 1.2.*
+                     , text
+                     , transformers
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+                     , unix                            == 2.7.*
+                     , uuid                            == 1.3.*
+                     , bytestring                      == 0.10.*
+                     , lens                            == 4.9.*
+                     , either                          == 4.3.*
