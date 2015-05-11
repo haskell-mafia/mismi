@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
 module Mismi.S3.Commands (
     exists
   , delete
@@ -30,7 +31,7 @@ import           Control.Retry
 import           Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import           Data.Conduit
-import           Data.Conduit.Binary (sinkFile)
+import           Data.Conduit.Binary
 import qualified Data.Conduit.List as C
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
@@ -41,7 +42,7 @@ import           Mismi.Control
 import           Mismi.S3.Control
 import           Mismi.S3.Data
 
-import           Network.HTTP.Conduit (responseBody, RequestBody(..))
+import           Network.HTTP.Conduit (responseBody, requestBodySource , RequestBody(..))
 import           Network.HTTP.Client (HttpException)
 import           Network.HTTP.Types.Status (status404)
 
@@ -50,9 +51,10 @@ import           P
 import           Prelude (error)
 
 import           System.IO
-
 import           System.FilePath
 import           System.Directory
+
+import           X.Data.Conduit.Binary
 
 f' :: (Text -> Text -> a) -> Address -> a
 f' f a =
@@ -113,20 +115,17 @@ multipartUpload' file a fileSize chunk = do
   (cfg, scfg, mgr) <- ask
   let upi :: Text = S3.imurUploadId mpur
   let p = calculateChunks (fromInteger fileSize) (fromInteger chunk)
-  let x :: (Int, Int, Int) -> IO (Either S3.S3Error S3.UploadPartResponse) = (\(o :: Int, c :: Int, i :: Int) ->
-            withFile file ReadMode $ \h -> do
-              hSeek h AbsoluteSeek (toInteger o)
-              cont <- LBS.hGetContents h
-              let body = RequestBodyLBS (LBS.take (fromInteger . toInteger $ c) cont)
-              let up = (f' S3.uploadPart a (toInteger i) upi body)
-              let fail' = \(e :: S3.S3Error) -> pure $ Left e
-              let runUpPart = flip runReaderT (cfg,scfg, mgr) $ awsRequest up
-              let res = runResourceT $ fmap Right runUpPart `catch` fail'
-              recovering (limitRetries 3) ([const $ Handler (\(_ :: HttpException) -> pure True) ]) res
+  let x :: (Int, Int, Int) -> IO (Either S3.S3Error S3.UploadPartResponse) = (\(o :: Int, c :: Int, i :: Int) -> do
+            let body = requestBodySource (fromInteger . toInteger $ c) $
+                  slurpWithBuffer file (toInteger o) (Just $ toInteger c) (1024 * 1024)
+            let up = (f' S3.uploadPart a (toInteger i) upi body)
+            let runUpPart = flip runReaderT (cfg,scfg, mgr) $ awsRequest up
+            let res = (runResourceT runUpPart >>= pure . Right) `catch` (\(e :: S3.S3Error) -> pure . Left $ e)
+            recovering (limitRetries 3) ([const $ Handler (\(_ :: HttpException) -> pure True) ]) res
           )
-  prts <- liftIO $ mapConcurrently x p
+  prts <- liftIO (mapConcurrently x p)
   case sequence prts of
-    Left _ -> do
+    Left _ ->
       void . awsRequest $ f' S3.postAbortMultipartUpload a upi
     Right prts' -> do
       let prts'' = (uncurry (\(_, _, i) pr -> (toInteger i, uprETag pr))) <$> L.zip p prts'
