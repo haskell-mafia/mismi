@@ -1,0 +1,25 @@
+#!/bin/sh -eu
+
+export LC_COLLATE=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+git submodule init
+git submodule sync
+git submodule update
+
+cabal sandbox init
+
+cabal sandbox add-source lib/p
+cabal sandbox add-source lib/disorder/disorder-corpus
+cabal sandbox add-source lib/disorder/disorder-core
+
+./cabal update
+
+cabal install --only-dependencies --enable-library-profiling
+
+cabal clean
+cabal configure --enable-library-profiling --enable-executable-profiling --disable-shared
+cabal build --ghc-option="-prof" --ghc-options="-fprof-auto"
+
+VERSION=$(cat $(dirname $0)/../dist/build/autogen/version.txt)
+aws s3 --region=ap-southeast-2 cp dist/build/demo/demo s3://ambiata-dist-branches/mismi-demo-prof/linux/x86_64/$VERSION/mismi-demo-prof-$VERSION
