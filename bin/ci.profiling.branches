@@ -12,6 +12,7 @@ cabal sandbox init
 cabal sandbox add-source lib/p
 cabal sandbox add-source lib/disorder/disorder-corpus
 cabal sandbox add-source lib/disorder/disorder-core
+cabal sandbox add-source lib/x/x-conduit
 
 ./cabal update
 
