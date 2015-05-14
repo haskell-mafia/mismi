@@ -26,7 +26,7 @@ library
                      , http-client                     == 0.4.*
                      , http-conduit                    == 2.1.*
                      , http-types                      == 0.8.*
-                     , mtl                             == 2.2.*
+                     , mtl                             >= 2.1       && < 2.3
                      , process                         == 1.2.*
                      , resourcet                       == 1.1.*
                      , semigroups                      == 0.16.*
