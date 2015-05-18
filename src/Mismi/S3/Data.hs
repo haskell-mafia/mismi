@@ -85,8 +85,19 @@ addressFromText =
   rightToMaybe . AT.parseOnly s3Parser
 
 s3Parser :: Parser Address
-s3Parser = do
+s3Parser =
+  s3Parser' <|> s3Parser''
+
+s3Parser' :: Parser Address
+s3Parser' = do
   _ <- string "s3://"
   b <- manyTill anyChar (char '/')
   k <- many anyChar
   pure $ Address (Bucket . T.pack $ b) (Key . T.pack $ k)
+
+s3Parser'' :: Parser Address
+s3Parser'' = do
+  _ <- string "s3://"
+  b <- takeWhile (/= '/')
+  endOfInput
+  pure $ Address (Bucket b) (Key "")
