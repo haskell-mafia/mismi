@@ -5,6 +5,8 @@ module Test.Mismi.Arbitrary where
 
 import           Data.Text as T
 
+import           Disorder.Corpus
+
 import           Mismi.S3.Data
 import           Mismi.SQS.Data
 
@@ -13,8 +15,14 @@ import           Test.Mismi
 instance Arbitrary WriteMode where
   arbitrary = elements [Fail, Overwrite]
 
+instance Arbitrary Bucket where
+  arbitrary = Bucket <$> elements southpark
+
 instance Arbitrary Address where
-  arbitrary = Address (Bucket "ambiata-dev-view") <$> arbitrary
+  arbitrary = frequency [
+      (9, Address <$> arbitrary <*> arbitrary)
+    , (1, flip Address (Key "") <$> arbitrary)
+    ]
 
 instance Arbitrary Key where
   -- The max length of S3 Paths is 1024 - and we append some of them in the tests

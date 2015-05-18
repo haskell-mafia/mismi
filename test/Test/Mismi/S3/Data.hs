@@ -27,6 +27,10 @@ prop_parse :: Address -> Property
 prop_parse a =
   addressFromText (addressToText a) === Just a
 
+prop_parse_bucket :: Bucket -> Property
+prop_parse_bucket b =
+  addressFromText ("s3://" <> unBucket b) === Just (Address b (Key ""))
+
 prop_withKey :: Address -> Property
 prop_withKey a =
   withKey id a === a
