@@ -3,28 +3,32 @@
 {-# LANGUAGE RankNTypes #-}
 module Mismi.SQS.Control (
     SQSAction
-  , runSQSWithDefaults
+  , Network.AWS.Types.Region(..)
+  , RegionError(..)
   , runSQSWithCfg
-  , loadRegionFromEnv
+  , getRegionFromEnv
   , regionTo
-  , sqsEndpointApSouthEast2
   ) where
 
 import qualified Aws
 import qualified Aws.Core
-import qualified Aws.S3.Core
 import qualified Aws.Sqs as SQS
 import qualified Aws.Sqs.Core
+
+import qualified Network.AWS.Types
 
 import           Control.Monad.Reader hiding (forM)
 import           Control.Monad.Trans.Resource (ResourceT)
 
-import qualified Data.ByteString.Char8 as BS
+import           Data.Bifunctor
 import           Data.List (lookup)
 import           Data.Maybe
 import           Data.Text
 
-import           Mismi.Control
+import           Mismi.SQS.Data
+
+import           Network.AWS.Types
+import           Network.AWS.Data
 
 import           Network.HTTP.Client (Manager)
 import           Network.HTTP.Conduit (withManager)
@@ -37,39 +41,28 @@ import           System.IO
 -- | Specilised AwsAction for SQS operations
 type SQSAction = ReaderT (Aws.Configuration, SQS.SqsConfiguration Aws.NormalQuery, Manager) (ResourceT IO)
 
-newtype Region = Region {
-    unRegion :: Text
-  } deriving (Eq, Show)
-
-runSQSWithDefaults :: SQSAction a -> IO a
-runSQSWithDefaults action = do
-    cfg <- baseConfiguration'
-    e <- loadRegionFromEnv >>= maybe (fail "No value found for AWS_DEFAULT_REGION.") (pure . Region)
-    r <- (pure . regionTo . unRegion $ e) >>= maybe (fail "Failed to parse region from AWS_DEFAULT_REGION.") (pure)
-    runSQSWithCfg cfg r action
+newtype RegionError = RegionError { unRegionError :: Text } deriving (Eq, Show)
 
 runSQSWithCfg :: Aws.Configuration -> Aws.Sqs.Core.Endpoint -> SQSAction a -> IO a
-runSQSWithCfg cfg endpoint  action =
+runSQSWithCfg cfg endpoint' action =
   withManager $ \m -> do
-    let scfg = SQS.sqs Aws.Core.HTTP endpoint False
+    let scfg = SQS.sqs Aws.Core.HTTP endpoint' False
     runReaderT action (cfg, scfg, m)
 
-regionTo :: Text -> Maybe Aws.Sqs.Core.Endpoint
+regionTo :: Network.AWS.Types.Region -> Maybe Aws.Sqs.Core.Endpoint
 regionTo r = case r of
-         "ap-northeast-1" -> Just Aws.Sqs.Core.sqsEndpointApNorthEast
-         "ap-southeast-1" -> Just Aws.Sqs.Core.sqsEndpointApSouthEast
-         "EU"             -> Just Aws.Sqs.Core.sqsEndpointEu
-         "us-west-1"      -> Just Aws.Sqs.Core.sqsEndpointUsWest
-         "us-west-2"      -> Just Aws.Sqs.Core.sqsEndpointUsWest2
-         "ap-southeast-2" -> Just sqsEndpointApSouthEast2
-         _ -> Nothing
+         Network.AWS.Types.Tokyo             -> Just Aws.Sqs.Core.sqsEndpointApNorthEast
+         Network.AWS.Types.Singapore         -> Just Aws.Sqs.Core.sqsEndpointApSouthEast
+         Network.AWS.Types.NorthCalifornia   -> Just Aws.Sqs.Core.sqsEndpointUsWest
+         Network.AWS.Types.Oregon            -> Just Aws.Sqs.Core.sqsEndpointUsWest2
+         Network.AWS.Types.Sydney            -> Just sqsEndpointApSouthEast2
+         Network.AWS.Types.Ireland           -> Just sqsEndpointEuWest1
+         Network.AWS.Types.Frankfurt         -> Just sqsEndpointEuCentral1
+         Network.AWS.Types.SaoPaulo          -> Just sqsEndpointSaEast1
+         _                                   -> Nothing
 
-sqsEndpointApSouthEast2 :: SQS.Endpoint
-sqsEndpointApSouthEast2 =
-  SQS.Endpoint (BS.pack "sqs.ap-southeast-2.amazonaws.com") Aws.S3.Core.locationApSouthEast2 [Aws.S3.Core.locationApSouthEast2]
-
-loadRegionFromEnv :: IO (Maybe Text)
-loadRegionFromEnv = liftIO $ do
+getRegionFromEnv :: IO (Either RegionError Region)
+getRegionFromEnv = liftIO $ do
   env <- getEnvironment
-  let r = lookup "AWS_DEFAULT_REGION" env
-  pure $ fmap pack r
+  let r = fromMaybe "" $ fmap pack $ lookup "AWS_DEFAULT_REGION" env
+  pure . first (RegionError . pack) . fromText $ r

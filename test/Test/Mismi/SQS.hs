@@ -2,13 +2,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Test.Mismi.SQS (
     NonEmptyMessage(..)
-  , withQueue'
+  , withQueue
+  , runSQSWithCfgWithDefaults
   ) where
 
-import           Control.Monad.Catch (finally)
+import           Control.Monad.Catch
 
 import           Data.Text
 
+import           Mismi.Control
 import           Mismi.SQS
 
 import           Test.QuickCheck
@@ -30,6 +32,13 @@ genSQSText =
            let invalid = P.concat [['\x9'],['\xA'],['\xD'], ['\x20'..'\xD7FF'], ['\xE000'..'\xFFFD'], ['\x10000'..'\x10FFFF']]
            in suchThat (pack . P.filter (\x -> P.elem x invalid) <$> arbitrary) (not . Data.Text.null)
 
-withQueue' :: QueueName -> (QueueUrl -> SQSAction a) -> IO a
-withQueue' qName f =
-  withQueue qName $ \q -> finally (f q) (void . deleteQueue $ q)
+withQueue :: QueueName -> (QueueUrl -> SQSAction a) -> SQSAction a
+withQueue qName f =
+  bracket (createQueue qName (Just 8400)) (void . deleteQueue) f
+
+runSQSWithCfgWithDefaults :: SQSAction b -> IO b
+runSQSWithCfgWithDefaults f = do
+  cfg <- baseConfiguration'
+  r <- getRegionFromEnv
+  let e = fromMaybe sqsEndpointApSouthEast2 . (=<<) regionTo . P.rightToMaybe $ r
+  runSQSWithCfg cfg e $ f
