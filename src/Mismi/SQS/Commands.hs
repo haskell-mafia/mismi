@@ -1,10 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.SQS.Commands (
-    MessageId
-  , QueueUrl
-  , withQueue
-  , createQueue
+    createQueue
   , deleteQueue
   , readMessages
   , writeMessage
@@ -21,21 +18,9 @@ import           Mismi.SQS.Data
 
 import           P
 
-import           System.IO
-
-newtype QueueUrl = QueueUrl { unQueueUrl :: SQS.QueueName } deriving (Eq, Show)
-newtype MessageId = MessageId SQS.MessageId deriving (Eq, Show)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
-defaultVisibilityTimeout :: Maybe Int
-defaultVisibilityTimeout = Just 8400 -- seconds
-
-withQueue :: QueueName -> (QueueUrl -> SQSAction a) -> IO a
-withQueue qName f =
-   runSQSWithDefaults $ createQueue qName defaultVisibilityTimeout >>= f
-
--- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
-createQueue :: QueueName -> Maybe Int-> SQSAction QueueUrl
+createQueue :: QueueName  -> Maybe Int-> SQSAction QueueUrl
 createQueue q v = do
   let createQReq = SQS.CreateQueue v . unQueueName $ q
   SQS.CreateQueueResponse qUrl <-  awsRequest $ createQReq
