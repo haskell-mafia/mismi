@@ -55,6 +55,7 @@ library
                        Mismi.EC2
                        Mismi.EC2.Data
                        Mismi.EC2.Metadata
+                       Mismi.Environment
                        Mismi.S3
                        Mismi.S3.Commands
                        Mismi.S3.Control
