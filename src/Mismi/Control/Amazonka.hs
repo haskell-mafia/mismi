@@ -4,6 +4,8 @@ module Mismi.Control.Amazonka (
     module X
   , AWSError (..)
   , runAWSDefaultRegion
+  , awsBracket_
+  , awsBracket
   , awsErrorRender
   , errorRender
   ) where
@@ -23,6 +25,8 @@ import           P
 
 import           System.IO
 
+import           X.Exception.Catch
+
 
 data AWSError =
     AWSRegionError RegionError
@@ -34,6 +38,30 @@ runAWSDefaultRegion a = do
   r <- EitherT . fmap (first AWSRegionError) $ getRegionFromEnv
   e <- liftIO $ getEnv r Discover
   EitherT . fmap (first AWSRunError) $ runAWST e a
+
+
+awsBracket_ :: AWS a -> AWS c -> AWS b -> AWS b
+awsBracket_ a b c =
+  awsBracket a (const b) (const c)
+
+awsBracket :: AWS a -> (a -> AWS c) -> (a -> AWS b) -> AWS b
+awsBracket resource finalizer action = do
+  e <- ask
+  x <- liftIO $ bracketF
+         (runAWST e resource)
+         (\r -> case r of
+             Left _ ->
+               pure $ Right ()
+             Right r' ->
+               runAWST e (finalizer r') >>= \x -> pure $ case x of
+                 Left err -> Left (Left err)
+                 Right _ -> Right ())
+         (\r -> case r of
+             Left err ->
+               pure $ Left err
+             Right r' ->
+               runAWST e (action r'))
+  X.hoistEither x
 
 
 awsErrorRender :: AWSError -> Text

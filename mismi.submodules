@@ -4,3 +4,4 @@ lib/disorder/disorder-core
 lib/disorder/disorder-corpus
 lib/p
 lib/x/x-conduit
+lib/x/x-exception

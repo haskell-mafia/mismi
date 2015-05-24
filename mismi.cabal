@@ -40,6 +40,7 @@ library
                      , unix                            == 2.7.*
                      , async                           == 2.0.*
                      , retry                           == 0.6.*
+                     , x-exception
 
   ghc-options:
                        -Wall
@@ -84,6 +85,7 @@ test-suite test
                      , mismi
                      , aws
                      , amazonka-core
+                     , either
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
