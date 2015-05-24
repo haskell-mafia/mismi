@@ -52,6 +52,7 @@ library
                        Paths_mismi
                        Mismi
                        Mismi.Control
+                       Mismi.Control.Amazonka
                        Mismi.EC2
                        Mismi.EC2.Data
                        Mismi.EC2.Metadata
