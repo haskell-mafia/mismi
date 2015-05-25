@@ -34,7 +34,8 @@ instance Arbitrary Key where
     in (Key . append "tests/") <$> path
 
 instance Arbitrary QueueName where
-  arbitrary = (QueueName . T.pack) <$> sized (\n -> vectorOf (max 80 n) (oneof [
+  -- Ideally we would go from 1, but SQS doesn't like re-using queue names in a short timeframe
+  arbitrary = (QueueName . T.pack) <$> sized (\n -> vectorOf (max 10 (min 80 n)) (oneof [
       choose ('a', 'z')
     , choose ('0', '9')
     , pure '-'
