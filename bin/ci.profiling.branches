@@ -9,10 +9,9 @@ git submodule update
 
 cabal sandbox init
 
-cabal sandbox add-source lib/p
-cabal sandbox add-source lib/disorder/disorder-corpus
-cabal sandbox add-source lib/disorder/disorder-core
-cabal sandbox add-source lib/x/x-conduit
+for module in $(cat mismi.submodules); do
+  cabal sandbox add-source $module
+done
 
 ./cabal update
 
