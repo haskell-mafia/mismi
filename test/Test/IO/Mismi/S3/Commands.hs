@@ -18,6 +18,8 @@ import qualified Data.Text.IO as T
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 
+import           Disorder.Corpus
+
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
@@ -152,23 +154,31 @@ prop_read_empty k = ioProperty $ do
 
 prop_getObjects_empty :: Token -> Property
 prop_getObjects_empty t = ioProperty . runS3WithDefaults . withToken t $ \a -> do
-  objs <- getObjects $ a
+  objs <- getObjectsRecursively $ a
   pure $ fmap S3.objectKey objs === []
 
-prop_getObjects :: Token -> Text -> Key -> Key -> Property
-prop_getObjects token t p1 p2 = p1 /= p2 ==> ioProperty .
+prop_getObjectsR :: Token -> Text -> Key -> Key -> Property
+prop_getObjectsR token t p1 p2 = p1 /= p2 ==> ioProperty .
   runS3WithDefaults . withToken token $ \root -> do
     let keys = [p1, p2 </> p1, p2 </> p2]
     forM_ keys $ \k -> write Fail (withKey (</> k) root) t
-    objs <- getObjects root
+    objs <- getObjectsRecursively root
     pure $ on (===) sort (S3.objectKey <$> objs) (unKey . (</>) (key root) <$> keys)
 
-prop_list :: Token -> Property
-prop_list t = monadicIO $
+prop_listRecursively :: Token -> Property
+prop_listRecursively t = monadicIO $
   stop =<< (run . runS3WithDefaults . withToken t $ \a -> do
     write Fail a ""
     r' <- listRecursively (a { key = dirname $ key a })
     pure $ a `elem` r')
+
+prop_list :: Token -> Property
+prop_list t = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> monadicIO $
+  stop =<< (run . runS3WithDefaults . withToken t $ \a -> do
+    write Fail (withKey(</> Key m) a) ""
+    write Fail (withKey(</> (Key s </> Key m)) a) ""
+    r' <- list a
+    pure $ [m, s <> "/"] === (replace (addressToText a <> "/") "" . addressToText <$> r'))
 
 return []
 tests :: IO Bool
