@@ -10,7 +10,7 @@ import           Control.Monad.Catch
 
 import           Data.Text
 
-import           Mismi.Control
+import           Mismi.Environment
 import           Mismi.SQS
 
 import           Test.QuickCheck
@@ -38,7 +38,6 @@ withQueue qName f =
 
 runSQSWithCfgWithDefaults :: SQSAction b -> IO b
 runSQSWithCfgWithDefaults f = do
-  cfg <- baseConfiguration'
   r <- getRegionFromEnv
-  let e = fromMaybe sqsEndpointApSouthEast2 . (=<<) regionTo . P.rightToMaybe $ r
-  runSQSWithCfg cfg e $ f
+  let e = fromMaybe Sydney $ P.rightToMaybe r
+  runSQSWithRegion e f

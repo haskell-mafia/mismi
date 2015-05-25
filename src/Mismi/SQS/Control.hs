@@ -3,10 +3,10 @@
 {-# LANGUAGE RankNTypes #-}
 module Mismi.SQS.Control (
     SQSAction
-  , Network.AWS.Types.Region(..)
-  , RegionError(..)
+  , runSQSWithDefaults
+  , runSQSWithRegion
+  , runSQSWithEndpoint
   , runSQSWithCfg
-  , getRegionFromEnv
   , regionTo
   ) where
 
@@ -20,28 +20,39 @@ import qualified Network.AWS.Types
 import           Control.Monad.Reader hiding (forM)
 import           Control.Monad.Trans.Resource (ResourceT)
 
-import           Data.Bifunctor
-import           Data.List (lookup)
 import           Data.Maybe
-import           Data.Text
+import           Data.Text as T
 
+import           Mismi.Control
+import           Mismi.Environment
 import           Mismi.SQS.Data
 
-import           Network.AWS.Types
-import           Network.AWS.Data
-
+import           Network.AWS.Data (toText)
 import           Network.HTTP.Client (Manager)
 import           Network.HTTP.Conduit (withManager)
 
 import           P
 
-import           System.Environment
 import           System.IO
 
 -- | Specilised AwsAction for SQS operations
 type SQSAction = ReaderT (Aws.Configuration, SQS.SqsConfiguration Aws.NormalQuery, Manager) (ResourceT IO)
 
-newtype RegionError = RegionError { unRegionError :: Text } deriving (Eq, Show)
+
+runSQSWithDefaults :: SQSAction b -> IO b
+runSQSWithDefaults action = do
+  r <- getRegionFromEnv >>= either (fail . T.unpack . regionErrorRender) pure
+  runSQSWithRegion r action
+
+runSQSWithRegion :: Region -> SQSAction a -> IO a
+runSQSWithRegion region' action = do
+  e <- maybe (fail . T.unpack $ "Region for SQS not supported" <> toText region') pure $ regionTo region'
+  runSQSWithEndpoint e action
+
+runSQSWithEndpoint :: Aws.Sqs.Core.Endpoint -> SQSAction a -> IO a
+runSQSWithEndpoint endpoint' action = do
+  cfg <- baseConfiguration'
+  runSQSWithCfg cfg endpoint' action
 
 runSQSWithCfg :: Aws.Configuration -> Aws.Sqs.Core.Endpoint -> SQSAction a -> IO a
 runSQSWithCfg cfg endpoint' action =
@@ -60,9 +71,3 @@ regionTo r = case r of
          Network.AWS.Types.Frankfurt         -> Just sqsEndpointEuCentral1
          Network.AWS.Types.SaoPaulo          -> Just sqsEndpointSaEast1
          _                                   -> Nothing
-
-getRegionFromEnv :: IO (Either RegionError Region)
-getRegionFromEnv = liftIO $ do
-  env <- getEnvironment
-  let r = fromMaybe "" $ fmap pack $ lookup "AWS_DEFAULT_REGION" env
-  pure . first (RegionError . pack) . fromText $ r
