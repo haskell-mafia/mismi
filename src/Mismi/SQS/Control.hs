@@ -38,7 +38,6 @@ import           System.IO
 -- | Specilised AwsAction for SQS operations
 type SQSAction = ReaderT (Aws.Configuration, SQS.SqsConfiguration Aws.NormalQuery, Manager) (ResourceT IO)
 
-
 runSQSWithDefaults :: SQSAction b -> IO b
 runSQSWithDefaults action = do
   r <- getRegionFromEnv >>= either (fail . T.unpack . regionErrorRender) pure

@@ -1,7 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.SQS.Commands (
-    createQueue
+    runSQSWithQueue
+  , createQueue
   , deleteQueue
   , readMessages
   , writeMessage
@@ -18,9 +19,14 @@ import           Mismi.SQS.Data
 
 import           P
 
+import           System.IO
+
+runSQSWithQueue :: Queue -> Maybe Int -> (QueueUrl -> SQSAction a) -> IO a
+runSQSWithQueue (Queue q r) v action = do
+  runSQSWithRegion r $ action =<< createQueue q v
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
-createQueue :: QueueName  -> Maybe Int-> SQSAction QueueUrl
+createQueue :: QueueName -> Maybe Int -> SQSAction QueueUrl
 createQueue q v = do
   let createQReq = SQS.CreateQueue v . unQueueName $ q
   SQS.CreateQueueResponse qUrl <-  awsRequest $ createQReq

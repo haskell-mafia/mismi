@@ -18,16 +18,16 @@ import           Test.Mismi.Arbitrary ()
 import           Test.Mismi.SQS
 import           Test.QuickCheck
 
-prop_write_read :: QueueName -> NonEmptyMessage -> Property
-prop_write_read queueName msg =
-  testIO . runSQSWithCfgWithDefaults . withQueue queueName $ \q -> do
+prop_write_read :: Queue -> NonEmptyMessage -> Property
+prop_write_read queue' msg =
+  testIO . runSQSWithQueue' queue' $ \q -> do
     _ <- writeMessage q (unMessage msg) Nothing
     msg2 <- readMessages q (Just 1) Nothing
     pure $ [unMessage msg] === fmap SQS.mBody msg2
 
-prop_write_delete_read :: QueueName -> NonEmptyMessage -> Property
-prop_write_delete_read queueName msg =
-  testIO . runSQSWithCfgWithDefaults . withQueue queueName $ \q -> do
+prop_write_delete_read :: Queue -> NonEmptyMessage -> Property
+prop_write_delete_read queue' msg =
+  testIO . runSQSWithQueue' queue' $ \q -> do
     _ <- writeMessage q (unMessage msg) Nothing
     msg2 <- readMessages q (Just 1) Nothing
     forM_ msg2 (deleteMessage q)
