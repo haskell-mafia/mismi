@@ -8,6 +8,7 @@ library
                        base
                      , mismi
                      , aws                             == 0.11.*
+                     , amazonka-core
                      , disorder-corpus
                      , exceptions
                      , filepath
