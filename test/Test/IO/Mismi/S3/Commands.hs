@@ -13,7 +13,7 @@ import           Control.Monad.IO.Class
 import           Data.Bool
 import           Data.List (sort)
 import qualified Data.List as L
-import           Data.Text as T
+import           Data.Text as T hiding (length)
 import qualified Data.Text.IO as T
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -24,7 +24,7 @@ import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
 
-import           Disorder.Core.UniquePair
+import           Disorder.Core.UniquePair hiding (snd)
 
 import qualified System.Directory as D
 import qualified System.FilePath as F
@@ -179,6 +179,13 @@ prop_list t = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s)
     write Fail (withKey(</> (Key s </> Key m)) a) ""
     r' <- list a
     pure $ [m, s <> "/"] === (replace (addressToText a <> "/") "" . addressToText <$> r'))
+
+prop_getObjs :: Token -> Property
+prop_getObjs t = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> once . monadicIO $
+  stop =<< (run . runS3WithDefaults . withToken t $ \a -> do
+    forM_ [1..n] $ \n' -> write Fail (withKey(</> Key (m <> pack (show n'))) a) ""
+    r' <- list a
+    pure $ length r' === n)
 
 return []
 tests :: IO Bool
