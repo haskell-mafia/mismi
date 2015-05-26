@@ -172,16 +172,13 @@ getObjects (Address (Bucket buck) (Key ky)) =
     ff b = do
       r <- awsRequest b
       if S3.gbrIsTruncated r
-        then do
-          d <- case S3.gbrContents r of
-            [] -> pure ([], [])
-            l -> (\(a, b') -> (a, fmap S3.objectKey l <> b')) <$> (ff $ b { S3.gbMarker = Just $ S3.objectKey $ L.last l})
-          d' <- case S3.gbrCommonPrefixes r of
-            [] -> pure ([], [])
-            l -> (\(a, b') -> (l <> a, b')) <$> (ff $ b { S3.gbMarker = Just $ L.last l})
-          pure $ (d <> d')
+        then
+        do
+          let d = (S3.gbrCommonPrefixes r, S3.objectKey <$> S3.gbrContents r)
+          n <- ff $ b { S3.gbMarker = S3.gbrNextMarker r }
+          pure $ (d <> n)
         else
-        pure $ ((,) (S3.gbrCommonPrefixes r) (S3.objectKey <$> S3.gbrContents r))
+        pure $ (S3.gbrCommonPrefixes r, S3.objectKey <$> S3.gbrContents r)
 
 -- list the address, keys fisrt, then prefixs
 list :: Address -> S3Action [Address]
