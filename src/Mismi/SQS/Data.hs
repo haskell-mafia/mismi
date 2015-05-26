@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Mismi.SQS.Data (
     QueueName(..)
+  , Queue(..)
   , QueueUrl(..)
   , MessageId(..)
   , module M
@@ -17,8 +18,9 @@ import qualified Aws.Sqs.Core
 import qualified Aws.S3.Core
 
 import qualified Data.ByteString.Char8 as BS
-
 import           Data.Text
+
+import           Network.AWS.Types
 
 import           P
 
@@ -26,9 +28,13 @@ import           P
 -- plus hyphens (-) and underscores (_) are allowed. Queue names must be unique
 -- within an AWS account. After you delete a queue, you can reuse the queue
 -- name.
---
 newtype QueueName = QueueName {
     unQueueName :: Text
+  } deriving (Eq, Show)
+
+data Queue = Queue {
+    queueName :: QueueName
+  , queueRegion :: Region
   } deriving (Eq, Show)
 
 newtype QueueUrl = QueueUrl { unQueueUrl :: SQS.QueueName } deriving (Eq, Show)

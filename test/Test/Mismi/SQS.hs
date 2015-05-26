@@ -4,6 +4,7 @@ module Test.Mismi.SQS (
     NonEmptyMessage(..)
   , withQueue
   , runSQSWithCfgWithDefaults
+  , runSQSWithQueue'
   ) where
 
 import           Control.Monad.Catch
@@ -35,6 +36,10 @@ genSQSText =
 withQueue :: QueueName -> (QueueUrl -> SQSAction a) -> SQSAction a
 withQueue qName f =
   bracket (createQueue qName (Just 8400)) (void . deleteQueue) f
+
+runSQSWithQueue' :: Queue -> (QueueUrl -> SQSAction a) -> IO a
+runSQSWithQueue' (Queue qn r) f =
+  runSQSWithRegion r $ withQueue qn f
 
 runSQSWithCfgWithDefaults :: SQSAction b -> IO b
 runSQSWithCfgWithDefaults f = do

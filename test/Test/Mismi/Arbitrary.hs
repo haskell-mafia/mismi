@@ -10,6 +10,8 @@ import           Disorder.Corpus
 import           Mismi.S3.Data
 import           Mismi.SQS.Data
 
+import           Network.AWS.Types
+
 import           Test.Mismi
 
 instance Arbitrary WriteMode where
@@ -32,6 +34,13 @@ instance Arbitrary Key where
     let genPath = elements ["happy", "sad", ".", ":", "-"]
         path = T.take 256 . T.intercalate "/" <$> listOf1 (T.intercalate "" <$> listOf1 genPath)
     in (Key . append "tests/") <$> path
+
+instance Arbitrary Queue where
+  arbitrary = Queue <$> arbitrary <*> arbitrary
+
+instance Arbitrary Region where
+  arbitrary = elements [Ireland, Tokyo, Singapore, Sydney, NorthCalifornia, Oregon]
+  -- Shorter list than possible, aws doesn't support all potential Regions.
 
 instance Arbitrary QueueName where
   arbitrary = (QueueName . T.pack) <$> sized (\n -> vectorOf (max 80 n) (oneof [
