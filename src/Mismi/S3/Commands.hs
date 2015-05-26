@@ -10,12 +10,15 @@ module Mismi.S3.Commands (
   , upload
   , calculateChunks
   , write
-  , getObjects
+  , list
+  , getObjectsRecursively
   , listRecursively
   ) where
 
 import qualified Aws.S3 as S3
 import           Aws.S3 hiding (putObject)
+
+import           Control.Arrow ((***))
 
 import           Control.Concurrent.Async
 
@@ -158,8 +161,35 @@ putObject :: Address -> RequestBody -> S3.ServerSideEncryption -> S3.PutObject
 putObject a body e =
   (f' S3.putObject a body) { S3.poServerSideEncryption = Just e }
 
-getObjects :: Address -> S3Action [S3.ObjectInfo]
-getObjects (Address (Bucket b) (Key ky)) =
+-- pair of prefixs and keys
+getObjects :: Address -> S3Action ([Key], [Key])
+getObjects (Address (Bucket buck) (Key ky)) =
+  ((Key <$>) *** (Key <$>)) <$> (ff $ (S3.getBucket buck) { S3.gbPrefix = Just $ pp ky, S3.gbDelimiter = Just $ "/" })
+  where
+    pp :: Text -> Text
+    pp k = if T.null k then "" else if T.isSuffixOf "/" k then k else k <> "/"
+    ff :: S3.GetBucket -> S3Action ([T.Text], [T.Text])
+    ff b = do
+      r <- awsRequest b
+      if S3.gbrIsTruncated r
+        then do
+          d <- case S3.gbrContents r of
+            [] -> pure ([], [])
+            l -> (\(a, b') -> (a, fmap S3.objectKey l <> b')) <$> (ff $ b { S3.gbMarker = Just $ S3.objectKey $ L.last l})
+          d' <- case S3.gbrCommonPrefixes r of
+            [] -> pure ([], [])
+            l -> (\(a, b') -> (l <> a, b')) <$> (ff $ b { S3.gbMarker = Just $ L.last l})
+          pure $ (d <> d')
+        else
+        pure $ ((,) (S3.gbrCommonPrefixes r) (S3.objectKey <$> S3.gbrContents r))
+
+-- list the address, keys fisrt, then prefixs
+list :: Address -> S3Action [Address]
+list a =
+  (\(p, k) -> fmap (Address (bucket a)) (k <> p)) <$> getObjects a
+
+getObjectsRecursively :: Address -> S3Action [S3.ObjectInfo]
+getObjectsRecursively (Address (Bucket b) (Key ky)) =
   getObjects' $ (S3.getBucket b) { S3.gbPrefix = Just $ pp ky }
   where
     pp :: Text -> Text
@@ -182,4 +212,4 @@ getObjects (Address (Bucket b) (Key ky)) =
 
 listRecursively :: Address -> S3Action [Address]
 listRecursively a =
-  fmap (Address (bucket a) . Key . S3.objectKey) <$> getObjects a
+  fmap (Address (bucket a) . Key . S3.objectKey) <$> getObjectsRecursively a
