@@ -34,6 +34,13 @@ prop_write_delete_read queue' msg =
     msg3 <- readMessages q (Just 1) Nothing
     pure $ [] === msg3
 
+prop_with_queue :: Queue -> NonEmptyMessage -> Property
+prop_with_queue queue' msg =
+  testIO . runSQSWithQueue' queue' $ \q1 -> onQueue queue' Nothing $ \q -> do
+    _ <- writeMessage q (unMessage msg) Nothing
+    msg2 <- readMessages q (Just 1) Nothing
+    pure $ ([unMessage msg], q1)  === (fmap SQS.mBody msg2, q)
+
 return []
 tests :: IO Bool
 tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 2 })
