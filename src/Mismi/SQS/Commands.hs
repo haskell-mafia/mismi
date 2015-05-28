@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.SQS.Commands (
-    runSQSWithQueue
+    onQueue
   , createQueue
   , deleteQueue
   , readMessages
@@ -11,7 +11,10 @@ module Mismi.SQS.Commands (
 
 import qualified Aws.Sqs as SQS
 
-import           Data.Text
+import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Trans.Reader
+
+import           Data.Text as T
 
 import           Mismi.Control
 import           Mismi.SQS.Control
@@ -19,18 +22,19 @@ import           Mismi.SQS.Data
 
 import           P
 
-import           System.IO
 
-runSQSWithQueue :: Queue -> Maybe Int -> (QueueUrl -> SQSAction a) -> IO a
-runSQSWithQueue (Queue q r) v action = do
-  runSQSWithRegion r $ action =<< createQueue q v
+-- | Create a queue, which may be in a different region than our global/current one (which will be ignored)
+onQueue :: Queue -> Maybe Int -> (QueueUrl -> SQSAction a) -> SQSAction a
+onQueue (Queue q r) v action = do
+  e <- liftIO $ regionEndpointOrFail r
+  local (\(ac, sc, m) -> (ac, sc { SQS.sqsEndpoint = e }, m)) (action =<< createQueue q v)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
 createQueue :: QueueName -> Maybe Int -> SQSAction QueueUrl
 createQueue q v = do
   let createQReq = SQS.CreateQueue v . unQueueName $ q
   SQS.CreateQueueResponse qUrl <-  awsRequest $ createQReq
-  maybe (fail "Failed to parse aws account number from queue url.") (\x -> pure . QueueUrl $ SQS.QueueName (unQueueName q) x) (awsAccountNum qUrl)
+  maybe (fail . T.unpack $ "Failed to parse aws account number from queue url " <> qUrl) (\x -> pure . QueueUrl $ SQS.QueueName (unQueueName q) x) (awsAccountNum qUrl)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html
 deleteQueue :: QueueUrl -> SQSAction ()

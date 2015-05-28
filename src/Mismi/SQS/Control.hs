@@ -8,6 +8,7 @@ module Mismi.SQS.Control (
   , runSQSWithEndpoint
   , runSQSWithCfg
   , regionTo
+  , regionEndpointOrFail
   ) where
 
 import qualified Aws
@@ -45,7 +46,7 @@ runSQSWithDefaults action = do
 
 runSQSWithRegion :: Region -> SQSAction a -> IO a
 runSQSWithRegion region' action = do
-  e <- maybe (fail . T.unpack $ "Region for SQS not supported" <> toText region') pure $ regionTo region'
+  e <- regionEndpointOrFail region'
   runSQSWithEndpoint e action
 
 runSQSWithEndpoint :: Aws.Sqs.Core.Endpoint -> SQSAction a -> IO a
@@ -70,3 +71,7 @@ regionTo r = case r of
          Network.AWS.Types.Frankfurt         -> Just sqsEndpointEuCentral1
          Network.AWS.Types.SaoPaulo          -> Just sqsEndpointSaEast1
          _                                   -> Nothing
+
+regionEndpointOrFail :: Region -> IO Aws.Sqs.Core.Endpoint
+regionEndpointOrFail region' =
+   maybe (fail . T.unpack $ "Region for SQS not supported" <> toText region') pure . regionTo $ region'
