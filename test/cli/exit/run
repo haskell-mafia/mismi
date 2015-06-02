@@ -1,0 +1,20 @@
+#!/bin/sh -eu
+
+. $(dirname $0)/../core/runner.sh
+
+banner Check exit codes
+#######################
+
+
+s3=$(unique_s3_url)
+
+! $MISMI upload ${TEST}/nothing $s3 2> /dev/null
+! $MISMI upload $s3 ${TEST}/nothing 2> /dev/null
+! $MISMI download $s3 ${TEST}/nothing 2> /dev/null
+! $MISMI download ${TEST}/nothing $s3 2> /dev/null
+! $MISMI exists $s3 2> /dev/null
+! $MISMI move $s3 $s3 2> /dev/null
+! $MISMI copy $s3 $s3 2> /dev/null
+! $MISMI read $s3 2> /dev/null
+
+echo "PASSED [Exit codes]"

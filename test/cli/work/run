@@ -1,0 +1,61 @@
+#!/bin/sh -eu
+
+. $(dirname $0)/../core/runner.sh
+
+banner Check exit codes
+#######################
+
+
+s3=$(unique_s3_url file)
+
+echo "blah" > ${TEST}/file
+
+$MISMI upload ${TEST}/file $s3
+$MISMI download $s3 ${TEST}/download
+
+if diff -q ${TEST}/file ${TEST}/download; then
+    echo "PASSED [upload / downlaod]"
+else
+    echo ""
+    echo "Test case [upload / download] failed."
+    exit_cleanup
+fi
+
+$MISMI delete $s3
+
+$MISMI write $s3 "foobar"
+
+$MISMI write $s3 "nofoobar" --overwrite
+
+$MISMI read $s3 > ${TEST}/read
+
+if [ "nofoobar" = $(cat ${TEST}/read) ]; then
+    echo "PASSED [write / overwrite / read]"
+else
+    echo ""
+    echo "Test case [write / overwrite / read] failed."
+    exit_cleanup
+fi
+
+foo=$(unique_s3_url foo)
+$MISMI copy $s3 $foo
+
+if $MISMI exists $s3 && $MISMI exists $foo; then
+    echo "PASSED [copy]"
+else
+    echo ""
+    echo "Test case [copy] failed."
+    exit_cleanup
+fi
+
+bar=$(unique_s3_url foo)
+$MISMI move $s3 $bar
+
+if ! $MISMI exists $s3 && $MISMI exists $bar; then
+    echo "PASSED [move]"
+    cleanup
+else
+    echo ""
+    echo "Test case [move] failed."
+    exit_cleanup
+fi
