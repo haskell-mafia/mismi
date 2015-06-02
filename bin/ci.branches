@@ -3,4 +3,4 @@
 $(dirname $0)/ci.common
 
 VERSION=$(cat $(dirname $0)/../dist/build/autogen/version.txt)
-aws s3 --region=ap-southeast-2 cp dist/build/demo/demo s3://ambiata-dist-branches/mismi-demo/linux/x86_64/$VERSION/mismi-demo-$VERSION
+aws s3 --region=ap-southeast-2 cp dist/build/s3/s3 s3://ambiata-dist-branches/s3/linux/x86_64/$VERSION/s3-$VERSION
