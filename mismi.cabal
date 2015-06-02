@@ -67,14 +67,17 @@ library
                        Mismi.SQS.Control
                        Mismi.SQS.Commands
 
-executable demo
-  main-is:             demo.hs
+executable s3
+  main-is:             s3.hs
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      main
   build-depends:       base
                      , mismi
+                     , optparse-applicative            == 0.11.*
+                     , transformers                    >= 0.3        && < 0.5
+                     , x-optparse
                      , text
-                     , transformers
+                     , p
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -127,3 +130,17 @@ test-suite test-io
                      , bytestring                      == 0.10.*
                      , lens                            == 4.9.*
                      , either                          == 4.3.*
+
+test-suite test-cli
+  type:                exitcode-stdio-1.0
+
+  main-is:             test-cli.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       test
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , disorder-core
