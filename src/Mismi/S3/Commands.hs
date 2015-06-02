@@ -10,6 +10,7 @@ module Mismi.S3.Commands (
   , upload
   , calculateChunks
   , write
+  , writeWithMode
   , copy
   , move
   , list
@@ -155,8 +156,12 @@ calculateChunks size chunk =
   in
     go 1 0
 
-write :: WriteMode -> Address -> Text -> S3Action ()
-write w a t = do
+write :: Address -> Text -> S3Action ()
+write =
+  writeWithMode Fail
+
+writeWithMode :: WriteMode -> Address -> Text -> S3Action ()
+writeWithMode w a t = do
   case w of
     Fail        -> whenM (exists a) . fail $ "Can not write to a file that already exists [" <> show a <> "]."
     Overwrite   -> return ()
