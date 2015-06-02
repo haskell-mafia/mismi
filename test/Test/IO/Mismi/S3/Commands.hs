@@ -13,12 +13,13 @@ import           Control.Monad.IO.Class
 import           Data.Bool
 import           Data.List (sort)
 import qualified Data.List as L
-import           Data.Text as T hiding (length)
+import           Data.Text as T hiding (copy, length)
 import qualified Data.Text.IO as T
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 
 import           Disorder.Corpus
+import           Disorder.Core.IO
 
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
@@ -39,7 +40,7 @@ prop_exists :: Token -> Property
 prop_exists t = monadicIO $ do
   r <- run $ do
     runS3WithDefaults . withToken t $ \a -> do
-      write Fail a ""
+      write a ""
       exists a
   stop $ r === True
 
@@ -54,7 +55,7 @@ prop_delete :: WriteMode -> Token -> Property
 prop_delete w t = monadicIO $ do
   r <- run $
     runS3WithDefaults . withToken t $ \a -> do
-      write w a ""
+      writeWithMode w a ""
       x <- exists a
       delete a
       y <- exists a
@@ -75,7 +76,7 @@ prop_read_write :: Token -> Text -> Property
 prop_read_write t d = monadicIO $ do
     r <- run $
       runS3WithDefaults . withToken t $ \a -> do
-        write Fail a d
+        write a d
         read a
     stop $ r === Just d
 
@@ -84,7 +85,7 @@ prop_write_download tt d l = monadicIO $ do
     r <- run $
       withSystemTempDirectory "mismi" $ \p ->
         runS3WithDefaults . withToken tt $ \a -> do
-          write Fail a d
+          write a d
           let t = p F.</> localPath  l
           download a t
           liftIO $ T.readFile t
@@ -119,8 +120,8 @@ prop_write_failure :: Token -> Text -> Property
 prop_write_failure t d = monadicIO $ do
     r <- run $ (
       runS3WithDefaults . withToken t $ \a -> do
-        write Fail a d
-        write Fail a d
+        write a d
+        write a d
         pure False)
          `catchAll`
          (\(_) -> pure $ True)
@@ -130,8 +131,8 @@ prop_write_overwrite :: Token -> UniquePair Text -> Property
 prop_write_overwrite t (UniquePair x y) = monadicIO $ do
     r <- run $
         runS3WithDefaults . withToken t $ \a -> do
-            write Fail a x
-            write Overwrite a y
+            writeWithMode Fail a x
+            writeWithMode Overwrite a y
             read a
     stop $ r === pure y
 
@@ -142,7 +143,7 @@ prop_write_nonexisting :: WriteMode -> Token -> Text -> Property
 prop_write_nonexisting w tt t = monadicIO $ do
     r <- run $
         runS3WithDefaults . withToken tt $ \a -> do
-            write w a t
+            writeWithMode w a t
             read a
     stop $ r === pure t
 
@@ -161,31 +162,52 @@ prop_getObjectsR :: Token -> Text -> Key -> Key -> Property
 prop_getObjectsR token t p1 p2 = p1 /= p2 ==> ioProperty .
   runS3WithDefaults . withToken token $ \root -> do
     let keys = [p1, p2 </> p1, p2 </> p2]
-    forM_ keys $ \k -> write Fail (withKey (</> k) root) t
+    forM_ keys $ \k -> write (withKey (</> k) root) t
     objs <- getObjectsRecursively root
     pure $ on (===) sort (S3.objectKey <$> objs) (unKey . (</>) (key root) <$> keys)
 
 prop_listRecursively :: Token -> Property
 prop_listRecursively t = monadicIO $
   stop =<< (run . runS3WithDefaults . withToken t $ \a -> do
-    write Fail a ""
+    write a ""
     r' <- listRecursively (a { key = dirname $ key a })
     pure $ a `elem` r')
 
 prop_list :: Token -> Property
 prop_list t = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> monadicIO $
   stop =<< (run . runS3WithDefaults . withToken t $ \a -> do
-    write Fail (withKey(</> Key m) a) ""
-    write Fail (withKey(</> (Key s </> Key m)) a) ""
+    write (withKey(</> Key m) a) ""
+    write (withKey(</> (Key s </> Key m)) a) ""
     r' <- list a
     pure $ [m, s <> "/"] === (replace (addressToText a <> "/") "" . addressToText <$> r'))
 
 prop_getObjs :: Token -> Property
 prop_getObjs t = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> once . monadicIO $
   stop =<< (run . runS3WithDefaults . withToken t $ \a -> do
-    forM_ [1..n] $ \n' -> write Fail (withKey(</> Key (m <> pack (show n'))) a) ""
+    forM_ [1..n] $ \n' -> write (withKey(</> Key (m <> pack (show n'))) a) ""
     r' <- list a
     pure $ length r' === n)
+
+prop_copy :: Text -> Token -> Token -> Property
+prop_copy t s' d' = testIO $ do
+  runS3WithDefaults . withToken s' $ \s ->
+    withToken d' $ \d -> do
+      write s t
+      copy s d
+      es <- exists s
+      ed <- exists d
+      pure $ (es, ed) === (True, True)
+
+prop_move :: Text -> Token -> Token -> Property
+prop_move t s' d' = testIO $ do
+  runS3WithDefaults . withToken s' $ \s ->
+    withToken d' $ \d -> do
+      write s t
+      move s d
+      es <- exists s
+      ed <- exists d
+      pure $ (es, ed) === (False, True)
+
 
 return []
 tests :: IO Bool

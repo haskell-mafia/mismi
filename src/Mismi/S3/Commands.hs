@@ -10,13 +10,16 @@ module Mismi.S3.Commands (
   , upload
   , calculateChunks
   , write
+  , writeWithMode
+  , copy
+  , move
   , list
   , getObjectsRecursively
   , listRecursively
   ) where
 
 import qualified Aws.S3 as S3
-import           Aws.S3 hiding (putObject)
+import           Aws.S3 hiding (headObject, putObject)
 
 import           Control.Arrow ((***))
 
@@ -31,14 +34,15 @@ import           Control.Monad.Trans.Resource
 
 import           Control.Retry
 
-import           Data.ByteString as BS
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import           Data.Conduit
 import           Data.Conduit.Binary
 import qualified Data.Conduit.List as C
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
-import           Data.Text as T
+import qualified Data.Text as T
+import           Data.Text (Text)
 import           Data.Text.Encoding as T
 
 import           Mismi.Control
@@ -69,8 +73,11 @@ ff' f a =
 
 exists :: Address -> S3Action Bool
 exists a =
-  let req = f' S3.headObject a in
-  awsRequest req >>= pure . isJust . S3.horMetadata
+  headObject a >>= pure . isJust
+
+headObject :: Address -> S3Action (Maybe S3.ObjectMetadata)
+headObject a =
+  awsRequest (f' S3.headObject a) >>= pure . S3.horMetadata
 
 delete :: Address -> S3Action ()
 delete a =
@@ -149,13 +156,31 @@ calculateChunks size chunk =
   in
     go 1 0
 
-write :: WriteMode -> Address -> Text -> S3Action ()
-write w a t = do
+write :: Address -> Text -> S3Action ()
+write =
+  writeWithMode Fail
+
+writeWithMode :: WriteMode -> Address -> Text -> S3Action ()
+writeWithMode w a t = do
   case w of
     Fail        -> whenM (exists a) . fail $ "Can not write to a file that already exists [" <> show a <> "]."
     Overwrite   -> return ()
   let body = RequestBodyBS $ T.encodeUtf8 t
   void . awsRequest $ putObject a body sse
+
+copy :: Address -> Address -> S3Action ()
+copy source' destination' = do
+  let fail' = "Failed to copy [" <> (T.unpack $ addressToText source') <> "] to [" <> (T.unpack $ addressToText destination') <> "]. "
+  let cp = flip (f' S3.copyObject destination') CopyMetadata $ f' ObjectId source' Nothing
+  d' <- headObject source'
+  s <- maybe (fail $ fail' <> "No ETag on source - maybe the file doesn't exist?") (pure . omETag) d'
+  r <- awsRequest cp
+  bool (fail $ fail' <> "Checksums do not match.") (pure ()) (s == corETag r)
+
+move :: Address -> Address -> S3Action ()
+move source destination =
+  copy source destination >>
+    delete source
 
 putObject :: Address -> RequestBody -> S3.ServerSideEncryption -> S3.PutObject
 putObject a body e =
