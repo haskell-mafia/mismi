@@ -13,12 +13,13 @@ import           Control.Monad.IO.Class
 import           Data.Bool
 import           Data.List (sort)
 import qualified Data.List as L
-import           Data.Text as T hiding (length)
+import           Data.Text as T hiding (copy, length)
 import qualified Data.Text.IO as T
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 
 import           Disorder.Corpus
+import           Disorder.Core.IO
 
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
@@ -186,6 +187,27 @@ prop_getObjs t = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m
     forM_ [1..n] $ \n' -> write Fail (withKey(</> Key (m <> pack (show n'))) a) ""
     r' <- list a
     pure $ length r' === n)
+
+prop_copy :: Text -> Token -> Token -> Property
+prop_copy t s' d' = testIO $ do
+  runS3WithDefaults . withToken s' $ \s ->
+    withToken d' $ \d -> do
+      write s t
+      copy s d
+      es <- exists s
+      ed <- exists d
+      pure $ (es, ed) === (True, True)
+
+prop_move :: Text -> Token -> Token -> Property
+prop_move t s' d' = testIO $ do
+  runS3WithDefaults . withToken s' $ \s ->
+    withToken d' $ \d -> do
+      write s t
+      move s d
+      es <- exists s
+      ed <- exists d
+      pure $ (es, ed) === (False, True)
+
 
 return []
 tests :: IO Bool
