@@ -7,6 +7,7 @@ module Mismi.S3.Commands (
   , delete
   , read
   , download
+  , downloadWithMode
   , upload
   , calculateChunks
   , write
@@ -91,9 +92,13 @@ read a =
   `catch` (\(e :: S3.S3Error) -> if S3.s3StatusCode e == status404 then pure Nothing else throwM e)
 
 download :: Address -> FilePath -> S3Action ()
-download a p =
+download =
+  downloadWithMode Fail
+
+downloadWithMode :: WriteMode -> Address -> FilePath -> S3Action ()
+downloadWithMode mode a p =
   let get = f' S3.getObject a in do
-    whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
+    when (mode == Fail) . whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
     unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
     liftIO $ createDirectoryIfMissing True (dropFileName p)
     awsRequest get >>= lift . ($$+- sinkFile p) . responseBody . S3.gorResponse
