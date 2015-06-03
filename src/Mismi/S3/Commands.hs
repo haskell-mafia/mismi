@@ -26,12 +26,16 @@ import           Control.Arrow ((***))
 
 import           Control.Concurrent.Async
 
+import           Control.Lens
+
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Catch (Handler (..), catch)
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource
 
+import           Control.Monad.Trans.AWS
+import qualified Network.AWS.S3 as AWS
 
 import           Control.Retry
 
@@ -174,13 +178,13 @@ writeWithMode w a t = do
   void . awsRequest $ putObject a body sse
 
 copy :: Address -> Address -> S3Action ()
-copy source' destination' = do
-  let fail' = "Failed to copy [" <> (T.unpack $ addressToText source') <> "] to [" <> (T.unpack $ addressToText destination') <> "]. "
-  let cp = flip (f' S3.copyObject destination') CopyMetadata $ f' ObjectId source' Nothing
-  d' <- headObject source'
-  s <- maybe (fail $ fail' <> "No ETag on source - maybe the file doesn't exist?") (pure . omETag) d'
-  r <- awsRequest cp
-  bool (fail $ fail' <> "Checksums do not match.") (pure ()) (s == corETag r)
+copy s d =
+  liftAWSAction $ copy' s d
+
+copy' :: Address -> Address -> AWS ()
+copy' (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key k))  = do
+  let req = (AWS.copyObject b (sb <> "/" <> sk) k) & AWS.coServerSideEncryption .~ Just sse' & AWS.coMetadataDirective .~ Just AWS.Copy
+  send_ req
 
 move :: Address -> Address -> S3Action ()
 move source destination =

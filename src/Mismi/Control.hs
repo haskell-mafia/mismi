@@ -68,7 +68,6 @@ loadCredentialsFromFile' key =
   maybe (return Nothing) (flip loadCredentialsFromFile key)
 
 --- amazonka ---
-
 runAction :: Region -> AWS a -> EitherT Error IO a
 runAction r a = EitherT $ do
   e <- getEnv r Discover
