@@ -65,28 +65,28 @@ prop_read_write d = testS3 $ \a -> do
 
 prop_write_download :: Text -> LocalPath -> Property
 prop_write_download d l = testLocalS3 $ \p a -> do
-  write a d
   let t = p F.</> localPath  l
+  write a d
   download a t
   res <- liftIO $ T.readFile t
   pure $ res === d
 
 prop_write_download_overwrite :: Text -> Text -> LocalPath -> Property
 prop_write_download_overwrite old new l = testLocalS3 $ \p a -> do
-  write a old
   let t = p F.</> localPath  l
+  write a old
   downloadWithMode Fail a t
-  write a new
+  writeWithMode Overwrite a new
   downloadWithMode Overwrite a t
   r <- liftIO $ T.readFile t
   pure $ r === new
 
 prop_write_download_fail :: Text -> Text -> LocalPath -> Property
 prop_write_download_fail old new l = testLocalS3 $ \p a -> do
-  write a old
   let t = p F.</> localPath  l
+  write a old
   downloadWithMode Fail a t
-  write a new
+  writeWithMode Overwrite a new
   (False <$ downloadWithMode Fail a t) `catchAll` (const . pure $ True)
 
 prop_upload :: Text -> LocalPath -> Property
