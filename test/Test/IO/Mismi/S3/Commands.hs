@@ -91,6 +91,32 @@ prop_write_download tt d l = monadicIO $ do
           liftIO $ T.readFile t
     stop $ r === d
 
+prop_write_download_overwrite :: Token -> Text -> Text -> LocalPath -> Property
+prop_write_download_overwrite tt d e l = monadicIO $ do
+    r <- run $
+      withSystemTempDirectory "mismi" $ \p ->
+        runS3WithDefaults . withToken tt $ \a -> do
+          write a d
+          let t = p F.</> localPath  l
+          downloadWithMode Fail a t
+          write a e
+          downloadWithMode Overwrite a t
+          liftIO $ T.readFile t
+    stop $ r === e
+
+prop_write_download_fail :: Token -> Text -> Text -> LocalPath -> Property
+prop_write_download_fail tt d e l = monadicIO $ do
+    r <- run $
+      withSystemTempDirectory "mismi" $ \p ->
+        runS3WithDefaults . withToken tt $ \a -> (do
+          write a d
+          let t = p F.</> localPath  l
+          downloadWithMode Fail a t
+          write a e
+          downloadWithMode Fail a t
+          pure False) `catchAll` (const . pure $ True)
+    stop $ r
+
 prop_upload :: Token -> Text -> LocalPath -> Property
 prop_upload tt d l = monadicIO $ do
     r <- run $ do
