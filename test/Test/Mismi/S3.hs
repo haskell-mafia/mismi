@@ -5,10 +5,12 @@ module Test.Mismi.S3 (
   , LocalPath (..)
   , testBucket
   , withToken
+  , testAWS
   ) where
 
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Catch (bracket_)
+import           Control.Monad.Trans.Either
 
 import qualified Data.List as L
 import           Data.Text as T
@@ -16,10 +18,15 @@ import           Data.UUID as U
 import           Data.UUID.V4 as U
 
 import           Disorder.Corpus
+import           Disorder.Core
+import           Disorder.Core.IO
+
+import           Control.Monad.Trans.AWS hiding (getEnv)
 
 import           System.Posix.Env
 import           System.FilePath hiding ((</>))
 
+import           Mismi.Control
 import           Mismi.S3.Control
 import           Mismi.S3.Commands
 import           Mismi.S3.Data
@@ -60,3 +67,9 @@ withToken t f = do
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom
   let a = Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
   bracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
+
+testAWS :: Testable a => Region -> AWS a -> Property
+testAWS r a =
+  testIO $ do
+    e <- runEitherT $ runAction r a
+    pure $ either (\e' -> failWith $ "Property failed [" <> renderError e' <> "].") property e
