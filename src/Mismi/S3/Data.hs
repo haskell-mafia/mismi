@@ -27,12 +27,12 @@ import           P
 import           Prelude (reverse)
 
 -- |
--- Describes the behaviour to display when a write is attempted on a location where an object already exists.
+-- Describes the semantics for destructive operation that may result in overwritten files.
 --
 data WriteMode =
-        Fail        -- ^ Returns an error if there is already an object at the given address.
-    |   Overwrite   -- ^ If an object already exists at the given address, overwrite it
-        deriving (Eq, Show)
+      Fail        -- ^ Fail rather than overwrite any data.
+    | Overwrite   -- ^ Overwrite existing data silently, i.e. we really want to do this.
+    deriving (Eq, Show)
 
 newtype Bucket = Bucket {
     unBucket :: Text
