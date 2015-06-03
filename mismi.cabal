@@ -19,6 +19,7 @@ library
                      , aws                             == 0.11.*
                      , amazonka
                      , amazonka-core
+                     , amazonka-s3
                      , bytestring                      == 0.10.*
                      , bifunctors                      == 4.2.*
                      , conduit                         == 1.2.*
@@ -40,6 +41,7 @@ library
                      , unix                            == 2.7.*
                      , async                           == 2.0.*
                      , retry                           == 0.6.*
+                     , lens                            >= 4.8        && < 4.10
                      , x-exception
 
   ghc-options:
@@ -87,6 +89,7 @@ test-suite test
   build-depends:       base
                      , mismi
                      , aws
+                     , amazonka
                      , amazonka-core
                      , either
                      , exceptions
@@ -112,6 +115,7 @@ test-suite test-io
   build-depends:       base
                      , mismi
                      , aws
+                     , amazonka
                      , amazonka-core
                      , exceptions
                      , filepath
