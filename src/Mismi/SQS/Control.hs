@@ -62,15 +62,18 @@ runSQSWithCfg cfg endpoint' action =
 
 regionTo :: Network.AWS.Types.Region -> Maybe Aws.Sqs.Core.Endpoint
 regionTo r = case r of
-         Network.AWS.Types.Tokyo             -> Just Aws.Sqs.Core.sqsEndpointApNorthEast
-         Network.AWS.Types.Singapore         -> Just Aws.Sqs.Core.sqsEndpointApSouthEast
-         Network.AWS.Types.NorthCalifornia   -> Just Aws.Sqs.Core.sqsEndpointUsWest
-         Network.AWS.Types.Oregon            -> Just Aws.Sqs.Core.sqsEndpointUsWest2
-         Network.AWS.Types.Sydney            -> Just sqsEndpointApSouthEast2
-         Network.AWS.Types.Ireland           -> Just sqsEndpointEuWest1
-         Network.AWS.Types.Frankfurt         -> Just sqsEndpointEuCentral1
-         Network.AWS.Types.SaoPaulo          -> Just sqsEndpointSaEast1
-         _                                   -> Nothing
+  Network.AWS.Types.Tokyo             -> Just Aws.Sqs.Core.sqsEndpointApNorthEast
+  Network.AWS.Types.Singapore         -> Just Aws.Sqs.Core.sqsEndpointApSouthEast
+  Network.AWS.Types.NorthCalifornia   -> Just Aws.Sqs.Core.sqsEndpointUsWest
+  Network.AWS.Types.Oregon            -> Just Aws.Sqs.Core.sqsEndpointUsWest2
+  Network.AWS.Types.Sydney            -> Just sqsEndpointApSouthEast2
+  Network.AWS.Types.Ireland           -> Just sqsEndpointEuWest1
+  Network.AWS.Types.Frankfurt         -> Just sqsEndpointEuCentral1
+  Network.AWS.Types.SaoPaulo          -> Just sqsEndpointSaEast1
+  Network.AWS.Types.Beijing           -> Nothing
+  Network.AWS.Types.NorthVirginia     -> Nothing
+  Network.AWS.Types.GovCloud          -> Nothing
+  Network.AWS.Types.GovCloudFIPS      -> Nothing
 
 regionEndpointOrFail :: Region -> IO Aws.Sqs.Core.Endpoint
 regionEndpointOrFail region' =
