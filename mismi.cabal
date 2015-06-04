@@ -17,9 +17,9 @@ library
                      , template-haskell
                      , x-conduit
                      , aws                             == 0.11.*
-                     , amazonka
-                     , amazonka-core
-                     , amazonka-s3
+                     , amazonka                        == 99.*
+                     , amazonka-core                   == 99.*
+                     , amazonka-s3                     == 99.*
                      , bytestring                      == 0.10.*
                      , bifunctors                      == 4.2.*
                      , conduit                         == 1.2.*
