@@ -159,6 +159,14 @@ prop_list = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -
   r' <- list a
   pure $ [m, s <> "/"] === (replace (addressToText a <> "/") "" . addressToText <$> r')
 
+prop_listObjects :: Property
+prop_listObjects = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> testS3 $ \a -> do
+  write (withKey(</> Key m) a) ""
+  write (withKey(</> (Key s </> Key m)) a) ""
+  (p, k) <- listObjects a
+  let x = \r -> (replace (addressToText a <> "/") "" . addressToText <$> r)
+  pure $ ([s <> "/"], [m]) === (x p, x k)
+
 prop_getObjs :: Property
 prop_getObjs = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> once . testS3 $ \a -> do
   forM_ [1..n] $ \n' -> write (withKey(</> Key (m <> pack (show n'))) a) ""

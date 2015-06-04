@@ -14,6 +14,8 @@ module Mismi.S3.Commands (
   , writeWithMode
   , copy
   , move
+  , getObjects
+  , listObjects
   , list
   , getObjectsRecursively
   , listRecursively
@@ -213,6 +215,11 @@ getObjects (Address (Bucket buck) (Key ky)) =
           pure $ (d <> n)
         else
         pure $ (S3.gbrCommonPrefixes r, S3.objectKey <$> S3.gbrContents r)
+
+-- Pair of list of prefixes and list of keys
+listObjects :: Address -> S3Action ([Address], [Address])
+listObjects a =
+  (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k) )<$> getObjects a
 
 -- list the address, keys fisrt, then prefixs
 list :: Address -> S3Action [Address]
