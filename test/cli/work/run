@@ -2,16 +2,16 @@
 
 . $(dirname $0)/../core/runner.sh
 
-banner Check exit codes
-#######################
+banner Doing work
+#################
 
 
 s3=$(unique_s3_url file)
 
 echo "blah" > ${TEST}/file
 
-$MISMI upload ${TEST}/file $s3
-$MISMI download $s3 ${TEST}/download
+$MISMI upload ${TEST}/file $s3 || exit_cleanup $?
+$MISMI download $s3 ${TEST}/download || exit_cleanup $?
 
 if diff -q ${TEST}/file ${TEST}/download; then
     echo "PASSED [upload / downlaod]"
@@ -21,13 +21,13 @@ else
     exit_cleanup
 fi
 
-$MISMI delete $s3
+$MISMI delete $s3 || exit_cleanup $?
 
-$MISMI write $s3 "foobar"
+$MISMI write $s3 "foobar" || exit_cleanup $?
 
-$MISMI write $s3 "nofoobar" --overwrite
+$MISMI write $s3 "nofoobar" --overwrite || exit_cleanup $?
 
-$MISMI read $s3 > ${TEST}/read
+$MISMI read $s3 > ${TEST}/read || exit_cleanup $?
 
 if [ "nofoobar" = $(cat ${TEST}/read) ]; then
     echo "PASSED [write / overwrite / read]"
@@ -38,7 +38,7 @@ else
 fi
 
 foo=$(unique_s3_url foo)
-$MISMI copy $s3 $foo
+$MISMI copy $s3 $foo || exit_cleanup $?
 
 if $MISMI exists $s3 && $MISMI exists $foo; then
     echo "PASSED [copy]"
@@ -49,7 +49,7 @@ else
 fi
 
 bar=$(unique_s3_url foo)
-$MISMI move $s3 $bar
+$MISMI move $s3 $bar || exit_clean $?
 
 if ! $MISMI exists $s3 && $MISMI exists $bar; then
     echo "PASSED [move]"
