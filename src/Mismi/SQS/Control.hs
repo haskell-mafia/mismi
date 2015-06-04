@@ -9,16 +9,17 @@ module Mismi.SQS.Control (
   , runSQSWithCfg
   , regionTo
   , regionEndpointOrFail
+  , liftSQSAction
   ) where
 
-import qualified Aws
-import qualified Aws.Core
-import qualified Aws.Sqs as SQS
-import qualified Aws.Sqs.Core
+import           Aws
+import           Aws.Core
+import           Aws.Sqs as SQS
+import           Aws.Sqs.Core
 
-import qualified Network.AWS.Types
-
-import           Control.Monad.Reader hiding (forM)
+import           Control.Lens
+import           Control.Monad.Reader
+import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Resource (ResourceT)
 
 import           Data.Maybe
@@ -29,12 +30,21 @@ import           Mismi.Environment
 import           Mismi.SQS.Data
 
 import           Network.AWS.Data (toText)
+import           Network.AWS.Types
 import           Network.HTTP.Client (Manager)
 import           Network.HTTP.Conduit (withManager)
 
 import           P
 
 import           System.IO
+
+liftSQSAction :: SQSAction a -> AWS a
+liftSQSAction action = do
+  conf <- awskaConfig
+  r <- view envRegion <$> ask
+  e <- maybe (fail . T.unpack $ "Region for SQS not supported" <> toText r) pure $ regionTo r
+  liftIO $ runSQSWithCfg conf e action
+
 
 -- | Specilised AwsAction for SQS operations
 type SQSAction = ReaderT (Aws.Configuration, SQS.SqsConfiguration Aws.NormalQuery, Manager) (ResourceT IO)
