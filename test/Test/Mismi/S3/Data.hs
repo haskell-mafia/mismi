@@ -61,6 +61,15 @@ prop_dirname a t =
   T.all (/= '/') t==>
     dirname (key a </> k) === Key (dropWhileEnd ('/' ==) . unKey . key $ a)
 
+prop_commonPrefix :: Address -> Key -> Property
+prop_commonPrefix a k =
+  removeCommonPrefix a (withKey (</> k) a) === Just k
+
+prop_commonPrefix_fail :: Address -> Key -> Property
+prop_commonPrefix_fail a k =
+  removeCommonPrefix (withKey (</> k) a) a === Nothing
+
+
 return []
 tests :: IO Bool
 tests = $quickCheckAll

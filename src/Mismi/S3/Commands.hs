@@ -224,7 +224,7 @@ listObjects a =
 -- list the address, keys fisrt, then prefixs
 list :: Address -> S3Action [Address]
 list a =
-  (\(p, k) -> fmap (Address (bucket a)) (k <> p)) <$> getObjects a
+  (\(p, k) -> k <> p) <$> listObjects a
 
 getObjectsRecursively :: Address -> S3Action [S3.ObjectInfo]
 getObjectsRecursively (Address (Bucket b) (Key ky)) =
