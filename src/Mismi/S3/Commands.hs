@@ -14,6 +14,8 @@ module Mismi.S3.Commands (
   , writeWithMode
   , copy
   , move
+  , getObjects
+  , listObjects
   , list
   , getObjectsRecursively
   , listRecursively
@@ -56,6 +58,7 @@ import           Mismi.S3.Data
 
 import           Network.HTTP.Conduit (responseBody, requestBodySource , RequestBody(..))
 import           Network.HTTP.Client (HttpException)
+import           Network.HTTP.Types.URI (urlEncode)
 import           Network.HTTP.Types.Status (status404)
 
 import           P
@@ -181,9 +184,15 @@ copy :: Address -> Address -> S3Action ()
 copy s d =
   liftAWSAction $ copy' s d
 
+-- Url is being sent as a header not as a query therefore
+-- requires special url encoding. (Do not encode the delimiters)
 copy' :: Address -> Address -> AWS ()
-copy' (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key k))  = do
-  let req = (AWS.copyObject b (sb <> "/" <> sk) k) & AWS.coServerSideEncryption .~ Just sse' & AWS.coMetadataDirective .~ Just AWS.Copy
+copy' (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key k)) =
+  let splitEncoded = urlEncode True . T.encodeUtf8 <$> T.split (== '/') k
+      bsEncoded = BS.intercalate "/" splitEncoded
+      textEncoded = T.decodeUtf8 bsEncoded
+      req = (AWS.copyObject b (sb <> "/" <> sk) textEncoded) & AWS.coServerSideEncryption .~ Just sse' & AWS.coMetadataDirective .~ Just AWS.Copy
+  in
   send_ req
 
 move :: Address -> Address -> S3Action ()
@@ -214,10 +223,15 @@ getObjects (Address (Bucket buck) (Key ky)) =
         else
         pure $ (S3.gbrCommonPrefixes r, S3.objectKey <$> S3.gbrContents r)
 
+-- Pair of list of prefixes and list of keys
+listObjects :: Address -> S3Action ([Address], [Address])
+listObjects a =
+  (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k) )<$> getObjects a
+
 -- list the address, keys fisrt, then prefixs
 list :: Address -> S3Action [Address]
 list a =
-  (\(p, k) -> fmap (Address (bucket a)) (k <> p)) <$> getObjects a
+  (\(p, k) -> k <> p) <$> listObjects a
 
 getObjectsRecursively :: Address -> S3Action [S3.ObjectInfo]
 getObjectsRecursively (Address (Bucket b) (Key ky)) =

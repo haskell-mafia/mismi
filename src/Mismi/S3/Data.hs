@@ -10,6 +10,7 @@ module Mismi.S3.Data (
   , basename
   , addressFromText
   , addressToText
+  , removeCommonPrefix
   , withKey
   , s3Parser
   , sse
@@ -18,11 +19,13 @@ module Mismi.S3.Data (
 
 import qualified Aws.S3 as S3
 
+import           Data.Align
 import           Data.Attoparsec.Text hiding (parse)
 import qualified Data.Attoparsec.Text as AT
 import qualified Data.Text as T
 import           Data.Text (Text)
 import           Data.List (init)
+import           Data.String
 
 import qualified Network.AWS.S3.Types as AWS
 
@@ -82,6 +85,34 @@ dirname =
 basename :: Key -> Maybe Text
 basename =
   mfilter (not . T.null) . listToMaybe . reverse . T.split (== '/') . unKey
+
+-- prefix key
+removeCommonPrefix :: Address -> Address -> Maybe Key
+removeCommonPrefix prefix addr =
+  let dropMaybe :: String -> String -> Maybe Text
+      dropMaybe x y =
+        bool
+          Nothing
+          (Just . T.pack $ drop (length y) x)
+          (check x y)
+      check :: String -> String -> Bool
+      check x y =
+        all (\(l, r) -> Just l == r) (rpadZip y x)
+  in
+  if (bucket addr == bucket prefix)
+     then
+       if ((unKey (key prefix)) == "")
+          then
+            Just $ key addr
+          else
+            let bk = (unKey (key prefix))
+                b = bool (bk <> "/") bk ("/" `T.isSuffixOf` bk)
+                pk = T.unpack b
+                kk = T.unpack (unKey $ key addr)
+            in
+              Key <$> dropMaybe kk pk
+     else
+       Nothing
 
 addressToText :: Address -> Text
 addressToText a =
