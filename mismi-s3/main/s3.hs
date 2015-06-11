@@ -12,6 +12,8 @@ import           Mismi.S3
 import           Mismi.Control.Amazonka (runAWS, awsErrorRender)
 import qualified Mismi.S3.Amazonka as A
 
+import           Options.Applicative
+
 import           P
 
 import           System.IO
@@ -128,7 +130,7 @@ commandA' = subparser $
               "Upload file to s3."
               (Upload <$> filepath' <*> address')
   <> command' "download"
-              "Downlaod file from s3."
+              "Download file from s3."
               (Download <$> address' <*> filepath')
   <> command' "copy"
               "Copy a file from an S3 address to another S3 address."

@@ -45,6 +45,8 @@ library
                      , lens                            >= 4.8        && < 4.10
                      , these                           == 0.4.*
                      , x-exception
+                     , SafeSemaphore                   == 0.10.*
+                     , unix-bytestring                 == 0.3.7.*
 
   ghc-options:
                        -Wall
