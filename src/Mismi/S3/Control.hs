@@ -12,6 +12,10 @@ module Mismi.S3.Control (
   , liftAWSAction
   , epToRegion
   , regionToEp
+  , retryHttp
+  , retryHttpWithOut
+  , retryHttpWithPolicy
+  , retryHttpWithPolicyOut
   ) where
 
 import qualified Aws
@@ -23,14 +27,16 @@ import           Data.ByteString hiding (unpack, find)
 import           Data.Text (unpack)
 
 import           Control.Lens
+import           Control.Monad.Catch (MonadMask, Handler (..))
 import           Control.Monad.Reader hiding (forM)
 import           Control.Monad.Trans.Resource (ResourceT)
 import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Either
+import           Control.Retry
 
 import           Mismi.Control
 
-import           Network.HTTP.Client (Manager)
+import           Network.HTTP.Client (HttpException, Manager)
 import           Network.HTTP.Conduit (withManager)
 
 import qualified Network.AWS.S3.Types as AWS
@@ -85,3 +91,25 @@ epToRegion bs = snd <$> find ((== bs) . fst) [
   , (s3EndpointUsWest2, Oregon)
   , (s3EndpointUsClassic, NorthVirginia)
   ]
+
+retryHttp :: (MonadMask m, MonadIO m) => Int -> m a -> m a
+retryHttp i action =
+  retryHttpWithOut i (return ()) action
+
+retryHttpWithOut :: (MonadMask m, MonadIO m) => Int -> m () -> m a -> m a
+retryHttpWithOut i out action =
+  retryHttpWithPolicyOut
+    (limitRetries i <> constantDelay 200)
+    out
+    action
+
+retryHttpWithPolicy :: (MonadMask m, MonadIO m) => RetryPolicy -> m a -> m a
+retryHttpWithPolicy policy action =
+  retryHttpWithPolicyOut policy (return ()) action
+
+retryHttpWithPolicyOut :: (MonadMask m, MonadIO m) => RetryPolicy -> m () -> m a -> m a
+retryHttpWithPolicyOut policy out action =
+  recovering
+    policy
+    ([const $ Handler (\(_ :: HttpException) -> out >> return True) ])
+    action

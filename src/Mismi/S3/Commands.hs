@@ -32,14 +32,12 @@ import           Control.Lens
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Catch (Handler (..), catch)
+import           Control.Monad.Catch (catch)
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource
 
 import           Control.Monad.Trans.AWS
 import qualified Network.AWS.S3 as AWS
-
-import           Control.Retry
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -57,7 +55,6 @@ import           Mismi.S3.Control
 import           Mismi.S3.Data
 
 import           Network.HTTP.Conduit (responseBody, requestBodySource , RequestBody(..))
-import           Network.HTTP.Client (HttpException)
 import           Network.HTTP.Types.URI (urlEncode)
 import           Network.HTTP.Types.Status (status404)
 
@@ -141,9 +138,9 @@ multipartUpload' file a fileSize chunk = do
             let body = requestBodySource (fromInteger . toInteger $ c) $
                   slurpWithBuffer file (toInteger o) (Just $ toInteger c) (1024 * 1024)
             let up = (f' S3.uploadPart a (toInteger i) upi body)
-            let runUpPart = flip runReaderT (cfg,scfg, mgr) $ awsRequest up
+            let runUpPart = flip runReaderT (cfg, scfg, mgr) $ awsRequest up
             let res = (runResourceT runUpPart >>= pure . Right) `catch` (\(e :: S3.S3Error) -> pure . Left $ e)
-            recovering (limitRetries 3) ([const $ Handler (\(_ :: HttpException) -> pure True) ]) res
+            retryHttp 3 res
           )
   prts <- liftIO (mapConcurrently x p)
   case sequence prts of
