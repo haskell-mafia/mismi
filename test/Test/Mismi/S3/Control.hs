@@ -4,8 +4,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Test.Mismi.S3.Control where
 
+import           Control.Monad.Trans.AWS
 import           Control.Monad.IO.Class
-import           Control.Monad.Catch
 
 import           Data.IORef
 import           Data.Text
@@ -41,16 +41,16 @@ prop_liftS3 r t = testAWS r $ do
   pure $ f === t
 
 prop_retry :: Text -> Property
-prop_retry t = t /= "" ==> testIO $ do
-  ref <- newIORef ""
-  let action = do
+prop_retry t = t /= "" ==> testIO . runS3WithDefaults $ do
+  ref <- liftIO $ newIORef ""
+  let action = liftAWSAction $ do
         let m = modifyIORef ref (<> t)
-        z <- readIORef ref
+        z <- liftIO $ readIORef ref
         if (z == "")
-          then m >> throwM ResponseTimeout
-          else m
+          then liftIO m >> hoistEither (Left (HttpError ResponseTimeout :: Error))
+          else liftIO m
   retryHttp 2 action
-  z <- readIORef ref
+  z <- liftIO $ readIORef ref
   pure $ z === t <> t
 
 return []
