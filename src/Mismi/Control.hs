@@ -2,31 +2,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 module Mismi.Control (
-    AwsAction
+    module X
+  , AwsAction
   , awsRequest
   , baseConfiguration'
-  , runAction
-  , awskaConfig
-  , renderError
   ) where
 
 import qualified Aws
 import           Aws.Aws
 import           Aws.Core
 
-import           Control.Lens
 import           Control.Monad.Catch
-import           Control.Monad.Reader hiding (forM)
+import           Control.Monad.Reader hiding (forM, forM_)
 import           Control.Monad.Trans.Resource (ResourceT)
 import           Control.Monad.Trans.AWS hiding (Credentials)
-import           Control.Monad.Trans.Either
 
-import           Data.IORef
 import           Data.Text as T
-import           Data.Text.Encoding as T
+
+import           Mismi.Control.Amazonka as X
 
 import           Network.HTTP.Client (Manager)
-import           Network.HTTP.Types.Status
 
 import           P
 
@@ -66,39 +61,3 @@ loadCredentialsFromEnvOrFileOrInstanceMetadata' file key =
 loadCredentialsFromFile' :: MonadIO io => T.Text -> Maybe FilePath -> io (Maybe Credentials)
 loadCredentialsFromFile' key =
   maybe (return Nothing) (flip loadCredentialsFromFile key)
-
---- amazonka ---
-runAction :: Region -> AWS a -> EitherT Error IO a
-runAction r a = EitherT $ do
-  e <- getEnv r Discover
-  runAWST e a
-
-renderError :: Error -> Text
-renderError (HttpError e) =
-  "Http error: " <> (T.pack $ show e)
-renderError (SerializerError a s) =
-  "Serialization error. " <> T.intercalate ", " [
-      "Abbreviation: " <> a
-    , "Error: " <> T.pack s
-    ]
-renderError (ServiceError a (Status sc sm) s) =
-  "Service error: " <> T.intercalate ", " [
-      "Abbreviation: " <> a
-    , "Status code: " <> T.pack (show sc)
-    , "Status message: " <> T.decodeUtf8 sm
-    , "Error: " <> T.pack s
-    ]
-renderError (Errors e) =
-  T.unlines $ fmap renderError e
-
-awskaConfig :: AWS Configuration
-awskaConfig = do
-  env <- ask
-  (AuthEnv (AccessKey ak) (SecretKey sak) st _) <- withAuth (env ^. envAuth) pure
-  let st' = fmap (\(SecurityToken t') -> t') st
-  v4sk <- liftIO $ newIORef []
-  pure $ Configuration {
-      timeInfo = Timestamp
-    , credentials = Credentials ak sak v4sk st'
-    , logger = defaultLog Warning
-  }

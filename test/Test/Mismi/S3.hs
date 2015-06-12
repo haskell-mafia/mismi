@@ -71,5 +71,5 @@ withToken t f = do
 testAWS :: Testable a => Region -> AWS a -> Property
 testAWS r a =
   testIO $ do
-    e <- runEitherT $ runAction r a
-    pure $ either (\e' -> failWith $ "Property failed [" <> renderError e' <> "].") property e
+    e <- runEitherT $ runAWS r a
+    pure $ either (\e' -> failWith $ "Property failed [" <> awsErrorRender e' <> "].") property e

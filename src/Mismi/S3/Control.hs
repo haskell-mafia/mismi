@@ -24,13 +24,11 @@ import           Aws.S3
 import           Aws.Core (Protocol (..))
 
 import           Data.ByteString hiding (unpack, find)
-import           Data.Text (unpack)
 
 import           Control.Lens
 import           Control.Monad.Catch (MonadMask, Handler (..))
 import           Control.Monad.Reader hiding (forM)
 import           Control.Monad.Trans.Resource (ResourceT)
-import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Either
 import           Control.Retry
 
@@ -65,8 +63,8 @@ liftAWSAction :: AWS a -> S3Action a
 liftAWSAction action = do
   (_, s3', _) <- ask
   r' <- maybe (fail $ "Invalid s3 endpoint [" <> (show $ s3Endpoint s3') <> "].") pure (epToRegion $ s3Endpoint s3')
-  r <- liftIO . runEitherT $ runAction r' action
-  either (fail . unpack . renderError ) (pure) r
+  r <- liftIO . runEitherT $ runAWS r' action
+  either throwAWSError pure r
 
 liftS3Action :: S3Action a -> AWS a
 liftS3Action action = do
