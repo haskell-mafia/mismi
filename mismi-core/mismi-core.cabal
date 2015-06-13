@@ -29,7 +29,7 @@ library
                      , text                            == 1.2.*
                      , transformers                    >= 0.3        && < 0.5
                      , lens                            >= 4.8        && < 4.12
-                     , these                           == 0.4.*
+                     , these                           == 0.4.1
                      , x-exception
 
   ghc-options:
