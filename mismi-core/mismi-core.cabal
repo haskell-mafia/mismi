@@ -1,0 +1,72 @@
+name:                  mismi-core
+version:               0.0.1
+license:               AllRightsReserved
+author:                Ambiata <info@ambiata.com>
+maintainer:            Ambiata <info@ambiata.com>
+copyright:             (c) 2015 Ambiata
+synopsis:              AWS library
+category:              AWS
+cabal-version:         >= 1.8
+build-type:            Simple
+description:           mismi.
+
+library
+  build-depends:
+                       base                            >= 3          && < 5
+                     , p
+                     , template-haskell
+                     , aws                             == 0.11.*
+                     , amazonka                        == 99.*
+                     , amazonka-core                   == 99.*
+                     , bifunctors                      == 4.2.*
+                     , bytestring                      == 0.10.*
+                     , either
+                     , exceptions                      >= 0.6        && < 0.9
+                     , http-client                     == 0.4.*
+                     , http-types                      == 0.8.*
+                     , mtl                             >= 2.1       && < 2.3
+                     , resourcet                       == 1.1.*
+                     , text                            == 1.2.*
+                     , transformers                    >= 0.3        && < 0.5
+                     , lens                            >= 4.8        && < 4.12
+                     , these                           == 0.4.*
+                     , x-exception
+
+  ghc-options:
+                       -Wall
+
+  hs-source-dirs:
+                       src
+
+
+  exposed-modules:
+                       Mismi
+                       Mismi.Control
+                       Mismi.Control.Amazonka
+                       Mismi.Environment
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  main-is:             test.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , mismi-core
+                     , aws
+                     , amazonka
+                     , amazonka-core
+                     , either
+                     , exceptions
+                     , filepath
+                     , directory                       == 1.2.*
+                     , disorder-core
+                     , disorder-corpus
+                     , p
+                     , http-client
+                     , temporary                       == 1.2.*
+                     , text
+                     , transformers
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+                     , unix                            == 2.7.*
+                     , uuid                            == 1.3.*

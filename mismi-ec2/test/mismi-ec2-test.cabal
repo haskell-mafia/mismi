@@ -1,0 +1,11 @@
+name:                  mismi-ec2-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base
+                     , mismi-ec2
+
+  exposed-modules:
