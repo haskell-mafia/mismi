@@ -20,7 +20,7 @@ library
                      , amazonka-core                   == 99.*
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
-                     , either
+                     , either                          == 4.3.*
                      , exceptions                      >= 0.6        && < 0.9
                      , http-client                     == 0.4.*
                      , http-types                      == 0.8.*
