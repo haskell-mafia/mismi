@@ -1,0 +1,85 @@
+name:                  mismi-sqs
+version:               0.0.1
+license:               AllRightsReserved
+author:                Ambiata <info@ambiata.com>
+maintainer:            Ambiata <info@ambiata.com>
+copyright:             (c) 2015 Ambiata
+synopsis:              AWS library
+category:              AWS
+cabal-version:         >= 1.8
+build-type:            Simple
+description:           mismi.
+
+library
+  build-depends:
+                       base                            >= 3          && < 5
+                     , p
+                     , template-haskell
+                     , aws                             == 0.11.*
+                     , amazonka                        == 99.*
+                     , amazonka-core                   == 99.*
+                     , bytestring                      == 0.10.*
+                     , exceptions                      >= 0.6        && < 0.9
+                     , http-client                     == 0.4.*
+                     , http-conduit                    == 2.1.*
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , mismi-core
+                     , resourcet                       == 1.1.*
+                     , text                            == 1.2.*
+                     , transformers                    >= 0.3        && < 0.5
+                     , lens                            >= 4.3        && < 4.10
+
+  ghc-options:
+                       -Wall
+
+  hs-source-dirs:
+                       src
+
+
+  exposed-modules:
+                       Mismi.SQS
+                       Mismi.SQS.Data
+                       Mismi.SQS.Control
+                       Mismi.SQS.Commands
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  main-is:             test.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , mismi-core
+                     , mismi-core-test
+                     , mismi-sqs
+                     , aws
+                     , amazonka
+                     , amazonka-core
+                     , disorder-core
+                     , disorder-corpus
+                     , exceptions
+                     , p
+                     , text
+                     , transformers
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+
+test-suite test-io
+  type:                exitcode-stdio-1.0
+  main-is:             test-io.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , mismi-core
+                     , mismi-core-test
+                     , mismi-sqs
+                     , aws
+                     , amazonka
+                     , amazonka-core
+                     , disorder-core
+                     , disorder-corpus
+                     , exceptions
+                     , p
+                     , text
+                     , transformers
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*

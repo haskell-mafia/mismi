@@ -1,0 +1,30 @@
+name:                  mismi-core-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base
+                     , mismi-core
+                     , aws                             == 0.11.*
+                     , amazonka
+                     , amazonka-core
+                     , disorder-core
+                     , disorder-corpus
+                     , either
+                     , exceptions
+                     , filepath
+                     , p
+                     , http-client
+                     , text
+                     , transformers
+                     , QuickCheck
+                     , quickcheck-instances
+                     , unix
+                     , temporary
+                     , uuid
+
+  exposed-modules:
+                       Test.Mismi.Arbitrary
+                       Test.Mismi

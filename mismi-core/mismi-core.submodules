@@ -1,0 +1,8 @@
+../lib/amazonka/amazonka
+../lib/amazonka/core
+../lib/disorder/disorder-core
+../lib/disorder/disorder-corpus
+../lib/p
+../lib/x/x-conduit
+../lib/x/x-exception
+../lib/x/x-optparse

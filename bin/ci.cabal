@@ -7,15 +7,23 @@ git submodule init
 git submodule sync
 git submodule update
 
-cabal sandbox delete
+MODULES=$(ls mismi-*/*.cabal)
 
-./cabal update
-./cabal build
-cabal install
+for x in $MODULES; do
+    (
+        cd $(dirname $x)
 
-(
-    cd test && \
-      cabal sandbox init --sandbox ../.cabal-sandbox && \
-      cabal configure && \
-      cabal install
-) || exit $?
+        cabal sandbox delete
+
+        ./cabal update
+        ./cabal build
+        cabal install
+
+        (
+            cd test && \
+                cabal sandbox init --sandbox ../.cabal-sandbox && \
+                cabal configure && \
+                cabal install
+        ) || exit $?
+    )
+done
