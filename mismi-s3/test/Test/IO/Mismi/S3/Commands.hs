@@ -35,6 +35,7 @@ import           System.IO.Temp
 
 import           Test.Mismi.S3
 import           Test.QuickCheck
+import           Test.QuickCheck.Instances ()
 
 
 prop_exists :: Property

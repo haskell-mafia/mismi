@@ -8,23 +8,12 @@ import           Data.Text hiding (copy)
 
 import           Mismi.S3
 
-import           Options.Applicative
-
 import           P
 
 import           System.IO
 import           System.Exit
 
 import           X.Options.Applicative
-
-data RunType =
-  DryRun | RealRun
-  deriving (Eq, Show)
-
-data SafeCommand =
-    Version
-  | RunCommand RunType Command
-  deriving (Eq, Show)
 
 data Recursive =
   Recursive
@@ -82,10 +71,9 @@ run c = runS3WithDefaults $ case c of
   Read a ->
    read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
 
-mismi :: Parser SafeCommand
+mismi :: Parser (SafeCommand Command)
 mismi =
-  Version <$ flag' () (short 'v' <> long "version" <> help "Display the version information for the eagle executable.")
-  <|> (RunCommand <$> flag RealRun DryRun (long "dry-run" <> hidden) <*> commandP')
+  safeCommand commandP'
 
 commandP' :: Parser Command
 commandP' = subparser $
