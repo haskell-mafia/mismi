@@ -1,4 +1,4 @@
-name:                  mismi-test
+name:                  mismi-sqs-test
 version:               0.0.1
 cabal-version:         >= 1.8
 build-type:            Simple
@@ -6,7 +6,7 @@ build-type:            Simple
 library
   build-depends:
                        base
-                     , mismi
+                     , mismi-sqs
                      , aws                             == 0.11.*
                      , amazonka
                      , amazonka-core
@@ -26,6 +26,5 @@ library
                      , uuid
 
   exposed-modules:
-                       Test.Mismi.Arbitrary
-                       Test.Mismi.S3
+                       Test.Mismi.SQS.Arbitrary
                        Test.Mismi.SQS
