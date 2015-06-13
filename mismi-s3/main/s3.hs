@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
-import           BuildInfo_mismi
+import           BuildInfo_mismi_s3
 
 import           Control.Monad.IO.Class
 
