@@ -43,8 +43,8 @@ main = do
   hSetBuffering stderr LineBuffering
   dispatch mismi >>= \sc ->
     case sc of
-      Version ->
-        putStrLn ("mismi: " <> buildInfoVersion) >> exitSuccess
+      VersionCommand ->
+        putStrLn ("s3: " <> buildInfoVersion) >> exitSuccess
       RunCommand DryRun c ->
         print c >> exitSuccess
       RunCommand RealRun c ->
