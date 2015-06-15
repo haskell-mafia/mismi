@@ -88,7 +88,7 @@ headObject a =
 getSize :: Address -> S3Action (Maybe Int)
 getSize a =
   let size = liftAWSAction $ headObject' a >>= pure . (^. AWS.horContentLength) in
-  ifM (exists a) (pure Nothing) size
+  ifM (exists a) size (pure Nothing)
 
 headObject' :: Address -> AWST IO (AWS.HeadObjectResponse)
 headObject' =
