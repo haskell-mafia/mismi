@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
 module Mismi.Control.Amazonka (
     module X
@@ -7,6 +8,8 @@ module Mismi.Control.Amazonka (
   , awskaConfig
   , runAWS
   , runAWSDefaultRegion
+  , runAWSWithEnv
+  , runAWSWithCreds
   , awsBracket_
   , awsBracket
   , awsErrorRender
@@ -28,10 +31,13 @@ import           Control.Monad.Trans.Either
 
 import           Data.IORef
 import           Data.Bifunctor
+import qualified Data.ByteString.Char8 as BS
 import           Data.Text as T
 import           Data.Text.Encoding as T
 
 import           Mismi.Environment
+
+import           Network.AWS.Data
 
 import           Network.HTTP.Types.Status
 
@@ -39,6 +45,7 @@ import           P
 
 import           System.IO
 import           System.IO.Error
+import           System.Environment
 
 import           X.Control.Monad.Catch
 
@@ -62,12 +69,30 @@ awskaConfig = do
 runAWS :: Region -> AWS a -> EitherT AWSError IO a
 runAWS r a = do
   e <- liftIO $ AWS.getEnv r Discover
-  EitherT . fmap (first AWSRunError) $ runAWST e a
+  token' <- liftIO $ lookupEnv "AWS_SECURITY_TOKEN"
+  env <- maybe
+           (pure e)
+           (\token -> do
+               auth <- withAuth (e ^. envAuth) (\ae -> right . Auth $ ae { _authToken = Just token })
+               pure $ e & envAuth .~ auth)
+           (SecurityToken . BS.pack <$> token')
+  runAWSWithEnv env a
+
+runAWSWithCreds :: Region -> AccessKey -> SecretKey -> Maybe SecurityToken -> Maybe UTCTime -> AWS a -> EitherT AWSError IO a
+runAWSWithCreds r ak sk st ex a = do
+  e <- liftIO $ AWS.getEnv r Discover
+  let auth = Auth $ AuthEnv ak sk st ex
+  let env = e & envAuth .~ auth
+  runAWSWithEnv env a
 
 runAWSDefaultRegion :: AWS a -> EitherT AWSError IO a
 runAWSDefaultRegion a = do
   r <- EitherT . fmap (first AWSRegionError) $ getRegionFromEnv
   runAWS r a
+
+runAWSWithEnv :: Env -> AWS a -> EitherT AWSError IO a
+runAWSWithEnv e a =
+  EitherT . fmap (first AWSRunError) $ runAWST e a
 
 awsBracket_ :: AWS a -> AWS c -> AWS b -> AWS b
 awsBracket_ a b c =
@@ -91,7 +116,6 @@ awsBracket resource finalizer action = do
              Right r' ->
                runAWST e (action r'))
   X.hoistEither x
-
 
 awsErrorRender :: AWSError -> Text
 awsErrorRender (AWSRegionError e) = regionErrorRender e

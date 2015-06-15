@@ -37,7 +37,6 @@ import           Control.Monad.Catch (catch)
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource
 
-import           Control.Monad.Trans.AWS
 import qualified Network.AWS.S3 as AWS
 
 import qualified Data.ByteString as BS
