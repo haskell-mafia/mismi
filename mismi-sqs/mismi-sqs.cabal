@@ -52,8 +52,8 @@ test-suite test
                      , mismi-core-test
                      , mismi-sqs
                      , aws
-                     , amazonka
-                     , amazonka-core
+                     , amazonka                        == 99.*
+                     , amazonka-core                   == 99.*
                      , disorder-core
                      , disorder-corpus
                      , exceptions
@@ -73,8 +73,8 @@ test-suite test-io
                      , mismi-core-test
                      , mismi-sqs
                      , aws
-                     , amazonka
-                     , amazonka-core
+                     , amazonka                        == 99.*
+                     , amazonka-core                   == 99.*
                      , disorder-core
                      , disorder-corpus
                      , exceptions
