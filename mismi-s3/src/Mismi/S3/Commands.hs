@@ -19,6 +19,7 @@ module Mismi.S3.Commands (
   , list
   , getObjectsRecursively
   , listRecursively
+  , getSize
   ) where
 
 import qualified Aws.S3 as S3
@@ -83,6 +84,15 @@ exists a =
 headObject :: Address -> S3Action (Maybe S3.ObjectMetadata)
 headObject a =
   awsRequest (f' S3.headObject a) >>= pure . S3.horMetadata
+
+getSize :: Address -> S3Action (Maybe Int)
+getSize a =
+  let size = liftAWSAction $ headObject' a >>= pure . (^. AWS.horContentLength) in
+  ifM (exists a) (pure Nothing) size
+
+headObject' :: Address -> AWST IO (AWS.HeadObjectResponse)
+headObject' =
+  send . f' AWS.headObject
 
 delete :: Address -> S3Action ()
 delete a =

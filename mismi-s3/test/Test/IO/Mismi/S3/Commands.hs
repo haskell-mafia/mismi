@@ -13,7 +13,8 @@ import           Control.Monad.IO.Class
 import           Data.Bool
 import           Data.List (sort)
 import qualified Data.List as L
-import           Data.Text as T hiding (copy, length)
+import           Data.Text hiding (copy, length)
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -191,6 +192,12 @@ prop_move t d' = testS3 $ \s ->
     es <- exists s
     ed <- exists d
     pure $ (es, ed) === (False, True)
+
+prop_size :: Text -> Property
+prop_size t = testS3 $ \a -> do
+  write a t
+  i <- getSize a
+  pure $ i === (Just . BS.length $ T.encodeUtf8 t)
 
 testLocalS3 :: Testable a => (FilePath -> Address -> S3Action a) -> Property
 testLocalS3 f =

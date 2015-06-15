@@ -16,6 +16,7 @@ import           System.IO
 import           Test.Mismi.S3
 import           Test.Mismi.S3 ()
 import           Test.QuickCheck
+import           Test.QuickCheck.Instances ()
 
 
 prop_liftS3 :: Token -> Text -> Property
