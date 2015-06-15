@@ -82,8 +82,8 @@ test-suite test
                      , mismi-core-test
                      , mismi-s3
                      , aws
-                     , amazonka
-                     , amazonka-core
+                     , amazonka                        == 99.*
+                     , amazonka-core                   == 99.*
                      , either
                      , exceptions
                      , filepath
@@ -110,8 +110,8 @@ test-suite test-io
                      , mismi-core-test
                      , mismi-s3
                      , aws
-                     , amazonka
-                     , amazonka-core
+                     , amazonka                        == 99.*
+                     , amazonka-core                   == 99.*
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*

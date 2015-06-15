@@ -54,8 +54,8 @@ test-suite test
   build-depends:       base
                      , mismi-core
                      , aws
-                     , amazonka
-                     , amazonka-core
+                     , amazonka                        == 99.*
+                     , amazonka-core                   == 99.*
                      , either
                      , exceptions
                      , filepath
