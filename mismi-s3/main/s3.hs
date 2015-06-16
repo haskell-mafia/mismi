@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE LambdaCase #-}
 
 import           BuildInfo_mismi_s3
 
@@ -6,7 +7,10 @@ import           Control.Monad.IO.Class
 
 import           Data.Text hiding (copy)
 
+import           Mismi.Environment
 import           Mismi.S3
+import           Mismi.Control.Amazonka (runAWS, awsErrorRender)
+import qualified Mismi.S3.Amazonka as A
 
 import           P
 
@@ -26,6 +30,16 @@ rec notrecursive recursive r = case r of
   Recursive -> recursive
 
 data Command =
+  AwsK AmazonkaCommand
+  | AwsC AwsCommand
+  deriving (Eq, Show)
+
+data AmazonkaCommand =
+  Uploadk FilePath Address
+  | Downloadk Address FilePath
+  deriving (Eq, Show)
+
+data AwsCommand =
   List Address Recursive
   | Upload FilePath Address
   | Download Address FilePath
@@ -51,7 +65,24 @@ main = do
         run c
 
 run :: Command -> IO ()
-run c = runS3WithDefaults $ case c of
+run = \case
+  AwsC c ->
+    runC c
+  AwsK k ->
+    runK k
+
+runK :: AmazonkaCommand -> IO ()
+runK k = do
+  r' <- getRegionFromEnv
+  r <- either (const . pure $ Sydney) pure r'
+  orDie awsErrorRender . runAWS r $ case k of
+    Uploadk s d ->
+      A.upload s d
+    Downloadk s d ->
+      A.download s d
+
+runC :: AwsCommand -> IO ()
+runC c = runS3WithDefaults $ case c of
   List a r ->
     rec (list a) (listRecursively a) r >>= liftIO . mapM_ (putStrLn . unpack . addressToText)
   Upload s d ->
@@ -76,7 +107,20 @@ mismi =
   safeCommand commandP'
 
 commandP' :: Parser Command
-commandP' = subparser $
+commandP' =
+  AwsC <$> commandA' <|> AwsK <$> commandK'
+
+commandK' :: Parser AmazonkaCommand
+commandK' = subparser $
+     command' "uploadk"
+              "Upload a file to s3."
+              (Uploadk <$> filepath' <*> address')
+  <> command' "downloadk"
+              "Upload a file to s3."
+              (Downloadk <$> address' <*> filepath')
+
+commandA' :: Parser (AwsCommand)
+commandA' = subparser $
      command' "ls"
              "List on a prefix."
               (List <$> address' <*> recursive')
