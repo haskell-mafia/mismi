@@ -29,16 +29,11 @@ import           Control.Arrow ((***))
 
 import           Control.Concurrent.Async
 
-import           Control.Lens
-
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Catch (catch)
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource
-
-import           Control.Monad.Trans.AWS
-import qualified Network.AWS.S3 as AWS
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -52,11 +47,12 @@ import           Data.Text (Text)
 import           Data.Text.Encoding as T
 
 import           Mismi.Control
+import qualified Mismi.S3.Amazonka as AWS
 import           Mismi.S3.Control
 import           Mismi.S3.Data
+import           Mismi.S3.Internal
 
 import           Network.HTTP.Conduit (responseBody, requestBodySource , RequestBody(..))
-import           Network.HTTP.Types.URI (urlEncode)
 import           Network.HTTP.Types.Status (status404)
 
 import           P
@@ -69,13 +65,10 @@ import           System.Directory
 
 import           X.Data.Conduit.Binary
 
-f' :: (Text -> Text -> a) -> Address -> a
-f' f a =
-  uncurry f (unBucket $ bucket a, unKey $ key a)
 
-ff' :: (Text -> Text -> a) -> Address -> a
-ff' f a =
-  uncurry f (unKey $ key a, unBucket $ bucket a)
+sse :: ServerSideEncryption
+sse =
+  AES256
 
 exists :: Address -> S3Action Bool
 exists a =
@@ -87,12 +80,7 @@ headObject a =
 
 getSize :: Address -> S3Action (Maybe Int)
 getSize a =
-  let size = liftAWSAction $ headObject' a >>= pure . (^. AWS.horContentLength) in
-  ifM (exists a) size (pure Nothing)
-
-headObject' :: Address -> AWST IO (AWS.HeadObjectResponse)
-headObject' =
-  send . f' AWS.headObject
+  ifM (exists a) (liftAWSAction $ AWS.getSize' a) (pure Nothing)
 
 delete :: Address -> S3Action ()
 delete a =
@@ -160,21 +148,6 @@ multipartUpload' file a fileSize chunk = do
       let prts'' = (uncurry (\(_, _, i) pr -> (toInteger i, uprETag pr))) <$> L.zip p prts'
       void . awsRequest $ (f' S3.postCompleteMultipartUpload a upi prts'')
 
--- filesize -> Chunk -> [(offset, chunk, index)]
-calculateChunks :: Int -> Int -> [(Int, Int, Int)]
-calculateChunks size chunk =
-  let go :: Int -> Int -> [(Int, Int, Int)]
-      go i o =
-        let o' = (o + chunk) in
-          if (o' < size)
-            then
-              (o, chunk, i) : go (i + 1) o'
-            else
-              let c' = (size - o) in -- last chunk
-              [(o, c', i)]
-  in
-    go 1 0
-
 write :: Address -> Text -> S3Action ()
 write =
   writeWithMode Fail
@@ -189,18 +162,7 @@ writeWithMode w a t = do
 
 copy :: Address -> Address -> S3Action ()
 copy s d =
-  liftAWSAction $ copy' s d
-
--- Url is being sent as a header not as a query therefore
--- requires special url encoding. (Do not encode the delimiters)
-copy' :: Address -> Address -> AWS ()
-copy' (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key k)) =
-  let splitEncoded = urlEncode True . T.encodeUtf8 <$> T.split (== '/') k
-      bsEncoded = BS.intercalate "/" splitEncoded
-      textEncoded = T.decodeUtf8 bsEncoded
-      req = (AWS.copyObject b (sb <> "/" <> sk) textEncoded) & AWS.coServerSideEncryption .~ Just sse' & AWS.coMetadataDirective .~ Just AWS.Copy
-  in
-  send_ req
+  liftAWSAction $ AWS.copy s d
 
 move :: Address -> Address -> S3Action ()
 move source destination =

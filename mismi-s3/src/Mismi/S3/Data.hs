@@ -13,11 +13,7 @@ module Mismi.S3.Data (
   , removeCommonPrefix
   , withKey
   , s3Parser
-  , sse
-  , sse'
   ) where
-
-import qualified Aws.S3 as S3
 
 import           Data.Align
 import           Data.Attoparsec.Text hiding (parse)
@@ -26,8 +22,6 @@ import qualified Data.Text as T
 import           Data.Text (Text)
 import           Data.List (init)
 import           Data.String
-
-import qualified Network.AWS.S3.Types as AWS
 
 import           P
 
@@ -58,13 +52,6 @@ instance Show Address where
   show (Address b k) =
     "Address (" <> show b <> ") (" <> show k <> ")"
 
-sse :: S3.ServerSideEncryption
-sse =
-  S3.AES256
-
-sse' :: AWS.ServerSideEncryption
-sse' =
-  AWS.AES256
 
 (</>) :: Key -> Key -> Key
 (</>) (Key p1) (Key p2) =

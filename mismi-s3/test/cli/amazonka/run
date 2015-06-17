@@ -1,0 +1,24 @@
+#!/bin/sh -eu
+
+. $(dirname $0)/../core/runner.sh
+
+banner Test amazonka cli
+########################
+
+
+s3=$(unique_s3_url file)
+
+echo "blah" > ${TEST}/file
+
+$MISMI uploadk ${TEST}/file $s3 || exit_cleanup $?
+$MISMI downloadk $s3 ${TEST}/download || exit_cleanup $?
+
+if diff -q ${TEST}/file ${TEST}/download; then
+    echo "PASSED [amazonka]"
+else
+    echo ""
+    echo "Test case [amazonka] failed."
+    exit_cleanup
+fi
+
+cleanup
