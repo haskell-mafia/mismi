@@ -197,7 +197,7 @@ listObjects :: Address -> S3Action ([Address], [Address])
 listObjects a =
   (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k) )<$> getObjects a
 
--- list the address, keys fisrt, then prefixs
+-- list the addresses, keys first, then prefixes
 list :: Address -> S3Action [Address]
 list a =
   (\(p, k) -> k <> p) <$> listObjects a
