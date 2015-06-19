@@ -11,6 +11,14 @@ module Mismi.S3.Amazonka (
   , upload
   , download
   , downloadWithRange
+  , listMultiparts
+  , listOldMultiparts
+  , listOldMultiparts'
+  , abortMultipart
+  , abortMultipart'
+  , filterOld
+  , filterNDays
+  , sse
   ) where
 
 import           Control.Lens
@@ -19,20 +27,28 @@ import           Control.Monad.Trans.Resource
 import           Control.Monad.IO.Class
 
 import           Data.Conduit
+--import           Data.Conduit.List as DC
+import qualified Data.Conduit.List as DC
 import           Data.Conduit.Binary
+
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
+import           Data.List (nubBy)
+
+import           Data.String
 import qualified Data.Text as T
 import           Data.Text.Encoding as T
+import           Data.Time.Clock
 
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 
-import           Network.AWS.S3 hiding (headObject, bucket)
+import           Network.AWS.S3 hiding (headObject, Bucket, bucket)
 import qualified Network.AWS.S3 as AWS
 import           Network.AWS.Data
 import           Network.HTTP.Types.URI (urlEncode)
+import           Network.HTTP.Types.Status (status500)
 
 import           P
 
@@ -88,6 +104,45 @@ downloadWithRange source start end dest = do
               UBS.fdWrite fd bs
     runResourceT $ ($$+- s) rs
   liftIO $ closeFd fd
+
+listMultiparts :: Bucket -> AWS [MultipartUpload]
+listMultiparts b = do
+  let req = listMultipartUploads $ unBucket b
+  paginate req $$ DC.foldMap (flip (^.) lmurUploads)
+
+listOldMultiparts :: Bucket -> AWS [MultipartUpload]
+listOldMultiparts b = do
+  mus <- listMultiparts b
+  now <- liftIO $ getCurrentTime
+  pure $ filter (filterOld now) mus
+
+listOldMultiparts' :: Bucket -> Int -> AWS [MultipartUpload]
+listOldMultiparts' b i = do
+  mus <- listMultiparts b
+  now <- liftIO $ getCurrentTime
+  pure $ filter (filterNDays i now) mus
+
+filterOld :: UTCTime -> MultipartUpload -> Bool
+filterOld n m = filterNDays 7 n m
+
+filterNDays :: Int -> UTCTime -> MultipartUpload -> Bool
+filterNDays n now m = case m ^. muInitiated of
+  Nothing -> False
+  Just x -> nDaysOld n now x
+
+nDaysOld :: Int -> UTCTime -> UTCTime -> Bool
+nDaysOld n now utc = do
+  let n' = fromInteger $ toInteger n
+  let diff = ((-1 * 60 * 60 * 24 * n') :: NominalDiffTime)
+  let boundary = addUTCTime diff now
+  boundary > utc
+
+abortMultipart :: Bucket -> MultipartUpload -> AWST IO ()
+abortMultipart (Bucket b) mu = do
+  let x :: String -> ServiceError String = \s -> (ServiceError "amu" status500 s)
+  k <- maybe (throwAWSError $ x "Multipart key missing") pure (mu ^. muKey)
+  i <- maybe (throwAWSError $ x "Multipart uploadId missing") pure (mu ^. muUploadId)
+  send_ $ abortMultipartUpload b k i
 
 sse :: ServerSideEncryption
 sse =
