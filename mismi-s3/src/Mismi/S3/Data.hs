@@ -35,18 +35,18 @@ data WriteMode =
 
 newtype Bucket = Bucket {
     unBucket :: Text
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Ord)
 
 data Address = Address {
     bucket :: Bucket
   , key :: Key
-  } deriving Eq
+  } deriving (Eq, Ord)
 
 -- NOTE: This is not a "safe" data type, and makes no guarantee about what is _actually_ supported for S3
 -- https://github.com/ambiata/mismi/issues/2
 newtype Key = Key {
     unKey :: Text
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Ord)
 
 instance Show Address where
   show (Address b k) =
@@ -55,7 +55,7 @@ instance Show Address where
 
 (</>) :: Key -> Key -> Key
 (</>) (Key p1) (Key p2) =
-  if  ("/" `T.isSuffixOf` p1 || p1 == "" || "/" `T.isPrefixOf` p2)
+  if  "/" `T.isSuffixOf` p1 || p1 == "" || "/" `T.isPrefixOf` p2
     then Key $ p1 <> p2
     else Key $ p1 <> "/" <> p2
 
@@ -85,13 +85,13 @@ removeCommonPrefix prefix addr =
       check x y =
         all (\(l, r) -> Just l == r) (rpadZip y x)
   in
-  if (bucket addr == bucket prefix)
+  if bucket addr == bucket prefix
      then
-       if ((unKey (key prefix)) == "")
+       if unKey (key prefix) == ""
           then
             Just $ key addr
           else
-            let bk = (unKey (key prefix))
+            let bk = unKey (key prefix)
                 b = bool (bk <> "/") bk ("/" `T.isSuffixOf` bk)
                 pk = T.unpack b
                 kk = T.unpack (unKey $ key addr)

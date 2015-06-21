@@ -4,7 +4,7 @@
 module Test.Mismi.S3.Data where
 
 import           Data.Text as T
-
+import           Data.List as L (sort)
 import           Disorder.Corpus
 
 import           Mismi.S3.Data
@@ -34,6 +34,10 @@ prop_parse a =
 prop_parse_bucket :: Bucket -> Property
 prop_parse_bucket b =
   addressFromText ("s3://" <> unBucket b) === Just (Address b (Key ""))
+
+prop_sorted :: [Address] -> Property
+prop_sorted addresses =
+  fmap addressToText (L.sort addresses) === L.sort (fmap addressToText addresses)
 
 prop_withKey :: Address -> Property
 prop_withKey a =
