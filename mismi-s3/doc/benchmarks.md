@@ -2,10 +2,18 @@
 
 ## Download
 
+# Single
 | Size | Duration | app |
 |------|----------|-----|
 | 7.5 gb | 1m33.736s | aws cli |
 | 7.5 gb | 3m13.230s | mismi |
+
+# Multipart
+| Size | Duration | app |
+|------|----------|-----|
+| 1 gb | 0m8s | aws cli |
+| 1 gb | 0m24s | mismi (single) |
+| 1 gb | 0m18s | mismi (chunk=100, fork=10) |
 
 
 ## Upload

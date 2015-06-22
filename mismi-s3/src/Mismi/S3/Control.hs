@@ -34,6 +34,8 @@ import           Control.Retry
 
 import           Mismi.Control
 
+import qualified Control.Monad.Trans.AWS as AWS
+
 import           Network.HTTP.Client (HttpException, Manager)
 import           Network.HTTP.Conduit (withManager)
 
@@ -61,9 +63,17 @@ runS3WithCfg cfg r action =
 
 liftAWSAction :: AWS a -> S3Action a
 liftAWSAction action = do
-  (_, s3', _) <- ask
+  (cfg, s3', _) <- ask
   r' <- maybe (fail $ "Invalid s3 endpoint [" <> (show $ s3Endpoint s3') <> "].") pure (epToRegion $ s3Endpoint s3')
-  r <- liftIO . runEitherT $ runAWS r' action
+  let x = Aws.credentials cfg
+      ak = AccessKey $ Aws.accessKeyID x
+      sk = SecretKey $ Aws.secretAccessKey x
+  let c = maybe
+            (FromKeys ak sk)
+            (FromSession ak sk . SecurityToken)
+            (Aws.iamToken x)
+  env <- liftIO $ AWS.getEnv r' c
+  r <- liftIO . runEitherT $ runAWSWithEnv env action
   either throwAWSError pure r
 
 liftS3Action :: S3Action a -> AWS a

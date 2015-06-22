@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE PackageImports #-}
 module Mismi.S3.Amazonka (
     module AWS
   , headObject
@@ -9,6 +10,7 @@ module Mismi.S3.Amazonka (
   , copy
   , upload
   , download
+  , downloadWithRange
   ) where
 
 import           Control.Lens
@@ -37,6 +39,8 @@ import           P
 import           System.IO
 import           System.Directory
 import           System.FilePath
+import           System.Posix.IO
+import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
 headObject :: Address -> AWST IO (AWS.HeadObjectResponse)
 headObject =
@@ -68,6 +72,22 @@ download a f = do
   liftIO $ createDirectoryIfMissing True (dropFileName f)
   r <- send $ f' getObject a
   liftIO . runResourceT . ($$+- sinkFile f) $ r ^. gorBody ^. _RsBody
+
+downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
+downloadWithRange source start end dest = do
+  let req = (f' AWS.getObject source) & AWS.goRange .~ (Just $ downRange start end)
+  r <- send req
+  let p :: AWS.GetObjectResponse = r
+  let y :: RsBody = p ^. AWS.gorBody
+
+
+  fd <- liftIO $ openFd dest WriteOnly Nothing defaultFileFlags
+  liftIO $ do
+    let rs :: ResumableSource (ResourceT IO) BS.ByteString = y ^. _RsBody
+    let s = awaitForever $ \bs -> liftIO $ do
+              UBS.fdWrite fd bs
+    runResourceT $ ($$+- s) rs
+  liftIO $ closeFd fd
 
 sse :: ServerSideEncryption
 sse =

@@ -5,6 +5,7 @@ module Mismi.S3.Internal (
     f'
   , ff'
   , calculateChunks
+  , downRange
   ) where
 
 import           Data.Text
@@ -35,3 +36,9 @@ calculateChunks size chunk =
               [(o, c', i)]
   in
     go 1 0
+
+-- http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
+-- https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3Client.java#L1135
+downRange :: Int -> Int -> Text
+downRange start end =
+  pack $ "bytes=" <> show start <> "-" <> show end
