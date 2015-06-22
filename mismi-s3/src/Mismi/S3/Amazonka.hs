@@ -27,14 +27,12 @@ import           Control.Monad.Trans.Resource
 import           Control.Monad.IO.Class
 
 import           Data.Conduit
---import           Data.Conduit.List as DC
 import qualified Data.Conduit.List as DC
 import           Data.Conduit.Binary
 
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
-import           Data.List (nubBy)
 
 import           Data.String
 import qualified Data.Text as T
@@ -142,7 +140,12 @@ abortMultipart (Bucket b) mu = do
   let x :: String -> ServiceError String = \s -> (ServiceError "amu" status500 s)
   k <- maybe (throwAWSError $ x "Multipart key missing") pure (mu ^. muKey)
   i <- maybe (throwAWSError $ x "Multipart uploadId missing") pure (mu ^. muUploadId)
+  abortMultipart' (Address (Bucket b) (Key k)) i
+
+abortMultipart' :: Address -> T.Text -> AWST IO ()
+abortMultipart' (Address (Bucket b) (Key k)) i =
   send_ $ abortMultipartUpload b k i
+
 
 sse :: ServerSideEncryption
 sse =
