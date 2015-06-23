@@ -43,7 +43,6 @@ import           Data.Conduit
 import           Data.Conduit.Binary
 import qualified Data.Conduit.List as C
 import qualified Data.List as L
-import qualified Data.List.NonEmpty as NEL
 import qualified Data.Text as T
 import           Data.Text (Text)
 import           Data.Text.Encoding as T
@@ -58,8 +57,6 @@ import           Network.HTTP.Conduit (responseBody, requestBodySource , Request
 import           Network.HTTP.Types.Status (status404)
 
 import           P
-
-import           Prelude (error)
 
 import           System.IO
 import           System.FilePath
@@ -244,19 +241,13 @@ getObjectsRecursively (Address (Bucket b) (Key ky)) =
     pp k = if T.null k then "" else if T.isSuffixOf "/" k then k else k <> "/"
     -- Hoping this will have ok performance in cases where the results are large, it shouldnt
     -- affect correctness since we search through the list for it anyway
-    go :: S3.GetBucket -> NEL.NonEmpty S3.ObjectInfo -> S3Action [S3.ObjectInfo]
-    go x ks = (NEL.toList ks <>) <$> getObjects' (x { S3.gbMarker = Just $ S3.objectKey $ NEL.last ks })
+    go :: S3.GetBucket -> [S3.ObjectInfo] -> S3Action [S3.ObjectInfo]
+    go x ks = (ks <>) <$> getObjects' (x { S3.gbMarker = S3.objectKey <$> (listToMaybe . reverse $ ks) })
     getObjects' :: S3.GetBucket -> S3Action [S3.ObjectInfo]
     getObjects' x = do
       resp <- awsRequest x
-      if S3.gbrIsTruncated resp
-        then
-          maybe
-            (error "vee: error: truncated response with empty contents list.")
-            (go x)
-            (NEL.nonEmpty $ S3.gbrContents resp)
-        else
-          pure $ S3.gbrContents resp
+      let cnt = S3.gbrContents resp
+      if S3.gbrIsTruncated resp then go x cnt else pure cnt
 
 listRecursively :: Address -> S3Action [Address]
 listRecursively a =
