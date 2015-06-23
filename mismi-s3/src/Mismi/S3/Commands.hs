@@ -252,7 +252,7 @@ getObjectsRecursively (Address (Bucket b) (Key ky)) =
       if S3.gbrIsTruncated resp
         then
           maybe
-            (error "vee: error: truncated response with empty contents list.")
+            (Prelude.error "vee: error: truncated response with empty contents list.")
             (go x)
             (NEL.nonEmpty $ S3.gbrContents resp)
         else
