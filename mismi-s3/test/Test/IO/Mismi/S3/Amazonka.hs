@@ -27,7 +27,6 @@ import           Test.Mismi.Amazonka
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
-
 prop_list_multipart = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
   l <- listMultiparts (bucket a)
@@ -53,9 +52,6 @@ findMultiparts uploadId = filter (findMultipart uploadId)
 
 findMultipart :: Text -> MultipartUpload -> Bool
 findMultipart uploadId m = m ^. muUploadId == Just uploadId
-
-count :: (a -> Bool) -> [a] -> Int
-count predicate list = length (filter predicate list)
 
 withMultipart :: Testable a => (Address -> Text -> AWS a) -> Property
 withMultipart f =
