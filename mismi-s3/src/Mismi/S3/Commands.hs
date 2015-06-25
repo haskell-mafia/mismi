@@ -8,7 +8,6 @@ module Mismi.S3.Commands (
   , read
   , download
   , downloadWithMode
-  , multipartDownload
   , upload
   , calculateChunks
   , write
@@ -80,47 +79,13 @@ read :: Address -> S3Action (Maybe Text)
 read =
   liftAWSAction . AWS.read
 
-
 download :: Address -> FilePath -> S3Action ()
-download a p = do
-  unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
-  s' <- getSize a
-  size <- maybe (fail $ "Can not calculate the file size [" <> (T.unpack $ addressToText a) <> "].") pure s'
-  if (size > 200 * 1024 * 1024)
-     then multipartDownload a p size 100 100
-     else downloadWithMode Fail a p
+download a p =
+  liftAWSAction $ AWS.download a p
 
 downloadWithMode :: WriteMode -> Address -> FilePath -> S3Action ()
 downloadWithMode m s d =
   liftAWSAction $ AWS.downloadWithMode m s d
-
-multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
-multipartDownload source destination size chunk' fork = do
-  -- get config / region to run currently
-  (cfg, s3', _) <- ask
-  r <- maybe (fail $ "Invalid s3 endpoint [" <> (show $ s3Endpoint s3') <> "].") pure (epToRegion $ s3Endpoint s3')
-
-  -- chunks
-  let chunk = chunk' * 1024 * 1024
-  let chunks = calculateChunks size (fromInteger chunk)
-
-  let writer :: (Int, Int, Int) -> IO ()
-      writer (o, c, _) = do
-        let req = downloadPart source o (o + c) destination
-            ioq = runS3WithCfg cfg r req
-        retryHttp 3 ioq
-
-  -- create sparse file
-  liftIO $ withFile destination WriteMode $ \h ->
-    hSetFileSize h (toInteger size)
-
-  sem <- liftIO $ new fork
-  z <- liftIO $ (mapConcurrently (with sem . writer) chunks)
-  pure $ mconcat z
-
-downloadPart :: Address -> Int -> Int -> FilePath -> S3Action ()
-downloadPart source start end destination =
-  liftAWSAction $ AWS.downloadWithRange source start end destination
 
 upload :: FilePath -> Address -> S3Action ()
 upload file a = do

@@ -26,10 +26,13 @@ module Mismi.S3.Amazonka (
   , sse
   ) where
 
+import           Control.Concurrent.MSem
+import           Control.Concurrent.Async
+
 import           Control.Lens
 import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Either
-import           Control.Monad.Trans.Reader
+import           Control.Monad.Reader (ask)
 import           Control.Monad.Trans.Resource
 import           Control.Monad.IO.Class
 
@@ -62,6 +65,8 @@ import           Network.HTTP.Types (urlEncode)
 import           Network.HTTP.Types.Status (status500, status404)
 import           Network.HTTP.Client ( HttpException (..) )
 
+import           Network.HTTP.Conduit (requestBodySource) -- maybe
+import           X.Data.Conduit.Binary
 
 import           P
 
@@ -154,7 +159,28 @@ upload' file a = do
   send_ $ f' (putObject $ toBody x) a & poServerSideEncryption .~ Just sse
 
 multipartUpload' :: FilePath -> Address -> Integer -> Integer -> AWS ()
-multipartUpload' _ _ _ _ = undefined
+multipartUpload' file a fileSize chunk = do
+  e <- ask
+  mpu' <- send $ f' createMultipartUpload a & cmuServerSideEncryption .~ Just sse
+  let mpu = maybe (fail "Failed to create multipart upload") pure (mpu' ^. cmurUploadId)
+
+  let chunks = calculateChunks (fromInteger fileSize) (fromInteger chunk)
+  let uploader :: (Int, Int, Int) -> IO ()
+      uploader (o, c, i) =
+--        let body = slurpWithBuffer file (toInteger o) (Just $ toInteger c) (1024 * 1024)
+        withFile file ReadMode $ \h -> do
+          hSeek h AbsoluteSeek (toInteger o)
+          cont <- LBS.hGetContents h
+          let bod = toBody (LBS.take (fromInteger . toInteger $ c) cont)
+          let req' = f' (uploadPart bod) a i mpu
+          unsafeAWS . runAWSWithEnv e $ send_ req'
+
+  prts <- liftIO $ mapConcurrently x p
+  case partitionEithers prts of
+    ([], _) -> send_ $ f' abortMultipartUpload a mpu
+    (_, _) -> send_ $ f' completeMultipartUpload a mpu
+--  send_ $ f' completeMultipartUpload a mpu
+--  pure ()
 
 download :: Address -> FilePath -> AWS ()
 download a f = do
@@ -176,25 +202,26 @@ downloadWithMode mode a f = do
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> AWS ()
 multipartDownload source destination size chunk' fork = do
---  e <- ask
-  let e :: Env = undefined
+  e <- ask
 
   let chunk = chunk' * 1024 * 1024
   let chunks = calculateChunks size (fromInteger chunk)
 
-
   let writer :: (Int, Int, Int) -> IO ()
       writer (o, c, _) = do
         let req = downloadWithRange source o (o + c) destination
-            ioq = unsafeAWS $ runAWSWithEnv e req
-        retryHttp 3 ioq
+            ioq = runAWSWithEnv e req
+            io = unsafeAWS ioq
+        retryHttp 3 io
 
   -- create sparse file
   liftIO $ withFile destination WriteMode $ \h ->
     hSetFileSize h (toInteger size)
 
+  sem <- liftIO $ new fork
+  z <- liftIO $ (mapConcurrently (with sem . writer) chunks)
+  pure $ mconcat z
 
-  pure ()
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do
@@ -203,13 +230,13 @@ downloadWithRange source start end dest = do
   let p :: AWS.GetObjectResponse = r
   let y :: RsBody = p ^. AWS.gorBody
 
-
   fd <- liftIO $ openFd dest WriteOnly Nothing defaultFileFlags
   liftIO $ do
     let rs :: ResumableSource (ResourceT IO) BS.ByteString = y ^. _RsBody
     let s = awaitForever $ \bs -> liftIO $ do
               UBS.fdWrite fd bs
     runResourceT $ ($$+- s) rs
+
   liftIO $ closeFd fd
 
 listMultiparts :: Bucket -> AWS [MultipartUpload]
