@@ -17,9 +17,9 @@ library
                      , template-haskell
                      , x-conduit
                      , aws                             == 0.11.*
-                     , amazonka                        == 99.0.1
-                     , amazonka-core                   == 99.0.1
-                     , amazonka-s3                     == 99.0.1
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
+                     , amazonka-s3                     == 99.0.3
                      , bytestring                      == 0.10.*
                      , bifunctors                      == 4.2.*
                      , conduit                         == 1.2.*
@@ -48,6 +48,7 @@ library
                      , SafeSemaphore                   == 0.10.*
                      , unix-bytestring                 == 0.3.7.*
                      , time                            == 1.4.*
+                     , unordered-containers            == 0.2.5.*
 
   ghc-options:
                        -Wall
@@ -87,9 +88,9 @@ test-suite test
                      , mismi-core-test
                      , mismi-s3
                      , aws
-                     , amazonka                        == 99.0.1
-                     , amazonka-core                   == 99.0.1
-                     , amazonka-s3                     == 99.0.1
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
+                     , amazonka-s3                     == 99.0.3
                      , either
                      , exceptions
                      , filepath
@@ -119,8 +120,8 @@ test-suite test-io
                      , mismi-core-test
                      , mismi-s3
                      , aws
-                     , amazonka                        == 99.0.1
-                     , amazonka-core                   == 99.0.1
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
