@@ -31,5 +31,6 @@ library
                      , uuid
 
   exposed-modules:
-                       Test.Mismi.S3
-                       Test.Mismi.S3.Arbitrary
+                     Test.Mismi.Amazonka
+                     Test.Mismi.S3
+                     Test.Mismi.S3.Arbitrary

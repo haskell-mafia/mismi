@@ -8,21 +8,16 @@ module Test.IO.Mismi.S3.Amazonka where
 import           Data.Text (Text)
 
 import           Control.Lens
-import           Control.Monad.Trans.AWS
 
 import           Mismi.S3.Amazonka
-import           Mismi.S3.Control
 import           Mismi.S3.Data
-import           Mismi.Control.Amazonka
 
 import           Disorder.Core
-import           Disorder.Core.IO
 
 import           P
 
 import           System.IO
 
-import           Test.Mismi.S3
 import           Test.Mismi.Amazonka
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
@@ -52,13 +47,6 @@ findMultiparts uploadId = filter (findMultipart uploadId)
 
 findMultipart :: Text -> MultipartUpload -> Bool
 findMultipart uploadId m = m ^. muUploadId == Just uploadId
-
-withMultipart :: Testable a => (Address -> Text -> AWS a) -> Property
-withMultipart f =
-  property $ \t ->
-    testIO . runS3WithDefaults . withToken t $ \a ->
-      liftAWSAction $
-        awsBracket (createMultipart a) (abortMultipart' a) (f a)
 
 return []
 tests :: IO Bool
