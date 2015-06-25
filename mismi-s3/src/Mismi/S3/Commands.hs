@@ -32,16 +32,11 @@ import           Control.Concurrent.MSem
 import           Control.Concurrent.Async
 
 import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Catch (catch)
 import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource
 
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
-import           Data.Conduit
-import           Data.Conduit.Binary
-import qualified Data.Conduit.List as C
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Text as T
@@ -54,15 +49,13 @@ import           Mismi.S3.Control
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 
-import           Network.HTTP.Conduit (responseBody, requestBodySource , RequestBody(..))
-import           Network.HTTP.Types.Status (status404)
+import           Network.HTTP.Conduit (requestBodySource , RequestBody(..))
 
 import           P
 
 import           Prelude (error)
 
 import           System.IO
-import           System.FilePath
 import           System.Directory
 
 import           X.Data.Conduit.Binary
@@ -72,27 +65,21 @@ sse =
   AES256
 
 exists :: Address -> S3Action Bool
-exists a =
-  headObject a >>= pure . isJust
-
-headObject :: Address -> S3Action (Maybe S3.ObjectMetadata)
-headObject a =
-  awsRequest (f' S3.headObject a) >>= pure . S3.horMetadata
+exists =
+  liftAWSAction . AWS.exists
 
 getSize :: Address -> S3Action (Maybe Int)
-getSize a =
-  ifM (exists a) (liftAWSAction $ AWS.getSize' a) (pure Nothing)
+getSize =
+  liftAWSAction . AWS.getSize
 
 delete :: Address -> S3Action ()
 delete a =
   void . awsRequest $ ff' S3.DeleteObject a
 
 read :: Address -> S3Action (Maybe Text)
-read a =
-  let get = f' S3.getObject a in
-  (awsRequest get >>=
-   fmap Just . lift . fmap (T.decodeUtf8 . BS.concat) . ($$+- C.consume) . responseBody . S3.gorResponse)
-  `catch` (\(e :: S3.S3Error) -> if S3.s3StatusCode e == status404 then pure Nothing else throwM e)
+read =
+  liftAWSAction . AWS.read
+
 
 download :: Address -> FilePath -> S3Action ()
 download a p = do
@@ -104,12 +91,8 @@ download a p = do
      else downloadWithMode Fail a p
 
 downloadWithMode :: WriteMode -> Address -> FilePath -> S3Action ()
-downloadWithMode mode a p =
-  let get = f' S3.getObject a in do
-    when (mode == Fail) . whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
-    unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
-    liftIO $ createDirectoryIfMissing True (dropFileName p)
-    awsRequest get >>= lift . ($$+- sinkFile p) . responseBody . S3.gorResponse
+downloadWithMode m s d =
+  liftAWSAction $ AWS.downloadWithMode m s d
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
 multipartDownload source destination size chunk' fork = do
