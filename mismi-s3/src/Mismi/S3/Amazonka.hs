@@ -28,6 +28,8 @@ module Mismi.S3.Amazonka (
 
 import           Control.Lens
 import           Control.Monad.Trans.AWS
+import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.Resource
 import           Control.Monad.IO.Class
 
@@ -48,6 +50,8 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Time.Clock
 
+import           Mismi.Control.Amazonka (unsafeAWS, runAWSWithEnv, awsErrorRender)
+import           Mismi.S3.Control
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 
@@ -171,7 +175,26 @@ downloadWithMode mode a f = do
   liftIO . runResourceT . ($$+- sinkFile f) $ r' ^. gorBody ^. _RsBody
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> AWS ()
-multipartDownload _ _ _ _ _ = undefined
+multipartDownload source destination size chunk' fork = do
+--  e <- ask
+  let e :: Env = undefined
+
+  let chunk = chunk' * 1024 * 1024
+  let chunks = calculateChunks size (fromInteger chunk)
+
+
+  let writer :: (Int, Int, Int) -> IO ()
+      writer (o, c, _) = do
+        let req = downloadWithRange source o (o + c) destination
+            ioq = unsafeAWS $ runAWSWithEnv e req
+        retryHttp 3 ioq
+
+  -- create sparse file
+  liftIO $ withFile destination WriteMode $ \h ->
+    hSetFileSize h (toInteger size)
+
+
+  pure ()
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do
