@@ -15,11 +15,13 @@ library
                        base                            >= 3          && < 5
                      , p
                      , template-haskell
+                     , mismi-core
                      , x-conduit
+                     , x-exception
                      , aws                             == 0.11.*
-                     , amazonka                        == 99.0.1
-                     , amazonka-core                   == 99.0.1
-                     , amazonka-s3                     == 99.0.1
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
+                     , amazonka-s3                     == 99.0.3
                      , bytestring                      == 0.10.*
                      , bifunctors                      == 4.2.*
                      , conduit                         == 1.2.*
@@ -31,7 +33,6 @@ library
                      , http-client                     == 0.4.*
                      , http-conduit                    == 2.1.*
                      , http-types                      == 0.8.*
-                     , mismi-core
                      , mtl                             >= 2.1       && < 2.3
                      , process                         == 1.2.*
                      , resourcet                       == 1.1.*
@@ -44,10 +45,10 @@ library
                      , retry                           == 0.6.*
                      , lens                            >= 4.8        && < 4.10
                      , these                           == 0.4.*
-                     , x-exception
                      , SafeSemaphore                   == 0.10.*
                      , unix-bytestring                 == 0.3.7.*
                      , time                            == 1.4.*
+                     , unordered-containers            == 0.2.5.*
 
   ghc-options:
                        -Wall
@@ -87,9 +88,9 @@ test-suite test
                      , mismi-core-test
                      , mismi-s3
                      , aws
-                     , amazonka                        == 99.0.1
-                     , amazonka-core                   == 99.0.1
-                     , amazonka-s3                     == 99.0.1
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
+                     , amazonka-s3                     == 99.0.3
                      , either
                      , exceptions
                      , filepath
@@ -119,8 +120,8 @@ test-suite test-io
                      , mismi-core-test
                      , mismi-s3
                      , aws
-                     , amazonka                        == 99.0.1
-                     , amazonka-core                   == 99.0.1
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*

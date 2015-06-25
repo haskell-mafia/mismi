@@ -10,6 +10,7 @@ module Mismi.Control.Amazonka (
   , runAWSDefaultRegion
   , runAWSWithEnv
   , runAWSWithCreds
+  , unsafeAWS
   , awsBracket_
   , awsBracket
   , awsErrorRender
@@ -93,6 +94,10 @@ runAWSDefaultRegion a = do
 runAWSWithEnv :: Env -> AWS a -> EitherT AWSError IO a
 runAWSWithEnv e a =
   EitherT . fmap (first AWSRunError) $ runAWST e a
+
+unsafeAWS :: EitherT AWSError IO a -> IO a
+unsafeAWS =
+  eitherT (fail . show . awsErrorRender) pure
 
 awsBracket_ :: AWS a -> AWS c -> AWS b -> AWS b
 awsBracket_ a b c =

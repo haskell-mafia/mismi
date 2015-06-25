@@ -11,6 +11,7 @@ import           Control.Monad.Trans.AWS
 
 import           Mismi.S3.Amazonka
 import           Mismi.S3.Control
+import qualified Mismi.S3.Commands as C
 import           Mismi.S3.Data
 import           Mismi.Control.Amazonka
 
@@ -24,6 +25,17 @@ import           Test.Mismi.S3
 import           Test.Mismi.Amazonka
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
+
+prop_exists :: Property
+prop_exists = withMultipart $ \a _ -> do
+  r <- exists a
+  pure $ r /= True
+
+prop_read :: Property
+prop_read = withMultipart $ \a _ -> do
+--  liftS3Action $ C.write a "floo"
+  r <- read a
+  pure $ r === Just "floo"
 
 
 prop_list_multipart :: Property
