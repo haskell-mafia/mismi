@@ -72,7 +72,9 @@ liftAWSAction action = do
             (FromKeys ak sk)
             (FromSession ak sk . SecurityToken)
             (Aws.iamToken x)
-  env <- liftIO $ AWS.getEnv r' c
+  lgr <- newLogger Trace stdout
+  env <- liftIO $ AWS.getEnv r' c <&> envLogger .~ lgr
+--  env <- liftIO $ AWS.getEnv r' c
   r <- liftIO . runEitherT $ runAWSWithEnv env action
   either throwAWSError pure r
 
