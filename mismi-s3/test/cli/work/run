@@ -53,9 +53,20 @@ $MISMI move $s3 $bar || exit_clean $?
 
 if ! $MISMI exists $s3 && $MISMI exists $bar; then
     echo "PASSED [move]"
-    cleanup
 else
     echo ""
     echo "Test case [move] failed."
     exit_cleanup
 fi
+
+$MISMI size $bar > ${TEST}/size || exit_cleanup $?
+
+if find ${TEST}/file -size $(cat ${TEST}/size); then
+    echo "PASSED [size]"
+else
+    echo ""
+    echo "Test case [size] failed."
+    exit_cleanup
+fi
+
+cleanup

@@ -16,5 +16,6 @@ s3=$(unique_s3_url)
 ! $MISMI move $s3 $s3 2> /dev/null
 ! $MISMI copy $s3 $s3 2> /dev/null
 ! $MISMI read $s3 2> /dev/null
+! $MISMI size $s3 2> /dev/null
 
 echo "PASSED [Exit codes]"
