@@ -36,7 +36,7 @@ prop_abort_multipart = withMultipart $ \a i -> do
 
 prop_list_parts = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
-  l2 <- listMultipartParts (bucket a) (key a) i
+  l2 <- listMultipartParts a i
   pure (length l2 === 1)
 
 multipartExists :: Text -> [MultipartUpload] -> Property

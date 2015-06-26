@@ -104,9 +104,9 @@ downloadWithRange source start end dest = do
     runResourceT $ ($$+- s) rs
   liftIO $ closeFd fd
 
-listMultipartParts :: Bucket -> Key -> T.Text -> AWS [Part]
-listMultipartParts b k uploadId = do
-  let req = AWS.listParts (unBucket b) (unKey k) uploadId
+listMultipartParts :: Address -> T.Text -> AWS [Part]
+listMultipartParts a uploadId = do
+  let req = f' AWS.listParts a uploadId
   paginate req $$ DC.foldMap (^. lprParts)
 
 listMultiparts :: Bucket -> AWS [MultipartUpload]
