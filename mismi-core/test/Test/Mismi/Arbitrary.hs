@@ -8,7 +8,6 @@ import           Network.AWS.Types
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
-import           Data.Text
 import           Data.Text.Encoding
 
 import           P
