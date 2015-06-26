@@ -51,6 +51,7 @@ data AwsCommand =
   | Delete Address
   | Write Address Text WriteMode
   | Read Address
+  | Size Address
   deriving (Eq, Show)
 
 main :: IO ()
@@ -102,7 +103,9 @@ runC c = runS3WithDefaults $ case c of
   Write a t w ->
     writeWithMode w a t
   Read a ->
-   read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
+    read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
+  Size a ->
+    getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
 
 mismi :: Parser (SafeCommand Command)
 mismi =
@@ -150,6 +153,9 @@ commandA' = subparser $
   <> command' "read"
               "Read from an address."
               (Read <$> address')
+  <> command' "size"
+              "Get the size of an address."
+              (Size <$> address')
 
 recursive' :: Parser Recursive
 recursive' =
