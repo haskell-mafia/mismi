@@ -11,6 +11,7 @@ module Mismi.S3.Amazonka (
   , upload
   , download
   , downloadWithRange
+  , listMultipartParts
   , listMultiparts
   , listOldMultiparts
   , listOldMultiparts'
@@ -56,7 +57,7 @@ import           System.FilePath
 import           System.Posix.IO
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
-headObject :: Address -> AWST IO (AWS.HeadObjectResponse)
+headObject :: Address -> AWST IO AWS.HeadObjectResponse
 headObject =
   send . f' AWS.headObject
 
@@ -72,7 +73,7 @@ copy (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key k)) =
   let splitEncoded = urlEncode True . T.encodeUtf8 <$> T.split (== '/') k
       bsEncoded = BS.intercalate "/" splitEncoded
       textEncoded = T.decodeUtf8 bsEncoded
-      req = (AWS.copyObject b (sb <> "/" <> sk) textEncoded) & AWS.coServerSideEncryption .~ Just sse & AWS.coMetadataDirective .~ Just AWS.Copy
+      req = AWS.copyObject b (sb <> "/" <> sk) textEncoded & AWS.coServerSideEncryption .~ Just sse & AWS.coMetadataDirective .~ Just AWS.Copy
   in
   send_ req
 
@@ -89,7 +90,7 @@ download a f = do
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do
-  let req = (f' AWS.getObject source) & AWS.goRange .~ (Just $ downRange start end)
+  let req = f' AWS.getObject source & AWS.goRange .~ (Just $ downRange start end)
   r <- send req
   let p :: AWS.GetObjectResponse = r
   let y :: RsBody = p ^. AWS.gorBody
@@ -98,30 +99,35 @@ downloadWithRange source start end dest = do
   fd <- liftIO $ openFd dest WriteOnly Nothing defaultFileFlags
   liftIO $ do
     let rs :: ResumableSource (ResourceT IO) BS.ByteString = y ^. _RsBody
-    let s = awaitForever $ \bs -> liftIO $ do
+    let s = awaitForever $ \bs -> liftIO $
               UBS.fdWrite fd bs
     runResourceT $ ($$+- s) rs
   liftIO $ closeFd fd
 
+listMultipartParts :: Address -> T.Text -> AWS [Part]
+listMultipartParts a uploadId = do
+  let req = f' AWS.listParts a uploadId
+  paginate req $$ DC.foldMap (^. lprParts)
+
 listMultiparts :: Bucket -> AWS [MultipartUpload]
 listMultiparts b = do
   let req = listMultipartUploads $ unBucket b
-  paginate req $$ DC.foldMap (flip (^.) lmurUploads)
+  paginate req $$ DC.foldMap (^. lmurUploads)
 
 listOldMultiparts :: Bucket -> AWS [MultipartUpload]
 listOldMultiparts b = do
   mus <- listMultiparts b
-  now <- liftIO $ getCurrentTime
+  now <- liftIO getCurrentTime
   pure $ filter (filterOld now) mus
 
 listOldMultiparts' :: Bucket -> Int -> AWS [MultipartUpload]
 listOldMultiparts' b i = do
   mus <- listMultiparts b
-  now <- liftIO $ getCurrentTime
+  now <- liftIO getCurrentTime
   pure $ filter (filterNDays i now) mus
 
 filterOld :: UTCTime -> MultipartUpload -> Bool
-filterOld n m = filterNDays 7 n m
+filterOld = filterNDays 7
 
 filterNDays :: Int -> UTCTime -> MultipartUpload -> Bool
 filterNDays n now m = case m ^. muInitiated of
@@ -131,13 +137,13 @@ filterNDays n now m = case m ^. muInitiated of
 nDaysOld :: Int -> UTCTime -> UTCTime -> Bool
 nDaysOld n now utc = do
   let n' = fromInteger $ toInteger n
-  let diff = ((-1 * 60 * 60 * 24 * n') :: NominalDiffTime)
+  let diff = -1 * 60 * 60 * 24 * n' :: NominalDiffTime
   let boundary = addUTCTime diff now
   boundary > utc
 
 abortMultipart :: Bucket -> MultipartUpload -> AWST IO ()
 abortMultipart (Bucket b) mu = do
-  let x :: String -> ServiceError String = \s -> (ServiceError "amu" status500 s)
+  let x :: String -> ServiceError String = ServiceError "amu" status500
   k <- maybe (throwAWSError $ x "Multipart key missing") pure (mu ^. muKey)
   i <- maybe (throwAWSError $ x "Multipart uploadId missing") pure (mu ^. muUploadId)
   abortMultipart' (Address (Bucket b) (Key k)) i

@@ -10,9 +10,9 @@ library
                      , mismi-core-test
                      , mismi-s3
                      , aws                             == 0.11.*
-                     , amazonka                        == 99.0.1
-                     , amazonka-core                   == 99.0.1
-                     , amazonka-s3                     == 99.0.1
+                     , amazonka                        == 99.0.2
+                     , amazonka-core                   == 99.0.2
+                     , amazonka-s3                     == 99.0.2
                      , lens                            == 4.9.*
                      , time
                      , disorder-core
@@ -31,5 +31,6 @@ library
                      , uuid
 
   exposed-modules:
-                       Test.Mismi.S3
-                       Test.Mismi.S3.Arbitrary
+                     Test.Mismi.Amazonka
+                     Test.Mismi.S3
+                     Test.Mismi.S3.Arbitrary
