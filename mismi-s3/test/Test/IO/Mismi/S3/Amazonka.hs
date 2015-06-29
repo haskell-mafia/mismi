@@ -7,12 +7,15 @@ module Test.IO.Mismi.S3.Amazonka where
 
 import           Data.Text (Text)
 
-import           Control.Lens
+import           Control.Lens hiding (elements)
 
 import           Mismi.S3.Amazonka
 import           Mismi.S3.Data
+import qualified Mismi.S3.Commands as S3
+import qualified Mismi.S3.Control as S3
 
 import           Disorder.Core
+import           Disorder.Corpus
 
 import           P
 
@@ -42,6 +45,22 @@ prop_list_parts = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
   l2 <- listMultipartParts a i
   pure (length l2 === 1)
+
+prop_sync t = forAll ((,,) <$> elements muppets <*> elements simpsons <*> elements colours) $ \(m, s, c) -> withAWS $ \a -> do
+  let source = withKey (</> Key m) a
+      source' = withKey (\k -> k </> Key m </> Key s) a
+      source'' = withKey (\k -> k </> Key m </> Key c) a
+      dest = withKey (</> Key s) a
+      dest' = withKey (\k -> k </> Key s </> Key s) a
+      dest'' = withKey (\k -> k </> Key s </> Key c) a
+  S3.liftS3Action $ S3.write source' t
+  S3.liftS3Action $ S3.write source'' t
+  syncWithMode OverwriteSync source dest 1
+  e <- S3.liftS3Action $ S3.exists dest'
+  e' <- S3.liftS3Action $ S3.exists dest''
+  pure $ (e, e') === (True, True)
+
+
 
 multipartExists :: Text -> [MultipartUpload] -> Property
 multipartExists uploadId multiparts = count (findMultipart uploadId) multiparts === 1

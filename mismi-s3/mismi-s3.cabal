@@ -74,7 +74,9 @@ executable s3
                      , mismi-s3
                      , optparse-applicative            == 0.11.*
                      , transformers                    >= 0.3        && < 0.5
+                     , conduit                         == 1.2.*
                      , x-optparse
+                     , unix                            == 2.7.*
                      , text
                      , p
 

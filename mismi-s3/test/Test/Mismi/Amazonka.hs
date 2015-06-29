@@ -4,6 +4,7 @@ module Test.Mismi.Amazonka (
     createMultipart
   , sendMultipart
   , withMultipart
+  , withAWS
   ) where
 
 import           Data.Text
@@ -38,6 +39,12 @@ sendMultipart :: Text -> Address -> Int -> Text -> AWS ()
 sendMultipart t a i ui = do
   let req = f' (uploadPart (toBody $ encodeUtf8 t)) a i ui
   send_ req
+
+withAWS :: Testable a => (Address -> AWS a) -> Property
+withAWS f =
+  property $ \t ->
+    testIO . runS3WithDefaults . withToken t $ \a ->
+      liftAWSAction $ f a
 
 withMultipart :: Testable a => (Address -> Text -> AWS a) -> Property
 withMultipart f =

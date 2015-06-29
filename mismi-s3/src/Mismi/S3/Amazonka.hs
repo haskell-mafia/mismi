@@ -65,11 +65,8 @@ import           Mismi.S3.Internal
 import           Network.AWS.S3 hiding (headObject, Bucket, bucket)
 import qualified Network.AWS.S3 as AWS
 import           Network.AWS.Data
-
-import           Network.HTTP.Types.URI (urlEncode)
-import           Network.HTTP.Types.Status (status404, status500)
-
-import           Network.HTTP.Client ( HttpException (..) )
+import           Network.HTTP.Client (HttpException (..))
+import           Network.HTTP.Types.Status (status500, status404)
 
 import           P
 

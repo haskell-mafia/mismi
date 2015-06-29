@@ -264,6 +264,6 @@ listRecursively :: Address -> S3Action [Address]
 listRecursively a =
   fmap (Address (bucket a) . Key . S3.objectKey) <$> getObjectsRecursively a
 
-sync :: SyncMode -> Address -> Address -> Int -> AWS ()
+sync :: SyncMode -> Address -> Address -> Int -> S3Action ()
 sync mode source dest fork =
   liftAWSAction $ AWS.syncWithMode mode source dest fork
