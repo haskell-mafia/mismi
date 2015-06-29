@@ -1,12 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE LambdaCase #-}
 module Mismi.S3.Data (
     WriteMode(..)
+  , SyncMode (..)
   , Bucket(..)
   , Address (..)
   , Key (..)
   , (</>)
   , dirname
+  , foldSyncMode
   , basename
   , addressFromText
   , addressToText
@@ -32,6 +35,18 @@ data WriteMode =
       Fail        -- ^ Fail rather than overwrite any data.
     | Overwrite   -- ^ Overwrite existing data silently, i.e. we really want to do this.
     deriving (Eq, Show)
+
+data SyncMode =
+  FailSync
+  | OverwriteSync
+  | SkipSync
+  deriving (Eq, Show)
+
+foldSyncMode :: a -> a -> a -> SyncMode -> a
+foldSyncMode f o s = \case
+  FailSync -> f
+  OverwriteSync -> o
+  SkipSync -> s
 
 newtype Bucket = Bucket {
     unBucket :: Text

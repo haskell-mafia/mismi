@@ -5,6 +5,7 @@
 module Mismi.Control.Amazonka (
     module X
   , AWSError (..)
+  , foldAWSError
   , awskaConfig
   , runAWS
   , runAWSDefaultRegion
@@ -16,6 +17,8 @@ module Mismi.Control.Amazonka (
   , errorRender
   , throwAWSError
   , throwError
+  , hoistAWSError
+  , liftAWSError
   ) where
 
 import           Aws.Aws
@@ -53,6 +56,11 @@ import           X.Control.Monad.Catch
 data AWSError =
     AWSRegionError RegionError
   | AWSRunError Error
+
+foldAWSError :: (RegionError -> a) -> (Error -> a) -> AWSError -> a
+foldAWSError r e = \case
+  AWSRegionError r' -> r r'
+  AWSRunError e' -> e e'
 
 awskaConfig :: AWS Configuration
 awskaConfig = do
@@ -143,6 +151,16 @@ throwAWSError :: (MonadThrow m) => AWSError -> m a
 throwAWSError = \case
   AWSRegionError e -> fail' regionErrorRender e
   AWSRunError e -> throwError e
+
+hoistAWSError :: Either AWSError a -> AWS a
+hoistAWSError = \case
+  Left e -> liftAWSError e
+  Right a -> pure a
+
+liftAWSError :: AWSError -> AWS a
+liftAWSError = \case
+  AWSRegionError e -> fail' regionErrorRender e
+  AWSRunError e -> AWS.throwAWSError e
 
 throwError :: (MonadThrow m) => Error -> m a
 throwError = \case
