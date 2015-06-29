@@ -14,6 +14,7 @@ library
                      , amazonka-core                   == 99.0.3
                      , amazonka-s3                     == 99.0.3
                      , lens                            == 4.9.*
+                     , conduit                         == 1.2.*
                      , time
                      , disorder-core
                      , disorder-corpus

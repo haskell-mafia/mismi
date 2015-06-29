@@ -5,6 +5,8 @@ module Test.Mismi.Amazonka (
   , sendMultipart
   , withMultipart
   , withAWS
+  , withLocalAWS
+  , liftS3
   ) where
 
 import           Data.Text
@@ -17,7 +19,6 @@ import           Mismi.S3.Amazonka
 import           Mismi.S3.Control
 import           Mismi.S3.Internal
 import           Mismi.S3.Data
-import           Mismi.Control.Amazonka
 
 import           Test.Mismi.S3
 import           Test.QuickCheck.Instances ()
@@ -27,6 +28,9 @@ import           Network.AWS.Data
 import           Disorder.Core.IO
 
 import           P
+
+import           System.FilePath
+import           System.IO.Temp
 
 import           Test.QuickCheck
 
@@ -46,9 +50,19 @@ withAWS f =
     testIO . runS3WithDefaults . withToken t $ \a ->
       liftAWSAction $ f a
 
+withLocalAWS :: Testable a => (FilePath -> Address -> AWS a) -> Property
+withLocalAWS f =
+  property $ \t -> testIO . withSystemTempDirectory "mismi" $ \p ->
+    runS3WithDefaults . withToken t $ \a ->
+      liftAWSAction $ f p a
+
 withMultipart :: Testable a => (Address -> Text -> AWS a) -> Property
 withMultipart f =
   property $ \t ->
     testIO . runS3WithDefaults . withToken t $ \a ->
       liftAWSAction $
         awsBracket (createMultipart a) (abortMultipart' a) (f a)
+
+liftS3 :: S3Action a -> AWS a
+liftS3 a =
+  liftS3Action $ retryHttpWithMessage 5 "https://github.com/ambiata/mismi/issues/125" a

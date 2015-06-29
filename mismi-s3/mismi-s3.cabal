@@ -110,6 +110,7 @@ test-suite test
                      , uuid                            == 1.3.*
                      , lens                            == 4.9.*
                      , time                            == 1.4.*
+                     , conduit                         == 1.2.*
 
 
 test-suite test-io
