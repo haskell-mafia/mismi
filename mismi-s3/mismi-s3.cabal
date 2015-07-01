@@ -17,9 +17,9 @@ library
                      , template-haskell
                      , x-conduit
                      , aws                             == 0.11.*
-                     , amazonka                        == 99.0.2
-                     , amazonka-core                   == 99.0.2
-                     , amazonka-s3                     == 99.0.2
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
+                     , amazonka-s3                     == 99.0.3
                      , bytestring                      == 0.10.*
                      , bifunctors                      == 4.2.*
                      , conduit                         == 1.2.*
@@ -87,9 +87,9 @@ test-suite test
                      , mismi-core-test
                      , mismi-s3
                      , aws
-                     , amazonka                        == 99.0.2
-                     , amazonka-core                   == 99.0.2
-                     , amazonka-s3                     == 99.0.2
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
+                     , amazonka-s3                     == 99.0.3
                      , either
                      , exceptions
                      , filepath
@@ -119,8 +119,8 @@ test-suite test-io
                      , mismi-core-test
                      , mismi-s3
                      , aws
-                     , amazonka                        == 99.0.2
-                     , amazonka-core                   == 99.0.2
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
