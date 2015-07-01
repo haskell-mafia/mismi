@@ -8,8 +8,8 @@ library
                        base
                      , mismi-core
                      , aws                             == 0.11.*
-                     , amazonka                        == 99.*
-                     , amazonka-core                   == 99.*
+                     , amazonka                        == 99.0.3
+                     , amazonka-core                   == 99.0.3
                      , disorder-core
                      , disorder-corpus
                      , either
