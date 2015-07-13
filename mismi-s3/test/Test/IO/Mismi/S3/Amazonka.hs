@@ -22,6 +22,10 @@ import           Test.Mismi.Amazonka
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
+prop_exists = withMultipart $ \a _ -> do
+  r <- exists a
+  pure $ r /= True
+
 prop_list_multipart = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
   l <- listMultiparts (bucket a)

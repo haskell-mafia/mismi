@@ -224,6 +224,11 @@ prop_size t = testS3 $ \a -> do
   i <- getSize a
   pure $ i === (Just . BS.length $ T.encodeUtf8 t)
 
+prop_size_failure :: Property
+prop_size_failure = testS3 $ \a -> do
+  i <- getSize a
+  pure $ i === Nothing
+
 testLocalS3 :: Testable a => (FilePath -> Address -> S3Action a) -> Property
 testLocalS3 f =
   property $ \t -> testIO . withSystemTempDirectory "mismi" $ \p ->

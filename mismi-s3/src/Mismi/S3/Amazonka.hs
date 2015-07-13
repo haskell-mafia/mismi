@@ -6,7 +6,9 @@
 module Mismi.S3.Amazonka (
     module AWS
   , headObject
-  , getSize'
+  , exists
+  , getSize
+  , delete
   , copy
   , upload
   , download
@@ -27,14 +29,13 @@ import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Resource
 import           Control.Monad.IO.Class
 
-import           Data.Conduit
-import qualified Data.Conduit.List as DC
-import           Data.Conduit.Binary
-
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
-
+import           Data.Conduit
+import qualified Data.Conduit.List as DC
+import           Data.Conduit.Binary
+import qualified Data.HashMap.Strict as HM
 import           Data.String
 import qualified Data.Text as T
 import           Data.Text.Encoding as T
@@ -47,7 +48,9 @@ import           Network.AWS.S3 hiding (headObject, Bucket, bucket)
 import qualified Network.AWS.S3 as AWS
 import           Network.AWS.Data
 import           Network.HTTP.Types.URI (urlEncode)
-import           Network.HTTP.Types.Status (status500)
+import           Network.HTTP.Types.Status (status404, status500)
+
+import           Network.HTTP.Client ( HttpException (..) )
 
 import           P
 
@@ -57,14 +60,36 @@ import           System.FilePath
 import           System.Posix.IO
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
-headObject :: Address -> AWST IO AWS.HeadObjectResponse
-headObject =
-  send . f' AWS.headObject
+headObject :: Address -> AWS (Maybe AWS.HeadObjectResponse)
+headObject a = do
+  res <- sendCatch $ f' AWS.headObject a
+  handle404 res
 
--- unsafe
-getSize' :: Address -> AWST IO (Maybe Int)
-getSize' a =
-  headObject a >>= pure . (^. horContentLength)
+exists :: Address -> AWS Bool
+exists a =
+  headObject a >>= pure . maybe False (\z -> not $ HM.null (z ^. horMetadata))
+
+getSize :: Address -> AWST IO (Maybe Int)
+getSize a =
+  headObject a >>= pure . maybe Nothing (^. horContentLength)
+
+delete :: Address -> AWS ()
+delete =
+  send_ . f' deleteObject
+
+handle404 :: Either (ServiceError RESTError) a -> AWS (Maybe a)
+handle404 res = case res of
+  Left e -> case e of
+    HttpError e' -> case e' of
+      StatusCodeException s _ _ ->
+        if s == status404
+          then pure Nothing
+          else throwAWSError e
+      _ -> throwAWSError e
+    SerializerError _ _ -> throwAWSError e
+    ServiceError _ _ _ -> throwAWSError e
+    Errors _ -> throwAWSError e
+  Right rs -> pure $ Just rs
 
 -- Url is being sent as a header not as a query therefore
 -- requires special url encoding. (Do not encode the delimiters)

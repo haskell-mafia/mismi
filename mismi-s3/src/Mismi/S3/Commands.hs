@@ -81,7 +81,7 @@ headObject a =
 
 getSize :: Address -> S3Action (Maybe Int)
 getSize a =
-  ifM (exists a) (liftAWSAction $ AWS.getSize' a) (pure Nothing)
+  ifM (exists a) (liftAWSAction $ AWS.getSize a) (pure Nothing)
 
 delete :: Address -> S3Action ()
 delete a =
