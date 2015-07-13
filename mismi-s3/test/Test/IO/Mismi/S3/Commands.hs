@@ -7,10 +7,12 @@ module Test.IO.Mismi.S3.Commands where
 import qualified Aws.S3 as S3
 
 import           Control.Monad.Catch (catchAll)
-
 import           Control.Monad.IO.Class
 
+import           Crypto.Hash
+
 import           Data.Bool
+import qualified Data.ByteString.Lazy as BSL
 import           Data.List (sort)
 import qualified Data.List as L
 import           Data.Text hiding (copy, length)
@@ -91,6 +93,29 @@ prop_write_download_fail old new l = testLocalS3 $ \p a -> do
   downloadWithMode Fail a t
   writeWithMode Overwrite a new
   (False <$ downloadWithMode Fail a t) `catchAll` (const . pure $ True)
+
+prop_download_multipart :: LocalPath -> LocalPath -> Property
+prop_download_multipart l z = forAll arbitrary $ \bs -> (BS.length bs /= 0) ==> testLocalS3 $ \p a -> do
+  let t = p F.</> localPath l
+  let o = p F.</> localPath z
+  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
+  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory o
+  liftIO $ withFile t WriteMode $ \h ->
+    replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
+  size <- liftIO . withFile t ReadMode $ hFileSize
+  upload t a
+
+  let ten :: Int = 10
+
+  multipartDownload a o (fromInteger size) (toInteger ten) 100
+  b <- liftIO $ BSL.readFile t
+  let b' = sha1 b
+  o' <- liftIO $ BSL.readFile o
+  let o'' = sha1 o'
+  pure $ b' === o''
+
+sha1 :: BSL.ByteString -> Digest SHA1
+sha1 = hashlazy
 
 prop_upload :: Text -> LocalPath -> Property
 prop_upload d l = testLocalS3 $ \p a -> do
@@ -198,6 +223,11 @@ prop_size t = testS3 $ \a -> do
   write a t
   i <- getSize a
   pure $ i === (Just . BS.length $ T.encodeUtf8 t)
+
+prop_size_failure :: Property
+prop_size_failure = testS3 $ \a -> do
+  i <- getSize a
+  pure $ i === Nothing
 
 testLocalS3 :: Testable a => (FilePath -> Address -> S3Action a) -> Property
 testLocalS3 f =

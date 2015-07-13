@@ -48,6 +48,7 @@ library
                      , SafeSemaphore                   == 0.10.*
                      , unix-bytestring                 == 0.3.7.*
                      , time                            == 1.4.*
+                     , unordered-containers            == 0.2.5.*
 
   ghc-options:
                        -Wall
@@ -138,6 +139,7 @@ test-suite test-io
                      , bytestring                      == 0.10.*
                      , lens                            == 4.9.*
                      , either                          == 4.3.*
+                     , cryptohash
 
 test-suite test-cli
   type:                exitcode-stdio-1.0
