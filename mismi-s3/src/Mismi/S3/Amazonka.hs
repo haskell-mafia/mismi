@@ -95,8 +95,8 @@ downloadWithRange source start end dest = do
   let p :: AWS.GetObjectResponse = r
   let y :: RsBody = p ^. AWS.gorBody
 
-
   fd <- liftIO $ openFd dest WriteOnly Nothing defaultFileFlags
+  void . liftIO $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
   liftIO $ do
     let rs :: ResumableSource (ResourceT IO) BS.ByteString = y ^. _RsBody
     let s = awaitForever $ \bs -> liftIO $
