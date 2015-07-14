@@ -14,8 +14,8 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , p
-                     , amazonka                        == 99.0.3
-                     , amazonka-core                   == 99.0.3
+                     , amazonka                        == 99.0.4
+                     , amazonka-core                   == 99.0.4
                      , bytestring                      == 0.10.*
                      , either
                      , http-client                     == 0.4.*
