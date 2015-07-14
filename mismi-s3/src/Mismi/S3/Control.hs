@@ -44,13 +44,14 @@ import qualified Network.AWS.S3.Types as AWS
 import           P
 
 import           System.IO
+import qualified System.IO as IO
 
 -- | Specilised AwsAction for S3 operations
 type S3Action = ReaderT (Aws.Configuration, S3.S3Configuration Aws.NormalQuery, Manager) (ResourceT IO)
 
 runS3WithDefaults :: S3Action a -> IO a
 runS3WithDefaults action =
-  baseConfiguration' >>= \cfg -> runS3WithCfg cfg Sydney action
+  baseConfiguration' >>= \cfg -> retryHttpWithOut 5 (IO.putStrLn "XXXXXXXXXXXXXX: Retrying S3Action") (runS3WithCfg cfg Sydney action)
 
 runS3WithRegion :: Region -> S3Action a -> IO a
 runS3WithRegion r action =

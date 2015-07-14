@@ -1,6 +1,6 @@
 #!/bin/sh -exu
 
-export TEST_RELIABILITY_SIZE=1500
+export TEST_RELIABILITY_SIZE=2500
 export TEST_RELIABILITY_SUCCESS=5
 
 $(dirname $0)/ci.common

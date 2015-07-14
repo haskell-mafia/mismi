@@ -141,6 +141,7 @@ test-suite test-io
                      , either                          == 4.3.*
                      , cryptohash
 
+
 test-suite test-reliability
   type:                exitcode-stdio-1.0
   main-is:             test-reliability.hs
