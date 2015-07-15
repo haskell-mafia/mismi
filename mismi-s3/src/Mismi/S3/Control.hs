@@ -108,7 +108,7 @@ retryHttp i action =
 retryHttpWithOut :: (MonadMask m, MonadIO m) => Int -> m () -> m a -> m a
 retryHttpWithOut i out action =
   retryHttpWithPolicyOut
-    (limitRetries i <> constantDelay 200)
+    (limitRetries i <> exponentialBackoff 100000)
     out
     action
 
