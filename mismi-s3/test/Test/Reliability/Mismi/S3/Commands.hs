@@ -45,7 +45,7 @@ createFiles prefix name n = do
 testS3 :: Testable a => (Address -> Int -> S3Action a) -> Property
 testS3 f =
   property $ \t -> testIO .
-    runS3WithDefaults . withToken t $ \a -> do
+    retryHttpWithMessage 5 "Reliability" . runS3WithDefaults . withToken t $ \a -> do
       i <- liftIO $ testSize
       f a i
 

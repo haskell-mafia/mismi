@@ -13,6 +13,7 @@ module Mismi.S3.Control (
   , epToRegion
   , regionToEp
   , retryHttp
+  , retryHttpWithMessage
   , retryHttpWithOut
   , retryHttpWithPolicy
   , retryHttpWithPolicyOut
@@ -22,6 +23,9 @@ import qualified Aws
 import qualified Aws.S3 as S3
 import           Aws.S3
 import           Aws.Core (Protocol (..))
+
+import           Data.Text (Text)
+import qualified Data.Text as T
 
 import           Data.ByteString hiding (unpack, find)
 
@@ -51,7 +55,7 @@ type S3Action = ReaderT (Aws.Configuration, S3.S3Configuration Aws.NormalQuery, 
 
 runS3WithDefaults :: S3Action a -> IO a
 runS3WithDefaults action =
-  baseConfiguration' >>= \cfg -> retryHttpWithOut 5 (IO.putStrLn "XXXXXXXXXXXXXX: Retrying S3Action") (runS3WithCfg cfg Sydney action)
+  baseConfiguration' >>= \cfg -> runS3WithCfg cfg Sydney action
 
 runS3WithRegion :: Region -> S3Action a -> IO a
 runS3WithRegion r action =
@@ -104,6 +108,10 @@ epToRegion bs = snd <$> find ((== bs) . fst) [
 retryHttp :: (MonadMask m, MonadIO m) => Int -> m a -> m a
 retryHttp i action =
   retryHttpWithOut i (return ()) action
+
+retryHttpWithMessage :: (MonadMask m, MonadIO m) => Int -> Text -> m a -> m a
+retryHttpWithMessage i message action =
+  retryHttpWithOut i (liftIO . IO.putStrLn $ "Retrying [" <> T.unpack message <> "].") action
 
 retryHttpWithOut :: (MonadMask m, MonadIO m) => Int -> m () -> m a -> m a
 retryHttpWithOut i out action =
