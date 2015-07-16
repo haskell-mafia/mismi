@@ -32,5 +32,7 @@ instance Arbitrary Key where
   -- https://github.com/ambiata/vee/issues/7
   arbitrary =
     let genPath = elements ["happy", "sad", ".", ":", "-"]
-        path = T.take 256 . T.intercalate "/" <$> listOf1 (T.intercalate "" <$> listOf1 genPath)
+        path = do
+          sep <- elements ["-", "=", "#", ""]
+          T.take 256 . T.intercalate "/" <$> listOf1 (T.intercalate sep <$> listOf1 genPath)
     in (Key . append "tests/") <$> path
