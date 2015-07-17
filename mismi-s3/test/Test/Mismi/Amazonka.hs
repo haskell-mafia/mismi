@@ -45,12 +45,12 @@ import           Test.QuickCheck
 
 createMultipart :: Address -> AWS Text
 createMultipart a = do
-  r <- send $ f' createMultipartUpload a & cmuServerSideEncryption .~ Just sse
+  r <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ Just sse
   maybe (fail "Failed to create multipart upload") pure (r ^. cmurUploadId)
 
 sendMultipart :: Text -> Address -> Int -> Text -> AWS ()
 sendMultipart t a i ui = do
-  let req = f' (uploadPart (toBody $ encodeUtf8 t)) a i ui
+  let req = fencode' (uploadPart (toBody $ encodeUtf8 t)) a i ui
   send_ req
 
 withAWS :: Testable a => (Address -> AWS a) -> Property
