@@ -44,7 +44,8 @@ instance Arbitrary Token where
     n <- T.pack . show <$> (choose (0, 10000) :: Gen Int)
     c <- elements cooking
     m <- elements muppets
-    pure . Token . T.intercalate "." $ [c, m, n]
+    sep <- elements ["-", "=", "."]
+    pure . Token . T.intercalate sep $ [c, m, n]
 
 data LocalPath =
   LocalPath {
