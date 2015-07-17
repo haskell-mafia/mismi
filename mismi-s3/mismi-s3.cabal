@@ -154,6 +154,8 @@ test-suite test-reliability
                      , mismi-core
                      , mismi-core-test
                      , mismi-s3
+                     , amazonka                        == 99.0.4
+                     , amazonka-core                   == 99.0.4
                      , exceptions
                      , filepath
                      , p
@@ -167,7 +169,8 @@ test-suite test-reliability
                      , uuid                            == 1.3.*
                      , bytestring                      == 0.10.*
                      , either                          == 4.3.*
-
+                     , temporary                       == 1.2.*
+                     , lens                            == 4.9.*
 
 test-suite test-cli
   type:                exitcode-stdio-1.0

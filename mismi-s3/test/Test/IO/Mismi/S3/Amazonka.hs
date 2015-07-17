@@ -8,7 +8,6 @@ module Test.IO.Mismi.S3.Amazonka where
 import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
-import           Data.List (replicate)
 import           Data.Text (Text)
 import           Data.Text.Encoding as T
 import qualified Data.Text.IO as T
@@ -20,7 +19,6 @@ import           Mismi.S3.Data
 import qualified Mismi.S3.Commands as S3
 
 import           Disorder.Core
-import           Disorder.Corpus
 
 import           P
 
@@ -84,29 +82,6 @@ prop_list_parts = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
   l2 <- listMultipartParts a i
   pure (length l2 === 1)
-
-prop_sync t = forAll ((,,) <$> elements muppets <*> elements simpsons <*> elements colours) $ \(m, z, c) -> withAWS' $ \a b -> do
-  let ks = keys m z c
-  mapM_ (\k -> liftS3 . flip S3.write t $ withKey (</> k) a) ks
-  syncWithMode OverwriteSync a b 1
-  es <- mapM (\k -> exists $ withKey (</> k) b) ks
-  pure $ es === (replicate (length es) True)
-
-prop_sync_skip t = forAll ((,,) <$> elements muppets <*> elements simpsons <*> elements colours) $ \(m, z, c) -> withAWS' $ \a b -> do
-  let ks = keys m z c
-  liftS3 . flip S3.write t $ withKey (</> Key m) b
-  liftS3 . flip S3.write t $ withKey (\k -> k </> Key m </> Key c) b
-  mapM_ (\k -> liftS3 . flip S3.write t $ withKey (</> k) a) ks
-  syncWithMode SkipSync a b 1
-  es <- mapM (\k -> exists $ withKey (</> k) b) ks
-  pure $ es === (replicate (length es) True)
-
-keys :: Text -> Text -> Text -> [Key]
-keys m s c = [
-    Key m
-  , Key m </> Key s
-  , Key m </> Key c
-  , Key m </> Key c </> Key s]
 
 prop_list_recursively = withAWS $ \a -> do
   liftS3 $ S3.write a ""
