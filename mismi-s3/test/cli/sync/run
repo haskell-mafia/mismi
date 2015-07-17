@@ -1,0 +1,56 @@
+#!/bin/sh -eu
+
+. $(dirname $0)/../core/runner.sh
+
+banner Sync tests
+#################
+
+
+S3=$(unique_s3_url source)
+S3OUT=$(unique_s3_url destination)
+
+
+
+echo "blah" > ${TEST}/file
+
+$MISMI write $S3/file1 "foobar" || exit_cleanup $?
+$MISMI write $S3/file2 "foobar" || exit_cleanup $?
+
+$MISMI sync $S3 $S3OUT || exit_cleanup $?
+
+$MISMI ls $S3OUT > ${TEST}/output || exit_cleanup $?
+
+if [ $(wc -l ${TEST}/output | awk '{ print $1 }') = "2" ] && grep -q $S3OUT/file1 ${TEST}/output && grep -q $S3OUT/file2 ${TEST}/output; then
+    echo "PASSED [snyc]"
+else
+    echo ""
+    echo "Test case [sync] failed."
+    echo ""
+    exit_cleanup
+fi
+
+$MISMI write $S3/file3 "foobar" || exit_cleanup $?
+
+$MISMI sync $S3 $S3OUT --skip || exit_cleanup $?
+
+$MISMI ls $S3OUT > ${TEST}/output || exit_cleanup $?
+
+if [ $(wc -l ${TEST}/output | awk '{ print $1 }') = "3" ] && grep -q $S3OUT/file3 ${TEST}/output; then
+    echo "PASSED [snyc --skip]"
+else
+    echo ""
+    echo "Test case [sync --skip] failed."
+    echo ""
+    exit_cleanup
+fi
+
+if $(! $MISMI sync $S3 $S3OUT 2> /dev/null); then
+    echo "PASSED [sync fail]"
+else
+    echo ""
+    echo "Test case [sync --fail] failed."
+    echo ""
+    exit_cleanup
+fi
+
+cleanup

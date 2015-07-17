@@ -5,6 +5,8 @@ import           BuildInfo_mismi_s3
 
 import           Control.Monad.IO.Class
 
+import           Data.Conduit
+import qualified Data.Conduit.List as DC
 import           Data.Text hiding (copy)
 
 import           Mismi.Environment
@@ -18,6 +20,8 @@ import           P
 
 import           System.IO
 import           System.Exit
+import           System.Posix.Signals
+import           System.Posix.Process
 
 import           X.Options.Applicative
 
@@ -39,6 +43,10 @@ data Command =
 data AmazonkaCommand =
   Uploadk FilePath Address
   | Downloadk Address FilePath
+  | Sizek Address
+  | Synck Address Address SyncMode Int
+  | Listk Address
+  | Existsk Address
   deriving (Eq, Show)
 
 data AwsCommand =
@@ -52,14 +60,17 @@ data AwsCommand =
   | Write Address Text WriteMode
   | Read Address
   | Size Address
+  | Sync Address Address SyncMode Int
   deriving (Eq, Show)
 
 main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
-  dispatch mismi >>= \sc ->
-    case sc of
+  forM_ [sigINT, sigTERM, sigQUIT] $ \s ->
+    installHandler s (Catch . void . exitImmediately $ ExitFailure 111) Nothing
+
+  dispatch mismi >>= \case
       VersionCommand ->
         putStrLn ("s3: " <> buildInfoVersion) >> exitSuccess
       RunCommand DryRun c ->
@@ -83,6 +94,14 @@ runK k = do
       A.upload s d
     Downloadk s d ->
       A.download s d
+    Sizek a ->
+      A.getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
+    Synck s d m f ->
+      A.syncWithMode m s d f
+    Listk a ->
+      A.listRecursively' a $$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText)
+    Existsk a ->
+      A.exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
 
 runC :: AwsCommand -> IO ()
 runC c = runS3WithDefaults $ case c of
@@ -106,6 +125,9 @@ runC c = runS3WithDefaults $ case c of
     read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
   Size a ->
     getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
+  Sync s d m f ->
+    sync m s d f
+
 
 mismi :: Parser (SafeCommand Command)
 mismi =
@@ -123,6 +145,19 @@ commandK' = subparser $
   <> command' "downloadk"
               "Upload a file to s3."
               (Downloadk <$> address' <*> filepath')
+  <> command' "sizek"
+              "Get the size of an address."
+              (Sizek <$> address')
+  <> command' "synck"
+              "sync between two prefixes."
+              (Synck <$> address' <*> address' <*> syncMode' <*> fork')
+  <> command' "list"
+              "Stream a recursively list of objects on a prefixe"
+              (Listk <$> address')
+  <> command' "existsk"
+              "Check if an address exists."
+              (Existsk <$> address')
+
 
 commandA' :: Parser (AwsCommand)
 commandA' = subparser $
@@ -156,6 +191,9 @@ commandA' = subparser $
   <> command' "size"
               "Get the size of an address."
               (Size <$> address')
+  <> command' "sync"
+              "Sync between two prefixes."
+              (Sync <$> address' <*> address' <*> syncMode' <*> fork')
 
 recursive' :: Parser Recursive
 recursive' =
@@ -184,3 +222,16 @@ writeMode' =
   flag Fail Overwrite $
        long "overwrite"
     <> help "WriteMode"
+
+syncMode' :: Parser SyncMode
+syncMode' =
+      pure FailSync
+  <|> (flag' SkipSync $ long "skip" <> help "Skip over files that already exist in the target location.")
+  <|> (flag' OverwriteSync $ long "overwrite" <> help "Overwrite files that already exist in the target location.")
+
+fork' :: Parser Int
+fork' = option auto $
+     long "fork"
+  <> metavar "INT"
+  <> help "Number of threads to fork CopyObject call by."
+  <> value 8

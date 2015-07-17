@@ -3,8 +3,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE LambdaCase #-}
 module Mismi.S3.Amazonka (
     module AWS
+  , module A
   , headObject
   , exists
   , getSize
@@ -21,53 +23,68 @@ module Mismi.S3.Amazonka (
   , abortMultipart'
   , filterOld
   , filterNDays
+  , listRecursively
+  , listRecursively'
+  , sync
+  , syncWithMode
+  , retryAWSAction
+  , retryAWSAction'
+  , retryAWS
   , sse
   ) where
 
-import           Control.Lens
-import           Control.Monad.Trans.AWS
-import           Control.Monad.Trans.Resource
-import           Control.Monad.IO.Class
 
+import           Control.Concurrent
+
+import           Control.Lens
+import           Control.Retry
+import           Control.Monad.Catch
+import           Control.Monad.Trans.AWS
+import           Control.Monad.Trans.Either hiding (hoistEither)
+import           Control.Monad.Trans.Resource
+import           Control.Monad.Reader (ask, local)
+import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
+
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 import           Data.Conduit.Binary
-import qualified Data.HashMap.Strict as HM
+
 import           Data.String
+import           Data.Text (Text)
 import qualified Data.Text as T
-import           Data.Text.Encoding as T
 import           Data.Time.Clock
 
+import           Mismi.Control.Amazonka hiding (AWSError, throwAWSError)
+import qualified Mismi.Control.Amazonka as A
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 
 import           Network.AWS.S3 hiding (headObject, Bucket, bucket)
 import qualified Network.AWS.S3 as AWS
 import           Network.AWS.Data
-import           Network.HTTP.Types.URI (urlEncode)
-import           Network.HTTP.Types.Status (status404, status500)
-
-import           Network.HTTP.Client ( HttpException (..) )
+import           Network.HTTP.Client (HttpException (..))
+import           Network.HTTP.Types.Status (status500, status404)
 
 import           P
 
 import           System.IO
+import           System.IO.Error (userError)
 import           System.Directory
-import           System.FilePath
+import           System.FilePath hiding ((</>))
 import           System.Posix.IO
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
 headObject :: Address -> AWS (Maybe AWS.HeadObjectResponse)
 headObject a = do
-  res <- sendCatch $ f' AWS.headObject a
+  res <- sendCatch $ fencode' AWS.headObject a
   handle404 res
 
 exists :: Address -> AWS Bool
 exists a =
-  headObject a >>= pure . maybe False (\z -> not $ HM.null (z ^. horMetadata))
+  headObject a >>= pure . maybe False (const True)
 
 getSize :: Address -> AWST IO (Maybe Int)
 getSize a =
@@ -94,18 +111,13 @@ handle404 res = case res of
 -- Url is being sent as a header not as a query therefore
 -- requires special url encoding. (Do not encode the delimiters)
 copy :: Address -> Address -> AWS ()
-copy (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key k)) =
-  let splitEncoded = urlEncode True . T.encodeUtf8 <$> T.split (== '/') k
-      bsEncoded = BS.intercalate "/" splitEncoded
-      textEncoded = T.decodeUtf8 bsEncoded
-      req = AWS.copyObject b (sb <> "/" <> sk) textEncoded & AWS.coServerSideEncryption .~ Just sse & AWS.coMetadataDirective .~ Just AWS.Copy
-  in
-  send_ req
+copy (Address (Bucket sb) (Key sk)) (Address (Bucket b) k) =
+  send_ $ AWS.copyObject b (sb <> "/" <> sk) (encodeKey k) & AWS.coServerSideEncryption .~ Just sse & AWS.coMetadataDirective .~ Just AWS.Copy
 
 upload :: FilePath -> Address -> AWS ()
 upload f a = do
    x <- liftIO $ LBS.readFile f
-   send_ $ f' (putObject $ toBody x) a & poServerSideEncryption .~ Just sse
+   send_ $ fencode' (putObject $ toBody x) a & poServerSideEncryption .~ Just sse
 
 download :: Address -> FilePath -> AWS ()
 download a f = do
@@ -177,6 +189,116 @@ abortMultipart' :: Address -> T.Text -> AWST IO ()
 abortMultipart' (Address (Bucket b) (Key k)) i =
   send_ $ abortMultipartUpload b k i
 
+listRecursively :: Address -> AWS [Address]
+listRecursively a =
+  retryAWSAction $ listRecursively' a $$ DC.consume
+
+listRecursively' :: Address -> Source AWS Address
+listRecursively' a@(Address (Bucket b) (Key k)) =
+  (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
+
+liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
+liftAddress a =
+  DC.mapFoldable (\r -> (\o -> a { key = Key $ o ^. oKey }) <$> (r ^. lorContents) )
+
+sync :: Address -> Address -> Int -> AWS ()
+sync =
+  syncWithMode FailSync
+
+syncWithMode :: SyncMode -> Address -> Address -> Int -> AWS ()
+syncWithMode mode source dest fork = do
+  (c, r) <- liftIO $ (,) <$> newChan <*> newChan
+  e <- ask
+
+  -- worker
+  tid <- liftIO $ forM [1..fork] (const . forkIO $ worker source dest mode e c r)
+
+  -- sink list to channel
+  i <- sinkChan (listRecursively' source) c
+
+  -- wait for threads and lift errors
+  r' <- liftIO $ waitForNResults i r
+  liftIO $ forM_ tid killThread
+  forM_ r' hoistWorkerResult
+
+hoistWorkerResult :: WorkerResult -> AWS ()
+hoistWorkerResult =
+  foldWR hoistErr (pure ())
+
+hoistErr :: Err -> AWS ()
+hoistErr =
+  foldErr throwM (throwM . userError . T.unpack) liftAWSError
+
+worker :: Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
+worker source dest mode e c errs = forever $ do
+  let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
+      keep :: Address -> Key -> IO WorkerResult
+      keep a k = do
+        e' <- runEitherT $ keep' a k
+        pure $ case e' of
+          Left er -> WorkerErr er
+          Right _ -> WorkerOk
+
+      keep' :: Address -> Key -> EitherT Err IO ()
+      keep' a k = do
+        let out = withKey (</> k) dest
+            action :: EitherT Err AWS ()
+            action = EitherT $ do
+              let cp = copy a out >>= pure . Right
+                  ex = exists out
+                  te = pure . Left $ Target a out
+              foldSyncMode
+                (ifM ex te cp)
+                cp
+                (ifM ex (pure $ Right ()) cp)
+                mode
+        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv (retryAWS 5 e)) action >>= EitherT . pure)
+          `catchAll` (left . UnknownErr)
+
+  a <- readChan c
+  wr <- maybe invariant (keep a) $ removeCommonPrefix source a
+  writeChan errs wr
+
+data WorkerResult =
+  WorkerOk
+  | WorkerErr Err
+
+foldWR :: (Err -> m a) -> m a -> WorkerResult -> m a
+foldWR e a = \case
+  WorkerOk -> a
+  WorkerErr err -> e err
+
+data Err =
+  Invariant Text
+  | Target Address Address
+  | AwsErr A.AWSError
+  | UnknownErr SomeException
+
+foldErr :: (SomeException -> m a) -> (Text -> m a) -> (A.AWSError -> m a) -> Err -> m a
+foldErr se p err = \case
+  Invariant t -> p $ "[Mismi internal error] - " <> t
+  Target a o -> p $ "[Mismi internal error] - " <> "Can not copy [" <> addressToText a <> "] to [" <> addressToText o <> "]. Target file exists"
+  AwsErr e -> err e
+  UnknownErr e -> se e
+
+retryAWSAction :: AWS a -> AWS a
+retryAWSAction =
+  retryAWSAction' 5
+
+retryAWSAction' :: Int -> AWS a -> AWS a
+retryAWSAction' i a = do
+  local (retryAWS i) $ a
+
+retryAWS :: Int -> Env -> Env
+retryAWS i e =
+  let err c v = case v of
+        NoResponseDataReceived -> pure True
+        StatusCodeException s _ _ -> pure $ s == status500
+        FailedConnectionException _ _ -> pure True
+        FailedConnectionException2 _ _ _ _ -> pure True
+        _ -> (e ^. envRetryCheck) c v
+  in
+  e & envRetryPolicy .~ Just (limitRetries i <> exponentialBackoff 100000) & envRetryCheck .~ err
 
 sse :: ServerSideEncryption
 sse =
