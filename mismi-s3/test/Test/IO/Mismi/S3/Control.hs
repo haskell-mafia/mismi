@@ -22,8 +22,8 @@ import           Test.QuickCheck.Instances ()
 prop_liftS3 :: Token -> Text -> Property
 prop_liftS3 t d = testAWS Sydney $ do
   r' <- liftS3Action (withToken t $ \a -> do
-    write a d
-    read a)
+    retryHttpWithMessage 5 "write" $ write a d
+    retryHttpWithMessage 5 "read" $ read a)
   pure $ r' === Just d
 
 return []
