@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Test.Mismi.S3 (
-    Token
+    Token (..)
   , LocalPath (..)
   , testBucket
   , withToken
