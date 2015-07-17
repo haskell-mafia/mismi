@@ -42,6 +42,6 @@ sendMultipart t a i ui = do
 withMultipart :: Testable a => (Address -> Text -> AWS a) -> Property
 withMultipart f =
   property $ \t ->
-    testIO . runS3WithDefaults . withToken t $ \a ->
+    testIO . retryHttp 5 . runS3WithDefaults . withToken t $ \a ->
       liftAWSAction $
         awsBracket (createMultipart a) (abortMultipart' a) (f a)
