@@ -92,7 +92,7 @@ getSize a =
 
 delete :: Address -> AWS ()
 delete =
-  send_ . f' deleteObject
+  send_ . fencode' deleteObject
 
 handle404 :: Either (ServiceError RESTError) a -> AWS (Maybe a)
 handle404 res = case res of
@@ -112,7 +112,7 @@ handle404 res = case res of
 -- requires special url encoding. (Do not encode the delimiters)
 copy :: Address -> Address -> AWS ()
 copy (Address (Bucket sb) (Key sk)) (Address (Bucket b) k) =
-  send_ $ AWS.copyObject b (sb <> "/" <> sk) (encodeKey k) & AWS.coServerSideEncryption .~ Just sse & AWS.coMetadataDirective .~ Just AWS.Copy
+  send_ $ copyObject b (sb <> "/" <> sk) (encodeKey k) & coServerSideEncryption .~ Just sse & coMetadataDirective .~ Just Copy
 
 upload :: FilePath -> Address -> AWS ()
 upload f a = do
@@ -122,12 +122,12 @@ upload f a = do
 download :: Address -> FilePath -> AWS ()
 download a f = do
   liftIO $ createDirectoryIfMissing True (dropFileName f)
-  r <- send $ f' getObject a
+  r <- send $ fencode' getObject a
   liftIO . runResourceT . ($$+- sinkFile f) $ r ^. gorBody ^. _RsBody
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do
-  let req = f' AWS.getObject source & AWS.goRange .~ (Just $ downRange start end)
+  let req = fencode' getObject source & goRange .~ (Just $ downRange start end)
   r <- send req
   let p :: AWS.GetObjectResponse = r
   let y :: RsBody = p ^. AWS.gorBody
@@ -143,7 +143,7 @@ downloadWithRange source start end dest = do
 
 listMultipartParts :: Address -> T.Text -> AWS [Part]
 listMultipartParts a uploadId = do
-  let req = f' AWS.listParts a uploadId
+  let req = fencode' AWS.listParts a uploadId
   paginate req $$ DC.foldMap (^. lprParts)
 
 listMultiparts :: Bucket -> AWS [MultipartUpload]
@@ -185,9 +185,9 @@ abortMultipart (Bucket b) mu = do
   i <- maybe (throwAWSError $ x "Multipart uploadId missing") pure (mu ^. muUploadId)
   abortMultipart' (Address (Bucket b) (Key k)) i
 
-abortMultipart' :: Address -> T.Text -> AWST IO ()
-abortMultipart' (Address (Bucket b) (Key k)) i =
-  send_ $ abortMultipartUpload b k i
+abortMultipart' :: Address -> T.Text -> AWS ()
+abortMultipart' a i =
+  send_ $ fencode' abortMultipartUpload a i
 
 listRecursively :: Address -> AWS [Address]
 listRecursively a =

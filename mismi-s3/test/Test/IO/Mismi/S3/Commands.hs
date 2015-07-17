@@ -94,10 +94,10 @@ prop_write_download_fail old new l = testLocalS3 $ \p a -> do
   writeWithMode Overwrite a new
   (False <$ downloadWithMode Fail a t) `catchAll` (const . pure $ True)
 
-prop_download_multipart :: LocalPath -> LocalPath -> Property
-prop_download_multipart l z = forAll arbitrary $ \bs -> (BS.length bs /= 0) ==> testLocalS3 $ \p a -> do
-  let t = p F.</> localPath l
-  let o = p F.</> localPath z
+prop_download_multipart :: Property
+prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> elements muppets) $ \(bs, c, m) -> (BS.length bs /= 0) ==> testLocalS3 $ \p a -> do
+  let t = p F.</> unpack c
+  let o = p F.</> unpack m
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory o
   liftIO $ withFile t WriteMode $ \h ->
