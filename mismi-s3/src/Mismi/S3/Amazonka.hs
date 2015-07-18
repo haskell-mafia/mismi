@@ -21,6 +21,8 @@ module Mismi.S3.Amazonka (
   , listMultiparts
   , listOldMultiparts
   , listOldMultiparts'
+  , createMultipartUpload
+  , abortMultipartUpload
   , abortMultipart
   , filterOld
   , filterNDays
@@ -159,7 +161,7 @@ copyMultipart source dest size chunk fork = do
 
 createMultipartUpload :: Address -> AWS Text
 createMultipartUpload a = do
-  mpu <- send $ f' AWS.createMultipartUpload a & cmuServerSideEncryption .~ Just sse
+  mpu <- send $ fencode' AWS.createMultipartUpload a & cmuServerSideEncryption .~ Just sse
   maybe (fail "Failed to create multipart upload") pure (mpu ^. cmurUploadId)
 
 completeMultipartUpload :: Address -> Text -> AWS ()

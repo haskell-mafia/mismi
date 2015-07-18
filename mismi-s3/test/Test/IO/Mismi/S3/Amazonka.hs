@@ -51,6 +51,20 @@ prop_size t = withAWS $ \a -> do
   i <- getSize a
   pure $ i === (Just . BS.length $ T.encodeUtf8 t)
 
+prop_copy t = withAWS' $ \a b -> do
+  liftS3 $ S3.write a t
+  copy a b
+  a' <- liftS3 $ S3.read a
+  b' <- liftS3 $ S3.read b
+  pure $ a' === b'
+
+prop_copy_overwrite t t' = withAWS' $ \a b -> do
+  liftS3 $ S3.write a t
+  liftS3 $ S3.write b t'
+  copyWithMode Overwrite a b
+  b' <- liftS3 $ S3.read b
+  pure $ b' === Just t
+
 prop_upload d l = withLocalAWS $ \p a -> do
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
