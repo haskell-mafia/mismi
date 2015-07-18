@@ -40,7 +40,8 @@ fencode' :: (Text -> Text -> a) -> Address -> a
 fencode' f (Address (Bucket b) k) =
   uncurry f (b, encodeKey k)
 
-
+-- Url is being sent as a header not as a query therefore
+-- requires special url encoding. (Do not encode the delimiters)
 -- https://github.com/brendanhay/amazonka/issues/127
 encodeKey :: Key -> Text
 encodeKey (Key k) =
