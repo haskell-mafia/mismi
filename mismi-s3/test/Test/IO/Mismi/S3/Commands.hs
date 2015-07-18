@@ -12,7 +12,6 @@ import           Control.Monad.IO.Class
 import           Crypto.Hash
 
 import           Data.Bool
-import qualified Data.ByteString.Lazy as BSL
 import           Data.List (sort)
 import qualified Data.List as L
 import           Data.Text hiding (copy, length)
@@ -108,13 +107,13 @@ prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> el
   let ten :: Int = 10
 
   multipartDownload a o (fromInteger size) (toInteger ten) 100
-  b <- liftIO $ BSL.readFile t
+  b <- liftIO $ LBS.readFile t
   let b' = sha1 b
-  o' <- liftIO $ BSL.readFile o
+  o' <- liftIO $ LBS.readFile o
   let o'' = sha1 o'
   pure $ b' === o''
 
-sha1 :: BSL.ByteString -> Digest SHA1
+sha1 :: LBS.ByteString -> Digest SHA1
 sha1 = hashlazy
 
 prop_upload :: Text -> LocalPath -> Property
