@@ -292,10 +292,10 @@ retryAWSAction' i a = do
 retryAWS :: Int -> Env -> Env
 retryAWS i e =
   let err c v = case v of
-        NoResponseDataReceived -> pure True
+        NoResponseDataReceived -> (liftIO $ putStrLn "RETRYING: NoResponseDataReceived") >> pure True
         StatusCodeException s _ _ -> pure $ s == status500
-        FailedConnectionException _ _ -> pure True
-        FailedConnectionException2 _ _ _ _ -> pure True
+        FailedConnectionException _ _ -> (liftIO $ putStrLn "RETRYING: FailedConnectionException") >> pure True
+        FailedConnectionException2 _ _ _ _ -> (liftIO $ putStrLn "RETRYING: FailedConnectionException2") >> pure True
         _ -> (e ^. envRetryCheck) c v
   in
   e & envRetryPolicy .~ Just (limitRetries i <> exponentialBackoff 100000) & envRetryCheck .~ err
