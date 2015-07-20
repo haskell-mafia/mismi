@@ -198,7 +198,7 @@ writeWithMode w a t = do
 
 copy :: Address -> Address -> S3Action ()
 copy s d =
-  liftAWSAction $ AWS.copy s d
+  retryHttp 3 . liftAWSAction $ AWS.copy s d
 
 move :: Address -> Address -> S3Action ()
 move source destination =
