@@ -214,7 +214,7 @@ syncWithMode mode source dest fork = do
   tid <- liftIO $ forM [1..fork] (const . forkIO $ worker source dest mode e c r)
 
   -- sink list to channel
-  i <- sinkChan (listRecursively' source) c
+  i <- sinkChanWithDelay 50000 (listRecursively' source) c
 
   -- wait for threads and lift errors
   r' <- liftIO $ waitForNResults i r
@@ -296,6 +296,7 @@ retryAWS i e =
         StatusCodeException s _ _ -> pure $ s == status500
         FailedConnectionException _ _ -> pure True
         FailedConnectionException2 _ _ _ _ -> pure True
+        TlsException _ -> pure True
         _ -> (e ^. envRetryCheck) c v
   in
   e & envRetryPolicy .~ Just (limitRetries i <> exponentialBackoff 100000) & envRetryCheck .~ err

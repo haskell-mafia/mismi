@@ -9,6 +9,7 @@ module Mismi.S3.Internal (
   , calculateChunks
   , downRange
   , sinkChan
+  , sinkChanWithDelay
   , waitForNResults
   ) where
 
@@ -76,7 +77,12 @@ downRange start end =
 
 sinkChan :: MonadIO m => Source m a -> Chan a -> m Int
 sinkChan source c =
-  source $$ DC.foldM (\i v -> liftIO $ writeChan c v >> pure (i + 1)) 0
+  sinkChanWithDelay 0 source c
+
+sinkChanWithDelay :: MonadIO m => Int -> Source m a -> Chan a -> m Int
+sinkChanWithDelay delay source c =
+  source $$ DC.foldM (\i v -> liftIO $ threadDelay delay >> writeChan c v >> pure (i + 1)) 0
+
 
 waitForNResults :: Int -> Chan a -> IO [a]
 waitForNResults i c = do
