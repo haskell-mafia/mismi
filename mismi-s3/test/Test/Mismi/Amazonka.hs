@@ -1,8 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Test.Mismi.Amazonka (
-    createMultipart
-  , sendMultipart
+    sendMultipart
   , withMultipart
   , withAWS
   , withAWS'
@@ -17,7 +16,6 @@ import           Data.Text.Encoding (encodeUtf8)
 import           Data.UUID as U
 import           Data.UUID.V4 as U
 
-import           Control.Lens
 import           Control.Monad.Trans.AWS hiding (AWSError)
 import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class (liftIO)
@@ -42,11 +40,6 @@ import           System.IO
 import           System.IO.Temp
 
 import           Test.QuickCheck
-
-createMultipart :: Address -> AWS Text
-createMultipart a = do
-  r <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ Just sse
-  maybe (fail "Failed to create multipart upload") pure (r ^. cmurUploadId)
 
 sendMultipart :: Text -> Address -> Int -> Text -> AWS ()
 sendMultipart t a i ui = do
@@ -76,7 +69,7 @@ withMultipart :: Testable a => (Address -> Text -> AWS a) -> Property
 withMultipart f =
   property $ \t ->
     testIO . unsafeAWS . runAWS Sydney . withAWSToken t $ \a ->
-      awsBracket (createMultipart a) (abortMultipart' a) (f a)
+      awsBracket (createMultipartUpload a) (abortMultipartUpload a) (f a)
 
 liftS3 :: S3Action a -> AWS a
 liftS3 a =

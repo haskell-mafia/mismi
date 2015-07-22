@@ -47,6 +47,7 @@ data AmazonkaCommand =
   | Synck Address Address SyncMode Int
   | Listk Address
   | Existsk Address
+  | Copyk Address Address
   deriving (Eq, Show)
 
 data AwsCommand =
@@ -102,6 +103,8 @@ runK k = do
       A.listRecursively' a $$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText)
     Existsk a ->
       A.exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
+    Copyk s d ->
+      A.copy s d
 
 runC :: AwsCommand -> IO ()
 runC c = runS3WithDefaults $ case c of
@@ -157,7 +160,9 @@ commandK' = subparser $
   <> command' "existsk"
               "Check if an address exists."
               (Existsk <$> address')
-
+  <> command' "copyk"
+              "Copy an object between two address's."
+              (Copyk <$> address' <*> address')
 
 commandA' :: Parser (AwsCommand)
 commandA' = subparser $

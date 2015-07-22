@@ -7,7 +7,7 @@ module Mismi.S3.Internal (
   , encodeKey
   , ff'
   , calculateChunks
-  , downRange
+  , bytesRange
   , sinkChan
   , sinkChanWithDelay
   , waitForNResults
@@ -41,7 +41,8 @@ fencode' :: (Text -> Text -> a) -> Address -> a
 fencode' f (Address (Bucket b) k) =
   uncurry f (b, encodeKey k)
 
-
+-- Url is being sent as a header not as a query therefore
+-- requires special url encoding. (Do not encode the delimiters)
 -- https://github.com/brendanhay/amazonka/issues/127
 encodeKey :: Key -> Text
 encodeKey (Key k) =
@@ -71,8 +72,8 @@ calculateChunks size chunk =
 
 -- http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
 -- https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3Client.java#L1135
-downRange :: Int -> Int -> Text
-downRange start end =
+bytesRange :: Int -> Int -> Text
+bytesRange start end =
   pack $ "bytes=" <> show start <> "-" <> show end
 
 sinkChan :: MonadIO m => Source m a -> Chan a -> m Int

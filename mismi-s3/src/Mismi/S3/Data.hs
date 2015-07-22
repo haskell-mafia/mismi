@@ -9,6 +9,7 @@ module Mismi.S3.Data (
   , Key (..)
   , (</>)
   , dirname
+  , foldWriteMode
   , foldSyncMode
   , basename
   , addressFromText
@@ -19,7 +20,7 @@ module Mismi.S3.Data (
   ) where
 
 import           Data.Align
-import           Data.Attoparsec.Text hiding (parse)
+import           Data.Attoparsec.Text hiding (parse, Fail )
 import qualified Data.Attoparsec.Text as AT
 import qualified Data.Text as T
 import           Data.Text (Text)
@@ -35,6 +36,11 @@ data WriteMode =
       Fail        -- ^ Fail rather than overwrite any data.
     | Overwrite   -- ^ Overwrite existing data silently, i.e. we really want to do this.
     deriving (Eq, Show)
+
+foldWriteMode :: a -> a -> WriteMode -> a
+foldWriteMode f o = \case
+  Fail -> f
+  Overwrite -> o
 
 data SyncMode =
   FailSync
