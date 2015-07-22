@@ -8,6 +8,7 @@ module Mismi.S3.Data (
   , Address (..)
   , Key (..)
   , (</>)
+  , combineKey
   , dirname
   , foldWriteMode
   , foldSyncMode
@@ -73,9 +74,11 @@ instance Show Address where
   show (Address b k) =
     "Address (" <> show b <> ") (" <> show k <> ")"
 
-
 (</>) :: Key -> Key -> Key
-(</>) (Key p1) (Key p2) =
+(</>) = combineKey
+
+combineKey :: Key -> Key -> Key
+combineKey (Key p1) (Key p2) =
   if  "/" `T.isSuffixOf` p1 || p1 == "" || "/" `T.isPrefixOf` p2
     then Key $ p1 <> p2
     else Key $ p1 <> "/" <> p2
