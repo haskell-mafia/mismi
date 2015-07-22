@@ -97,21 +97,21 @@ read a =
   `catch` (\(e :: S3.S3Error) -> if S3.s3StatusCode e == status404 then pure Nothing else throwM e)
 
 download :: Address -> FilePath -> S3Action ()
-download a p = do
+download a p =
+  downloadWithMode Fail a p
+
+downloadWithMode :: WriteMode -> Address -> FilePath -> S3Action ()
+downloadWithMode mode a p = do
+  when (mode == Fail) . whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
   unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
+  liftIO $ createDirectoryIfMissing True (dropFileName p)
   s' <- getSize a
   size <- maybe (fail $ "Can not calculate the file size [" <> (T.unpack $ addressToText a) <> "].") pure s'
   if (size > 200 * 1024 * 1024)
-     then multipartDownload a p size 100 100
-     else downloadWithMode Fail a p
-
-downloadWithMode :: WriteMode -> Address -> FilePath -> S3Action ()
-downloadWithMode mode a p =
-  let get = f' S3.getObject a in do
-    when (mode == Fail) . whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
-    unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
-    liftIO $ createDirectoryIfMissing True (dropFileName p)
-    awsRequest get >>= lift . ($$+- sinkFile p) . responseBody . S3.gorResponse
+     then
+       multipartDownload a p size 100 100
+     else
+       awsRequest (f' S3.getObject a) >>= lift . ($$+- sinkFile p) . responseBody . S3.gorResponse
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
 multipartDownload source destination size chunk' fork = do
