@@ -48,8 +48,8 @@ else
     exit_cleanup
 fi
 
-bar=$(unique_s3_url foo)
-$MISMI move $s3 $bar || exit_clean $?
+bar=$(unique_s3_url bar)
+$MISMI move $s3 $bar || exit_cleanup $?
 
 if ! $MISMI exists $s3 && $MISMI exists $bar; then
     echo "PASSED [move]"

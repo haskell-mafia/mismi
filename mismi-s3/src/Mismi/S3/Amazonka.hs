@@ -12,6 +12,7 @@ module Mismi.S3.Amazonka (
   , getSize
   , delete
   , copy
+  , copyWithMode
   , upload
   , download
   , downloadWithRange
@@ -108,10 +109,18 @@ handle404 res = case res of
     Errors _ -> throwAWSError e
   Right rs -> pure $ Just rs
 
--- Url is being sent as a header not as a query therefore
--- requires special url encoding. (Do not encode the delimiters)
 copy :: Address -> Address -> AWS ()
-copy (Address (Bucket sb) (Key sk)) (Address (Bucket b) k) =
+copy source dest =
+  copyWithMode Fail source dest
+
+copyWithMode :: WriteMode -> Address -> Address -> AWS ()
+copyWithMode mode s d = do
+  unlessM (exists s) . fail $ "Can not copy when the soruce does not exists exists [" <> (T.unpack $ addressToText s)  <> "]."
+  foldWriteMode  (whenM (exists d) . fail $ "Can not copy to a file that already exists [" <> (T.unpack $ addressToText d) <> "].") (pure ()) mode
+  copy' s d
+
+copy' :: Address -> Address -> AWS ()
+copy' (Address (Bucket sb) (Key sk)) (Address (Bucket b) k) =
   send_ $ copyObject b (sb <> "/" <> sk) (encodeKey k) & coServerSideEncryption .~ Just sse & coMetadataDirective .~ Just Copy
 
 upload :: FilePath -> Address -> AWS ()
