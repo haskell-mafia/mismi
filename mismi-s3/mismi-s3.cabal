@@ -29,7 +29,7 @@ library
                      , exceptions                      >= 0.6        && < 0.9
                      , filepath                        == 1.3.*
                      , http-client                     == 0.4.*
-                     , http-conduit                    == 2.1.*
+                     , http-conduit                    == 2.1.5
                      , http-types                      == 0.8.*
                      , mismi-core
                      , mtl                             >= 2.1       && < 2.3
