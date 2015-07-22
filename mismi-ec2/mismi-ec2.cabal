@@ -19,7 +19,7 @@ library
                      , bytestring                      == 0.10.*
                      , either
                      , http-client                     == 0.4.*
-                     , http-conduit                    == 2.1.*
+                     , http-conduit                    == 2.1.5
                      , mismi-core
                      , mtl                             >= 2.2.1      && < 2.3
                      , text                            == 1.2.*

@@ -21,7 +21,7 @@ library
                      , bytestring                      == 0.10.*
                      , exceptions                      >= 0.6        && < 0.9
                      , http-client                     == 0.4.*
-                     , http-conduit                    == 2.1.*
+                     , http-conduit                    == 2.1.5
                      , mtl                             >= 2.2.1      && < 2.3
                      , mismi-core
                      , resourcet                       == 1.1.*
