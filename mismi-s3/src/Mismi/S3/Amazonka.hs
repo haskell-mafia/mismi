@@ -31,6 +31,7 @@ module Mismi.S3.Amazonka (
   , retryAWSAction
   , retryAWSAction'
   , retryAWS
+  , retryAWS'
   , sse
   ) where
 
@@ -301,14 +302,17 @@ foldErr se p err = \case
 
 retryAWSAction :: AWS a -> AWS a
 retryAWSAction =
-  retryAWSAction' 5
+  retryAWSAction' (retryWithBackoff 5)
 
-retryAWSAction' :: Int -> AWS a -> AWS a
-retryAWSAction' i a = do
-  local (retryAWS i) $ a
+retryAWSAction' :: RetryPolicy -> AWS a -> AWS a
+retryAWSAction' rp a = do
+  local (retryAWS' rp) $ a
 
 retryAWS :: Int -> Env -> Env
-retryAWS i e =
+retryAWS i = retryAWS' (retryWithBackoff i)
+
+retryAWS' :: RetryPolicy -> Env -> Env
+retryAWS' r e =
   let err c v = case v of
         NoResponseDataReceived -> pure True
         StatusCodeException s _ _ -> pure $ s == status500
@@ -317,7 +321,7 @@ retryAWS i e =
         TlsException _ -> pure True
         _ -> (e ^. envRetryCheck) c v
   in
-  e & envRetryPolicy .~ Just (limitRetries i <> exponentialBackoff 100000) & envRetryCheck .~ err
+  e & envRetryPolicy .~ Just r & envRetryCheck .~ err
 
 sse :: ServerSideEncryption
 sse =
