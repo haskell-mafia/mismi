@@ -26,8 +26,8 @@ import           Disorder.Core.IO
 import           Disorder.Core.UniquePair hiding (snd)
 
 import           Mismi.S3.Control
-import           Mismi.S3.Commands
 import           Mismi.S3.Data
+import           Mismi.S3.Default
 
 import           P
 
