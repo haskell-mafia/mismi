@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -10,7 +11,10 @@ module Mismi.S3.Commands (
   , download
   , downloadWithMode
   , multipartDownload
+  , uploadCheck
   , upload
+  , uploadSingle
+  , multipartUpload
   , calculateChunks
   , write
   , writeWithMode
@@ -26,7 +30,7 @@ module Mismi.S3.Commands (
   ) where
 
 import qualified Aws.S3 as S3
-import           Aws.S3 hiding (headObject, putObject)
+import           Aws.S3 hiding (headObject, putObject, multipartUpload)
 
 import           Control.Arrow ((***))
 
@@ -145,28 +149,32 @@ downloadPart :: Address -> Int -> Int -> FilePath -> S3Action ()
 downloadPart source start end destination =
   liftAWSAction $ AWS.downloadWithRange source start end destination
 
-upload :: FilePath -> Address -> S3Action ()
-upload file a = do
+uploadCheck :: FilePath -> Address -> S3Action Upload
+uploadCheck file a = do
   whenM (exists a) . fail $ "Can not upload to a target that already exists [" <> (T.unpack $ addressToText a) <> "]."
   unlessM (liftIO $ doesFileExist file) . fail $ "Can not upload when the source does not exist [" <> file <> "]."
   s <- liftIO $ withFile file ReadMode $ \h ->
     hFileSize h
   let chunk = 100 * 1024 * 1024
-  if s < chunk
-    then do
-      upload' file a
-    else do
-      if (s > 1024 * 1024 * 1024)
-         then multipartUpload' file a s (10 * chunk)
-         else multipartUpload' file a s chunk
+  pure $ if s < chunk
+    then UploadSingle
+    else UploadMultipart s (if s > 1024 * 1024 * 1024 then 10 * chunk else chunk)
 
-upload' :: FilePath -> Address -> S3Action ()
-upload' file a = do
+upload :: FilePath -> Address -> S3Action ()
+upload file a =
+  uploadCheck file a >>= \case
+    UploadSingle ->
+      uploadSingle file a
+    UploadMultipart fs chunk ->
+      multipartUpload file a fs chunk
+
+uploadSingle :: FilePath -> Address -> S3Action ()
+uploadSingle file a = do
   x <- liftIO $ LBS.readFile file
   void . awsRequest $ putObject a (RequestBodyLBS x) sse
 
-multipartUpload' :: FilePath -> Address -> Integer -> Integer -> S3Action ()
-multipartUpload' file a fileSize chunk = do
+multipartUpload :: FilePath -> Address -> Integer -> Integer -> S3Action ()
+multipartUpload file a fileSize chunk = do
   let mpu = (f' S3.postInitiateMultipartUpload a) { imuServerSideEncryption = Just sse }
   mpur <- awsRequest mpu
   (cfg, scfg, mgr) <- ask

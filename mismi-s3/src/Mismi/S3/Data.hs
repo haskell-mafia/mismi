@@ -7,6 +7,7 @@ module Mismi.S3.Data (
   , Bucket(..)
   , Address (..)
   , Key (..)
+  , Upload (..)
   , S3.ObjectInfo (..)
   , S3.ObjectMetadata (..)
   , (</>)
@@ -77,6 +78,11 @@ newtype Key = Key {
 instance Show Address where
   show (Address b k) =
     "Address (" <> show b <> ") (" <> show k <> ")"
+
+data Upload =
+    UploadSingle
+  | UploadMultipart Integer Integer
+  deriving (Eq, Show)
 
 (</>) :: Key -> Key -> Key
 (</>) = combineKey
