@@ -209,7 +209,7 @@ listRecursively a = do
 listRecursively' :: Address -> AWS (Source AWS Address)
 listRecursively' a@(Address (Bucket b) (Key k)) = do
   e <- ask
-  pure . hoist (retryConduit $ retryAWS 5 e) $ (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
+  pure . hoist (retryConduit e) $ (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
@@ -271,7 +271,7 @@ worker source dest mode e c errs = forever $ do
                 cp
                 (ifM ex (pure $ Right ()) cp)
                 mode
-        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv (retryAWS 5 e)) action >>= EitherT . pure)
+        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv e) action >>= EitherT . pure)
           `catchAll` (left . UnknownErr)
 
   a <- readChan c
