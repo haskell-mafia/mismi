@@ -133,7 +133,8 @@ download :: Address -> FilePath -> AWS ()
 download a f = do
   liftIO $ createDirectoryIfMissing True (dropFileName f)
   r <- send $ fencode' getObject a
-  liftIO . runResourceT . ($$+- sinkFile f) $ r ^. gorBody ^. _RsBody
+  liftIO . withFileSafe f $ \f'' ->
+    runResourceT . ($$+- sinkFile f'') $ r ^. gorBody ^. _RsBody
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do

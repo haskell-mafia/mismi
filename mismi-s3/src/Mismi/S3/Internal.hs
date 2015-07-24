@@ -11,10 +11,12 @@ module Mismi.S3.Internal (
   , sinkChan
   , sinkChanWithDelay
   , waitForNResults
+  , withFileSafe
   ) where
 
 import           Control.Concurrent
 
+import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
@@ -24,6 +26,8 @@ import qualified Data.Conduit.List as DC
 
 import           Data.Text hiding (length)
 import           Data.Text.Encoding
+import           Data.UUID
+import           Data.UUID.V4
 
 import           P
 
@@ -31,7 +35,9 @@ import           Mismi.S3.Data
 
 import           Network.HTTP.Types (urlEncode)
 
+import           System.Directory
 import           System.IO
+import           System.FilePath
 
 f' :: (Text -> Text -> a) -> Address -> a
 f' f a =
@@ -94,3 +100,12 @@ waitForNResults i c = do
              r <- readChan c
              waitForDone (r : acc)
   waitForDone []
+
+-- | Create a temporary file location that can be used safely, and on a successful operation, do an (atomic) rename
+withFileSafe :: (MonadCatch m, MonadIO m) => FilePath -> (FilePath -> m a) -> m a
+withFileSafe f1 run = do
+  uuid <- liftIO nextRandom >>= return . toString
+  let f2 = takeDirectory f1 <> "/" <> "." <> takeFileName f1 <> "." <> uuid
+  onException
+    (run f2 >>= \a -> liftIO $ whenM (doesFileExist f2) (renameFile f2 f1) >> pure a)
+    (liftIO $ removeFile f2)
