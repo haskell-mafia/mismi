@@ -68,7 +68,6 @@ import           Mismi.S3.Internal
 import           Network.AWS.S3 hiding (headObject, Bucket, bucket)
 import qualified Network.AWS.S3 as AWS
 import           Network.AWS.Data
-import           Network.HTTP.Client (HttpException (..))
 import           Network.HTTP.Types.Status (status500, status404)
 
 import           P
@@ -79,6 +78,9 @@ import           System.Directory
 import           System.FilePath hiding ((</>))
 import           System.Posix.IO
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
+
+-- HACKS
+import           Network.HTTP.Conduit
 
 headObject :: Address -> AWS (Maybe AWS.HeadObjectResponse)
 headObject a = do
@@ -249,7 +251,9 @@ hoistErr =
   foldErr throwM (throwM . userError . T.unpack) liftAWSError
 
 worker :: Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
-worker source dest mode e c errs = forever $ do
+worker source dest mode e c errs = do
+ m <- newManager conduitManagerSettings
+ forever $ do
   let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
       keep :: Address -> Key -> IO WorkerResult
       keep a k = do
@@ -271,7 +275,7 @@ worker source dest mode e c errs = forever $ do
                 cp
                 (ifM ex (pure $ Right ()) cp)
                 mode
-        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv (retryAWS 5 e)) action >>= EitherT . pure)
+        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv (retryAWS 5 $ set envManager m e)) action >>= EitherT . pure)
           `catchAll` (left . UnknownErr)
 
   a <- readChan c
