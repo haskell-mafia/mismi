@@ -111,10 +111,14 @@ downloadWithMode mode a p = do
      then
        multipartDownload a p size 100 100
      else
-       awsRequest (f' S3.getObject a) >>= lift . ($$+- sinkFile p) . responseBody . S3.gorResponse
+       downloadSingle a p
+
+downloadSingle :: Address -> FilePath -> S3Action ()
+downloadSingle a p = withFileSafe p $ \p' ->
+  awsRequest (f' S3.getObject a) >>= lift . ($$+- sinkFile p') . responseBody . S3.gorResponse
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
-multipartDownload source destination size chunk' fork = do
+multipartDownload source destination' size chunk' fork = withFileSafe destination' $ \destination -> do
   -- get config / region to run currently
   (cfg, s3', _) <- ask
   r <- maybe (fail $ "Invalid s3 endpoint [" <> (show $ s3Endpoint s3') <> "].") pure (epToRegion $ s3Endpoint s3')
