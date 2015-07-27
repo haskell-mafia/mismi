@@ -32,7 +32,7 @@ import           Data.ByteString hiding (unpack, find)
 import           Control.Lens
 import           Control.Monad.Catch (MonadMask, Handler (..))
 import           Control.Monad.Reader hiding (forM)
-import           Control.Monad.Trans.Resource (ResourceT)
+import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
 import           Control.Monad.Trans.Either
 import           Control.Retry
 
@@ -89,7 +89,8 @@ liftS3Action :: S3Action a -> AWS a
 liftS3Action action = do
   conf <- awskaConfig
   r <- view envRegion <$> ask
-  liftIO $ runS3WithCfg conf r action
+  m <- view envManager <$> ask
+  liftIO . runResourceT $ runS3WithManager conf r m action
 
 regionToEp :: Region -> ByteString
 regionToEp r =
