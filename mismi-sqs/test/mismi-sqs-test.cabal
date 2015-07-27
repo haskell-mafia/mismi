@@ -10,8 +10,8 @@ library
                      , mismi-core-test
                      , mismi-sqs
                      , aws                             == 0.11.*
-                     , amazonka                        == 99.0.4
-                     , amazonka-core                   == 99.0.4
+                     , amazonka                        == 99.0.5
+                     , amazonka-core                   == 99.0.5
                      , disorder-core
                      , disorder-corpus
                      , either

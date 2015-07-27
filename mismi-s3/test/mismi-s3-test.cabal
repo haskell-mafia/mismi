@@ -10,9 +10,9 @@ library
                      , mismi-core-test
                      , mismi-s3
                      , aws                             == 0.11.*
-                     , amazonka                        == 99.0.4
-                     , amazonka-core                   == 99.0.4
-                     , amazonka-s3                     == 99.0.4
+                     , amazonka                        == 99.0.5
+                     , amazonka-core                   == 99.0.5
+                     , amazonka-s3                     == 99.0.5
                      , lens                            == 4.9.*
                      , conduit                         == 1.2.*
                      , time
