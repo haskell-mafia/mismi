@@ -15,9 +15,9 @@ import qualified Data.Text.IO as T
 
 import           Control.Lens hiding (elements)
 
-import           Mismi.S3.Amazonka
 import           Mismi.S3.Data
-import qualified Mismi.S3.Commands as S3
+import qualified Mismi.S3.Default as S3
+import           Mismi.S3.DefaultK
 
 import           Disorder.Core
 
