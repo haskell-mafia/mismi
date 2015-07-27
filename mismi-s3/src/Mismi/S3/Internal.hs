@@ -114,4 +114,5 @@ withFileSafe f1 run = do
 
 retryWithBackoff :: Int -> RetryPolicy
 retryWithBackoff i =
+  capDelay 60000000 {- 60 seconds -} $
   limitRetries i <> exponentialBackoff 100000 {- 100 milliseconds -}
