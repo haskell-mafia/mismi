@@ -33,14 +33,14 @@ testS3 f =
 testAWS :: Testable a => (Address -> Int -> AWS a) -> Property
 testAWS f =
   property $ \t -> testIO .
-    unsafeAWS . runAWS Sydney . retryAWSAction . withAWSToken t $ \a -> do
+    unsafeAWS . runAWS Sydney . withAWSToken t $ \a -> do
       i <- liftIO $ testSize
       f a i
 
 testAWS' :: Testable a => (Address -> Address -> Int -> AWS a) -> Property
 testAWS' f =
   property $ \t t' -> testIO .
-    unsafeAWS . runAWS Sydney . retryAWSAction . withAWSToken t $ \a ->
+    unsafeAWS . runAWS Sydney . withAWSToken t $ \a ->
       withAWSToken t' $ \b -> do
         i <- liftIO $ testSize
         f a b i

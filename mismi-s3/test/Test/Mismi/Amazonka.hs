@@ -78,9 +78,9 @@ withMultipart f =
     testIO . unsafeAWS . runAWS Sydney . withAWSToken t $ \a ->
       awsBracket (createMultipart a) (abortMultipart' a) (f a)
 
+-- Placeholder for extra debugging logic if required
 liftS3 :: S3Action a -> AWS a
-liftS3 a =
-  liftS3Action $ retryHttpWithMessage 5 "https://github.com/ambiata/mismi/issues/125" a
+liftS3 = liftS3Action
 
 withAWSToken :: Token -> (Address -> AWS a) -> AWS a
 withAWSToken t f = do
