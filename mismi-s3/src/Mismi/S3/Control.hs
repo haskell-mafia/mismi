@@ -14,7 +14,6 @@ module Mismi.S3.Control (
   , regionToEp
   , retryHttp
   , retryHttpWithMessage
-  , retryHttpWithOut
   , retryHttpWithPolicy
   , retryHttpWithPolicyOut
   ) where
@@ -37,6 +36,7 @@ import           Control.Monad.Trans.Either
 import           Control.Retry
 
 import           Mismi.Control
+import           Mismi.S3.Internal
 
 import qualified Control.Monad.Trans.AWS as AWS
 
@@ -107,18 +107,11 @@ epToRegion bs = snd <$> find ((== bs) . fst) [
 
 retryHttp :: (MonadMask m, MonadIO m) => Int -> m a -> m a
 retryHttp i action =
-  retryHttpWithOut i (return ()) action
+  retryHttpWithPolicy (retryWithBackoff i) action
 
 retryHttpWithMessage :: (MonadMask m, MonadIO m) => Int -> Text -> m a -> m a
 retryHttpWithMessage i message action =
-  retryHttpWithOut i (liftIO . IO.putStrLn $ "Retrying [" <> T.unpack message <> "].") action
-
-retryHttpWithOut :: (MonadMask m, MonadIO m) => Int -> m () -> m a -> m a
-retryHttpWithOut i out action =
-  retryHttpWithPolicyOut
-    (limitRetries i <> exponentialBackoff 100000)
-    out
-    action
+  retryHttpWithPolicyOut (retryWithBackoff i) (liftIO . IO.putStrLn $ "Retrying [" <> T.unpack message <> "].") action
 
 retryHttpWithPolicy :: (MonadMask m, MonadIO m) => RetryPolicy -> m a -> m a
 retryHttpWithPolicy policy action =
