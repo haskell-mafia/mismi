@@ -143,7 +143,7 @@ commandK' = subparser $
               "Upload a file to s3."
               (Uploadk <$> filepath' <*> address')
   <> command' "downloadk"
-              "Upload a file to s3."
+              "Download a file from s3."
               (Downloadk <$> address' <*> filepath')
   <> command' "sizek"
               "Get the size of an address."
