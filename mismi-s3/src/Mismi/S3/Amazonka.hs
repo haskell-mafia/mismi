@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -253,6 +254,7 @@ hoistErr =
 worker :: Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
 worker source dest mode e c errs = do
  m <- newManager conduitManagerSettings
+ let !e'' = set envManager m e
  forever $ do
   let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
       keep :: Address -> Key -> IO WorkerResult
@@ -275,7 +277,7 @@ worker source dest mode e c errs = do
                 cp
                 (ifM ex (pure $ Right ()) cp)
                 mode
-        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv (retryAWS 5 $ set envManager m e)) action >>= EitherT . pure)
+        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv (retryAWS 5 e'')) action >>= EitherT . pure)
           `catchAll` (left . UnknownErr)
 
   a <- readChan c
