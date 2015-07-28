@@ -230,9 +230,11 @@ syncWithMode :: SyncMode -> Address -> Address -> Int -> AWS ()
 syncWithMode mode source dest fork = do
   (c, r) <- liftIO $ (,) <$> newChan <*> newChan
   e <- ask
+  m <- liftIO $ newManager $ conduitManagerSettings { managerConnCount = fork }
+  let !e' = set envManager m e
 
   -- worker
-  tid <- liftIO $ forM [1..fork] (\i -> forkIO $ worker i source dest mode e c r)
+  tid <- liftIO $ forM [1..fork] (\i -> forkIO $ worker i source dest mode e' c r)
 
   -- sink list to channel
   l <- listRecursively' source
@@ -253,8 +255,9 @@ hoistErr =
 
 worker :: Int -> Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
 worker _ source dest mode e c errs = do
- m <- newManager $ conduitManagerSettings { managerConnCount = 1 }
- let !e'' = set envManager m e
+--  m <- newManager $ conduitManagerSettings { managerConnCount = 1 }
+--  let !e'' = set envManager m e
+ let e'' = e
  forever $ do
   let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
       keep :: Address -> Key -> IO WorkerResult
