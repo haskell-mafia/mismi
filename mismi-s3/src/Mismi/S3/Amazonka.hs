@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -33,6 +34,7 @@ module Mismi.S3.Amazonka (
   , retryAWS
   , retryAWS'
   , sse
+  , retryConduit
   ) where
 
 
@@ -41,7 +43,7 @@ import           Control.Concurrent
 import           Control.Lens
 import           Control.Retry
 import           Control.Monad.Catch
-import           Control.Monad.Morph (hoist)
+-- import           Control.Monad.Morph (hoist)
 import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Either hiding (hoistEither)
 import           Control.Monad.Trans.Resource
@@ -68,7 +70,6 @@ import           Mismi.S3.Internal
 import           Network.AWS.S3 hiding (headObject, Bucket, bucket)
 import qualified Network.AWS.S3 as AWS
 import           Network.AWS.Data
-import           Network.HTTP.Client (HttpException (..))
 import           Network.HTTP.Types.Status (status500, status404)
 
 import           P
@@ -79,6 +80,9 @@ import           System.Directory
 import           System.FilePath hiding ((</>))
 import           System.Posix.IO
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
+
+-- HACKS
+import           Network.HTTP.Conduit
 
 headObject :: Address -> AWS (Maybe AWS.HeadObjectResponse)
 headObject a = do
@@ -203,13 +207,11 @@ abortMultipart' a i =
 
 listRecursively :: Address -> AWS [Address]
 listRecursively a = do
-  a' <- listRecursively' a
-  retryAWSAction $ a' $$ DC.consume
+  listRecursively' a $$ DC.consume
 
-listRecursively' :: Address -> AWS (Source AWS Address)
-listRecursively' a@(Address (Bucket b) (Key k)) = do
-  e <- ask
-  pure . hoist (retryConduit $ retryAWS 5 e) $ (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
+listRecursively' :: Address -> Source AWS Address
+listRecursively' a@(Address (Bucket b) (Key k)) =
+  (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
@@ -232,10 +234,10 @@ syncWithMode mode source dest fork = do
   e <- ask
 
   -- worker
-  tid <- liftIO $ forM [1..fork] (const . forkIO $ worker source dest mode e c r)
+  tid <- liftIO $ forM [1..fork] (\i -> forkIO $ worker i source dest mode e c r)
 
   -- sink list to channel
-  l <- listRecursively' source
+  let l = listRecursively' source
   i <- sinkChanWithDelay 50000 l c
 
   -- wait for threads and lift errors
@@ -251,8 +253,11 @@ hoistErr :: Err -> AWS ()
 hoistErr =
   foldErr throwM (throwM . userError . T.unpack) liftAWSError
 
-worker :: Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
-worker source dest mode e c errs = forever $ do
+worker :: Int -> Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
+worker _ source dest mode e c errs = do
+ m <- newManager $ conduitManagerSettings { managerConnCount = 1 }
+ let !e'' = set envManager m e
+ forever $ do
   let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
       keep :: Address -> Key -> IO WorkerResult
       keep a k = do
@@ -274,7 +279,7 @@ worker source dest mode e c errs = forever $ do
                 cp
                 (ifM ex (pure $ Right ()) cp)
                 mode
-        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv (retryAWS 5 e)) action >>= EitherT . pure)
+        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv e'') action >>= EitherT . pure)
           `catchAll` (left . UnknownErr)
 
   a <- readChan c

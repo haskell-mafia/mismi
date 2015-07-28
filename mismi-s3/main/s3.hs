@@ -99,7 +99,7 @@ runK k = do
     Synck s d m f ->
       A.syncWithMode m s d f
     Listk a ->
-      A.listRecursively' a >>= ($$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText))
+      A.listRecursively' a $$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText)
     Existsk a ->
       A.exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
 
