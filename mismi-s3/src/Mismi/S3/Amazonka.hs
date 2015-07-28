@@ -252,9 +252,8 @@ hoistErr =
   foldErr throwM (throwM . userError . T.unpack) liftAWSError
 
 worker :: Int -> Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
-worker i source dest mode e c errs = do
+worker _ source dest mode e c errs = do
  m <- newManager conduitManagerSettings
- putStrLn $ "worker " <> show i
  let !e'' = set envManager m e
  forever $ do
   let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
@@ -278,7 +277,7 @@ worker i source dest mode e c errs = do
                 cp
                 (ifM ex (pure $ Right ()) cp)
                 mode
-        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv (retryAWS 5 e'')) action >>= EitherT . pure)
+        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv e'') action >>= EitherT . pure)
           `catchAll` (left . UnknownErr)
 
   a <- readChan c
