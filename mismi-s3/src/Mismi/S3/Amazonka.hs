@@ -34,6 +34,7 @@ module Mismi.S3.Amazonka (
   , retryAWS
   , retryAWS'
   , sse
+  , retryConduit
   ) where
 
 
@@ -42,7 +43,7 @@ import           Control.Concurrent
 import           Control.Lens
 import           Control.Retry
 import           Control.Monad.Catch
-import           Control.Monad.Morph (hoist)
+-- import           Control.Monad.Morph (hoist)
 import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Either hiding (hoistEither)
 import           Control.Monad.Trans.Resource
@@ -210,9 +211,8 @@ listRecursively a = do
   retryAWSAction $ a' $$ DC.consume
 
 listRecursively' :: Address -> AWS (Source AWS Address)
-listRecursively' a@(Address (Bucket b) (Key k)) = do
-  e <- ask
-  pure . hoist (retryConduit $ retryAWS 5 e) $ (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
+listRecursively' a@(Address (Bucket b) (Key k)) =
+  pure $ (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
