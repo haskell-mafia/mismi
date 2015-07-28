@@ -90,7 +90,10 @@ sinkChan source c =
 
 sinkChanWithDelay :: MonadIO m => Int -> Source m a -> Chan a -> m Int
 sinkChanWithDelay delay source c =
-  source $$ DC.foldM (\i v -> liftIO $ threadDelay delay >> writeChan c v >> pure (i + 1)) 0
+  source $$ DC.foldM (\i v -> liftIO $ do
+    threadDelay delay
+    putStrLn $ "i " <> show i
+    writeChan c v >> pure (i + 1)) 0
 
 
 waitForNResults :: Int -> Chan a -> IO [a]

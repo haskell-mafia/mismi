@@ -213,7 +213,10 @@ listRecursively' a@(Address (Bucket b) (Key k)) = do
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
-  DC.mapFoldable (\r -> (\o -> a { key = Key $ o ^. oKey }) <$> (r ^. lorContents) )
+  DC.mapM (\i -> do
+    liftIO $ putStrLn $ "liftAddress " <> show i
+    pure i
+    ) =$= DC.mapFoldable (\r -> (\o -> a { key = Key $ o ^. oKey }) <$> (r ^. lorContents) )
 
 retryConduit :: Env -> AWS a -> AWS a
 retryConduit e action =
