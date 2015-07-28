@@ -253,7 +253,7 @@ hoistErr =
 
 worker :: Int -> Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
 worker _ source dest mode e c errs = do
- m <- newManager conduitManagerSettings
+ m <- newManager $ conduitManagerSettings { managerConnCount = 1 }
  let !e'' = set envManager m e
  forever $ do
   let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
