@@ -11,6 +11,7 @@ module Mismi.Control.Amazonka (
   , runAWSDefaultRegion
   , runAWSWithEnv
   , runAWSWithCreds
+  , getEnvWithManager
   , awsBracket_
   , awsBracket
   , awsErrorRender
@@ -31,6 +32,7 @@ import           Control.Monad.Reader
 import           Control.Monad.Trans.AWS as X hiding (AWSError, Credentials, throwAWSError, getEnv)
 import qualified Control.Monad.Trans.AWS as AWS
 import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.Except (runExceptT)
 
 import           Data.IORef
 import           Data.Bifunctor
@@ -42,9 +44,11 @@ import           Mismi.Environment
 
 import           Network.AWS.Data
 
+import           Network.HTTP.Client (Manager)
 import           Network.HTTP.Types.Status
 
 import           P
+import           Prelude as PreludeUnsafe (error)
 
 import           System.IO
 import           System.IO.Error
@@ -101,6 +105,11 @@ runAWSDefaultRegion a = do
 runAWSWithEnv :: Env -> AWS a -> EitherT AWSError IO a
 runAWSWithEnv e a =
   EitherT . fmap (first AWSRunError) $ runAWST e a
+
+-- Unfortunately amazonka doesn't expose this function in the current version
+getEnvWithManager :: Region -> AWS.Credentials -> Manager -> IO Env
+getEnvWithManager r c m =
+  runExceptT (newEnv r c m) >>= either PreludeUnsafe.error return
 
 awsBracket_ :: AWS a -> AWS c -> AWS b -> AWS b
 awsBracket_ a b c =
