@@ -7,7 +7,7 @@ git submodule init
 git submodule sync
 git submodule update
 
-ci mismi-s3
+cd mismi-s3
 cabal sandbox init
 
 for module in $(cat mismi-s3.submodules); do
