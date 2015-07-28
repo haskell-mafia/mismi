@@ -207,12 +207,11 @@ abortMultipart' a i =
 
 listRecursively :: Address -> AWS [Address]
 listRecursively a = do
-  a' <- listRecursively' a
-  retryAWSAction $ a' $$ DC.consume
+  listRecursively' a $$ DC.consume
 
-listRecursively' :: Address -> AWS (Source AWS Address)
+listRecursively' :: Address -> Source AWS Address
 listRecursively' a@(Address (Bucket b) (Key k)) =
-  pure $ (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
+  (paginate $ listObjects b & loPrefix .~ Just k) =$= liftAddress a
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
@@ -235,7 +234,7 @@ syncWithMode mode source dest fork = do
   tid <- liftIO $ forM [1..fork] (\i -> forkIO $ worker i source dest mode e c r)
 
   -- sink list to channel
-  l <- listRecursively' source
+  let l = listRecursively' source
   i <- sinkChanWithDelay 50000 l c
 
   -- wait for threads and lift errors
