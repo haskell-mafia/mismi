@@ -120,7 +120,7 @@ downloadSingle a p = withFileSafe p $ \p' ->
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
 multipartDownload source destination' size chunk' fork = withFileSafe destination' $ \destination -> do
   -- get config / region to run currently
-  (cfg, s3', _) <- ask
+  (cfg, s3', mgr) <- ask
   r <- maybe (fail $ "Invalid s3 endpoint [" <> (show $ s3Endpoint s3') <> "].") pure (epToRegion $ s3Endpoint s3')
 
   -- chunks
@@ -130,7 +130,7 @@ multipartDownload source destination' size chunk' fork = withFileSafe destinatio
   let writer :: (Int, Int, Int) -> IO ()
       writer (o, c, _) = do
         let req = downloadPart source o (o + c) destination
-            ioq = runS3WithCfg cfg r req
+            ioq = runResourceT $ runS3WithManager cfg r mgr req
         retryHttp 3 ioq
 
   -- create sparse file

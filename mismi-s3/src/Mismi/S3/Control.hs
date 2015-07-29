@@ -8,6 +8,7 @@ module Mismi.S3.Control (
   , runS3WithDefaults
   , runS3WithRegion
   , runS3WithCfg
+  , runS3WithManager
   , liftS3Action
   , liftAWSAction
   , epToRegion
@@ -31,14 +32,12 @@ import           Data.ByteString hiding (unpack, find)
 import           Control.Lens
 import           Control.Monad.Catch (MonadMask, Handler (..))
 import           Control.Monad.Reader hiding (forM)
-import           Control.Monad.Trans.Resource (ResourceT)
+import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
 import           Control.Monad.Trans.Either
 import           Control.Retry
 
 import           Mismi.Control
 import           Mismi.S3.Internal
-
-import qualified Control.Monad.Trans.AWS as AWS
 
 import           Network.HTTP.Client (HttpException, Manager)
 import           Network.HTTP.Conduit (withManager)
@@ -63,12 +62,16 @@ runS3WithRegion r action =
 
 runS3WithCfg :: Aws.Configuration -> Region -> S3Action a -> IO a
 runS3WithCfg cfg r action =
+  withManager (\m -> runS3WithManager cfg r m action)
+
+runS3WithManager :: Aws.Configuration -> Region -> Manager -> S3Action a -> ResourceT IO a
+runS3WithManager cfg r m action =
   let scfg = s3 HTTPS (regionToEp r) False
-  in withManager (\m -> runReaderT action (cfg, scfg, m))
+  in runReaderT action (cfg, scfg, m)
 
 liftAWSAction :: AWS a -> S3Action a
 liftAWSAction action = do
-  (cfg, s3', _) <- ask
+  (cfg, s3', mgr) <- ask
   r' <- maybe (fail $ "Invalid s3 endpoint [" <> (show $ s3Endpoint s3') <> "].") pure (epToRegion $ s3Endpoint s3')
   let x = Aws.credentials cfg
       ak = AccessKey $ Aws.accessKeyID x
@@ -77,7 +80,8 @@ liftAWSAction action = do
             (FromKeys ak sk)
             (FromSession ak sk . SecurityToken)
             (Aws.iamToken x)
-  env <- liftIO $ AWS.getEnv r' c
+  env <- liftIO $ getEnvWithManager r' c mgr
+
   r <- liftIO . runEitherT $ runAWSWithEnv env action
   either throwAWSError pure r
 
@@ -85,7 +89,8 @@ liftS3Action :: S3Action a -> AWS a
 liftS3Action action = do
   conf <- awskaConfig
   r <- view envRegion <$> ask
-  liftIO $ runS3WithCfg conf r action
+  m <- view envManager <$> ask
+  liftIO . runResourceT $ runS3WithManager conf r m action
 
 regionToEp :: Region -> ByteString
 regionToEp r =
