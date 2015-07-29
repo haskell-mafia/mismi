@@ -100,7 +100,8 @@ runAWSWithCreds r ak sk st ex a = do
 runAWSDefaultRegion :: AWS a -> EitherT AWSError IO a
 runAWSDefaultRegion a = do
   r <- EitherT . fmap (first AWSRegionError) $ getRegionFromEnv
-  runAWS r a
+  e <- liftIO $ AWS.getEnv r Discover
+  runAWSWithEnv e a
 
 runAWSWithEnv :: Env -> AWS a -> EitherT AWSError IO a
 runAWSWithEnv e a =
