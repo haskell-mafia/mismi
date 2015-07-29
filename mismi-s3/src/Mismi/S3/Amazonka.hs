@@ -29,7 +29,6 @@ module Mismi.S3.Amazonka (
   , sync
   , syncWithMode
   , retryAWSAction
-  , retryAWSAction'
   , retryAWS
   , retryAWS'
   , sse
@@ -300,12 +299,8 @@ foldErr se p err = \case
   AwsErr e -> err e
   UnknownErr e -> se e
 
-retryAWSAction :: AWS a -> AWS a
-retryAWSAction =
-  retryAWSAction' (retryWithBackoff 5)
-
-retryAWSAction' :: RetryPolicy -> AWS a -> AWS a
-retryAWSAction' rp a = do
+retryAWSAction :: RetryPolicy -> AWS a -> AWS a
+retryAWSAction rp a = do
   local (retryAWS' rp) $ a
 
 retryAWS :: Int -> Env -> Env

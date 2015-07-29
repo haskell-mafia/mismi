@@ -88,4 +88,4 @@ listRecursively r = retryHttpWithPolicy r . M.listRecursively
 
 sync :: RetryPolicy -> SyncMode -> Address -> Address -> Int -> S3Action ()
 sync rp mode source dest fork =
-  liftAWSAction . A.retryAWSAction' rp $ A.syncWithMode mode source dest fork
+  liftAWSAction . A.retryAWSAction rp $ A.syncWithMode mode source dest fork
