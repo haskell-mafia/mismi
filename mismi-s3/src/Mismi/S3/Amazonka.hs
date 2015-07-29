@@ -204,7 +204,7 @@ abortMultipart' a i =
 listRecursively :: Address -> AWS [Address]
 listRecursively a = do
   a' <- listRecursively' a
-  retryAWSAction $ a' $$ DC.consume
+  a' $$ DC.consume
 
 listRecursively' :: Address -> AWS (Source AWS Address)
 listRecursively' a@(Address (Bucket b) (Key k)) = do
