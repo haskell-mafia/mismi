@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -10,28 +11,28 @@ module Mismi.S3.Commands (
   , download
   , downloadWithMode
   , multipartDownload
-  , upload
+  , uploadCheck
+  , uploadSingle
+  , multipartUpload
   , calculateChunks
   , write
   , writeWithMode
-  , copy
-  , move
   , getObjects
   , listObjects
   , list
   , getObjectsRecursively
   , listRecursively
   , getSize
-  , sync
   ) where
 
 import qualified Aws.S3 as S3
-import           Aws.S3 hiding (headObject, putObject)
+import           Aws.S3 hiding (headObject, putObject, multipartUpload)
 
 import           Control.Arrow ((***))
 
 import           Control.Concurrent.MSem
 import           Control.Concurrent.Async
+import           Control.Retry
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class (lift)
@@ -69,6 +70,7 @@ import           System.Directory
 
 import           X.Data.Conduit.Binary
 
+
 sse :: ServerSideEncryption
 sse =
   AES256
@@ -96,12 +98,12 @@ read a =
    fmap Just . lift . fmap (T.decodeUtf8 . BS.concat) . ($$+- C.consume) . responseBody . S3.gorResponse)
   `catch` (\(e :: S3.S3Error) -> if S3.s3StatusCode e == status404 then pure Nothing else throwM e)
 
-download :: Address -> FilePath -> S3Action ()
-download a p =
-  downloadWithMode Fail a p
+download :: RetryPolicy -> Address -> FilePath -> S3Action ()
+download rp a p =
+  downloadWithMode rp Fail a p
 
-downloadWithMode :: WriteMode -> Address -> FilePath -> S3Action ()
-downloadWithMode mode a p = do
+downloadWithMode :: RetryPolicy -> WriteMode -> Address -> FilePath -> S3Action ()
+downloadWithMode rp mode a p = do
   when (mode == Fail) . whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
   unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
   liftIO $ createDirectoryIfMissing True (dropFileName p)
@@ -109,7 +111,7 @@ downloadWithMode mode a p = do
   size <- maybe (fail $ "Can not calculate the file size [" <> (T.unpack $ addressToText a) <> "].") pure s'
   if (size > 200 * 1024 * 1024)
      then
-       multipartDownload a p size 100 100
+       multipartDownload rp a p size 100 100
      else
        downloadSingle a p
 
@@ -117,8 +119,8 @@ downloadSingle :: Address -> FilePath -> S3Action ()
 downloadSingle a p = withFileSafe p $ \p' ->
   awsRequest (f' S3.getObject a) >>= lift . ($$+- sinkFile p') . responseBody . S3.gorResponse
 
-multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
-multipartDownload source destination' size chunk' fork = withFileSafe destination' $ \destination -> do
+multipartDownload :: RetryPolicy -> Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
+multipartDownload rp source destination' size chunk' fork = withFileSafe destination' $ \destination -> do
   -- get config / region to run currently
   (cfg, s3', mgr) <- ask
   r <- maybe (fail $ "Invalid s3 endpoint [" <> (show $ s3Endpoint s3') <> "].") pure (epToRegion $ s3Endpoint s3')
@@ -131,7 +133,7 @@ multipartDownload source destination' size chunk' fork = withFileSafe destinatio
       writer (o, c, _) = do
         let req = downloadPart source o (o + c) destination
             ioq = runResourceT $ runS3WithManager cfg r mgr req
-        retryHttp 3 ioq
+        retryHttpWithPolicy rp ioq
 
   -- create sparse file
   liftIO $ withFile destination WriteMode $ \h ->
@@ -145,28 +147,24 @@ downloadPart :: Address -> Int -> Int -> FilePath -> S3Action ()
 downloadPart source start end destination =
   liftAWSAction $ AWS.downloadWithRange source start end destination
 
-upload :: FilePath -> Address -> S3Action ()
-upload file a = do
+uploadCheck :: FilePath -> Address -> S3Action Upload
+uploadCheck file a = do
   whenM (exists a) . fail $ "Can not upload to a target that already exists [" <> (T.unpack $ addressToText a) <> "]."
   unlessM (liftIO $ doesFileExist file) . fail $ "Can not upload when the source does not exist [" <> file <> "]."
   s <- liftIO $ withFile file ReadMode $ \h ->
     hFileSize h
   let chunk = 100 * 1024 * 1024
-  if s < chunk
-    then do
-      upload' file a
-    else do
-      if (s > 1024 * 1024 * 1024)
-         then multipartUpload' file a s (10 * chunk)
-         else multipartUpload' file a s chunk
+  pure $ if s < chunk
+    then UploadSingle
+    else UploadMultipart s (if s > 1024 * 1024 * 1024 then 10 * chunk else chunk)
 
-upload' :: FilePath -> Address -> S3Action ()
-upload' file a = do
+uploadSingle :: FilePath -> Address -> S3Action ()
+uploadSingle file a = do
   x <- liftIO $ LBS.readFile file
   void . awsRequest $ putObject a (RequestBodyLBS x) sse
 
-multipartUpload' :: FilePath -> Address -> Integer -> Integer -> S3Action ()
-multipartUpload' file a fileSize chunk = do
+multipartUpload :: RetryPolicy -> FilePath -> Address -> Integer -> Integer -> S3Action ()
+multipartUpload rp file a fileSize chunk = do
   let mpu = (f' S3.postInitiateMultipartUpload a) { imuServerSideEncryption = Just sse }
   mpur <- awsRequest mpu
   (cfg, scfg, mgr) <- ask
@@ -178,7 +176,7 @@ multipartUpload' file a fileSize chunk = do
             let up = (f' S3.uploadPart a (toInteger i) upi body)
             let runUpPart = flip runReaderT (cfg, scfg, mgr) $ awsRequest up
             let res = (runResourceT runUpPart >>= pure . Right) `catch` (\(e :: S3.S3Error) -> pure . Left $ e)
-            retryHttp 3 res
+            retryHttpWithPolicy rp res
           )
   prts <- liftIO (mapConcurrently x p)
   case sequence prts of
@@ -199,15 +197,6 @@ writeWithMode w a t = do
     Overwrite   -> return ()
   let body = RequestBodyBS $ T.encodeUtf8 t
   void . awsRequest $ putObject a body sse
-
-copy :: Address -> Address -> S3Action ()
-copy s d =
-  liftAWSAction $ AWS.copy s d
-
-move :: Address -> Address -> S3Action ()
-move source destination =
-  copy source destination >>
-    delete source
 
 putObject :: Address -> RequestBody -> S3.ServerSideEncryption -> S3.PutObject
 putObject a body e =
@@ -267,7 +256,3 @@ getObjectsRecursively (Address (Bucket b) (Key ky)) =
 listRecursively :: Address -> S3Action [Address]
 listRecursively a =
   fmap (Address (bucket a) . Key . S3.objectKey) <$> getObjectsRecursively a
-
-sync :: SyncMode -> Address -> Address -> Int -> S3Action ()
-sync mode source dest fork =
-  liftAWSAction $ AWS.syncWithMode mode source dest fork

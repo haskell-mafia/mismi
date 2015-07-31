@@ -26,8 +26,8 @@ import           Disorder.Core.IO
 import           Disorder.Core.UniquePair hiding (snd)
 
 import           Mismi.S3.Control
-import           Mismi.S3.Commands
 import           Mismi.S3.Data
+import           Mismi.S3.Default
 
 import           P
 
@@ -159,7 +159,7 @@ prop_write_nonexisting w t = testS3 $ \a -> do
 prop_read_empty :: Key -> Property
 prop_read_empty k = ioProperty $ do
   bucket' <- testBucket
-  t <- retryHttp 5 . runS3WithDefaults . read $ Address bucket' k
+  t <- runS3WithDefaults . read $ Address bucket' k
   pure $ t === Nothing
 
 prop_getObjects_empty :: Property
@@ -232,13 +232,13 @@ prop_size_failure = testS3 $ \a -> do
 testLocalS3 :: Testable a => (FilePath -> Address -> S3Action a) -> Property
 testLocalS3 f =
   property $ \t -> testIO . withSystemTempDirectory "mismi" $ \p ->
-    retryHttpWithMessage 5 "https://github.com/ambiata/mismi/issues/125" . runS3WithDefaults . withToken t $ \a ->
+    runS3WithDefaults . withToken t $ \a ->
       f p a
 
 testS3 :: Testable a => (Address -> S3Action a) -> Property
 testS3 f =
   property $ \t -> testIO .
-    retryHttpWithMessage 5 "https://github.com/ambiata/mismi/issues/125" . runS3WithDefaults . withToken t $ \a ->
+    runS3WithDefaults . withToken t $ \a ->
       f a
 
 return []

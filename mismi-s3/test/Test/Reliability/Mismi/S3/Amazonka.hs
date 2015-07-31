@@ -12,9 +12,9 @@ import qualified Data.Text as T
 
 import           Disorder.Corpus
 
-import           Mismi.S3.Amazonka
-import qualified Mismi.S3.Commands as S3
 import           Mismi.S3.Data
+import qualified Mismi.S3.Default as S3
+import           Mismi.S3.DefaultK
 
 import           P
 

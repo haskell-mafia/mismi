@@ -65,7 +65,10 @@ library
                        Mismi.S3.Commands
                        Mismi.S3.Control
                        Mismi.S3.Data
+                       Mismi.S3.Default
+                       Mismi.S3.DefaultK
                        Mismi.S3.Internal
+                       Mismi.S3.Retry
 
 executable s3
   main-is:             s3.hs

@@ -7,6 +7,9 @@ module Mismi.S3.Data (
   , Bucket(..)
   , Address (..)
   , Key (..)
+  , Upload (..)
+  , S3.ObjectInfo (..)
+  , S3.ObjectMetadata (..)
   , (</>)
   , combineKey
   , dirname
@@ -19,6 +22,8 @@ module Mismi.S3.Data (
   , withKey
   , s3Parser
   ) where
+
+import qualified Aws.S3 as S3
 
 import           Data.Align
 import           Data.Attoparsec.Text hiding (parse, Fail)
@@ -73,6 +78,11 @@ newtype Key = Key {
 instance Show Address where
   show (Address b k) =
     "Address (" <> show b <> ") (" <> show k <> ")"
+
+data Upload =
+    UploadSingle
+  | UploadMultipart Integer Integer
+  deriving (Eq, Show)
 
 (</>) :: Key -> Key -> Key
 (</>) = combineKey
