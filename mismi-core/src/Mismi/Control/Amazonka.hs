@@ -45,6 +45,7 @@ import           Mismi.Environment
 import           Network.AWS.Data
 
 import           Network.HTTP.Client (Manager)
+import           Network.HTTP.Client.Internal (mResponseTimeout)
 import           Network.HTTP.Types.Status
 
 import           P
@@ -100,11 +101,13 @@ runAWSWithCreds r ak sk st ex a = do
 runAWSDefaultRegion :: AWS a -> EitherT AWSError IO a
 runAWSDefaultRegion a = do
   r <- EitherT . fmap (first AWSRegionError) $ getRegionFromEnv
-  runAWS r a
+  e <- liftIO $ AWS.getEnv r Discover
+  runAWSWithEnv e a
 
 runAWSWithEnv :: Env -> AWS a -> EitherT AWSError IO a
 runAWSWithEnv e a =
-  EitherT . fmap (first AWSRunError) $ runAWST e a
+  let e' = over envManager (\m -> m { mResponseTimeout = Just 60000000 }) e
+  in EitherT . fmap (first AWSRunError) $ runAWST e' a
 
 -- Unfortunately amazonka doesn't expose this function in the current version
 getEnvWithManager :: Region -> AWS.Credentials -> Manager -> IO Env

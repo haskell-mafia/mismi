@@ -40,6 +40,7 @@ import           Mismi.Control
 import           Mismi.S3.Internal
 
 import           Network.HTTP.Client (HttpException, Manager)
+import           Network.HTTP.Client.Internal (mResponseTimeout)
 import           Network.HTTP.Conduit (withManager)
 
 import qualified Network.AWS.S3.Types as AWS
@@ -62,7 +63,7 @@ runS3WithRegion r action =
 
 runS3WithCfg :: Aws.Configuration -> Region -> S3Action a -> IO a
 runS3WithCfg cfg r action =
-  withManager (\m -> runS3WithManager cfg r m action)
+  withManager (\m -> runS3WithManager cfg r m { mResponseTimeout = Just 60000000 } action)
 
 runS3WithManager :: Aws.Configuration -> Region -> Manager -> S3Action a -> ResourceT IO a
 runS3WithManager cfg r m action =
