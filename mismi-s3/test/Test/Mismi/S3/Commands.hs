@@ -4,7 +4,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Test.Mismi.S3.Commands where
 
-import           Mismi.S3.Commands
+import           Mismi.S3.Internal
 
 import           P
 
