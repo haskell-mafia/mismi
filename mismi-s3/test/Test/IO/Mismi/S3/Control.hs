@@ -6,8 +6,7 @@ module Test.IO.Mismi.S3.Control where
 
 import           Data.Text
 
-import           Mismi.S3.Control
-import           Mismi.S3.Commands
+import           Mismi.S3
 
 import           P
 

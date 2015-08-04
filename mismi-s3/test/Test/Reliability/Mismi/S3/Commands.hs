@@ -12,9 +12,7 @@ import qualified Data.Text as T
 
 import           Disorder.Corpus
 
-import           Mismi.S3.Control
-import           Mismi.S3.Data
-import           Mismi.S3.Default
+import           Mismi.S3
 
 import           P
 
