@@ -8,8 +8,6 @@ module Test.Mismi.Amazonka (
   , withAWS'
   , withLocalAWS
   , withAWSToken
-  , liftS3
-  , unsafeAWS
   ) where
 
 import           Data.Text as T
@@ -19,12 +17,9 @@ import           Data.UUID.V4 as U
 
 import           Control.Lens
 import           Control.Monad.Trans.AWS hiding (AWSError)
-import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class (liftIO)
 
-import qualified Mismi.Control.Amazonka as A
-import           Mismi.S3.Amazonka
-import           Mismi.S3.Control
+import           Mismi.S3.Commands
 import           Mismi.S3.Internal
 import           Mismi.S3.Data
 
@@ -38,7 +33,6 @@ import           Disorder.Core.IO
 import           P
 
 import           System.FilePath
-import           System.IO
 import           System.IO.Temp
 
 import           Test.QuickCheck
@@ -78,17 +72,9 @@ withMultipart f =
     testIO . unsafeAWS . runAWS Sydney . withAWSToken t $ \a ->
       awsBracket (createMultipart a) (abortMultipart' a) (f a)
 
--- Placeholder for extra debugging logic if required
-liftS3 :: S3Action a -> AWS a
-liftS3 = liftS3Action
-
 withAWSToken :: Token -> (Address -> AWS a) -> AWS a
 withAWSToken t f = do
   b <- liftIO testBucket
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom
   let a = Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
   awsBracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
-
-unsafeAWS :: EitherT A.AWSError IO a -> IO a
-unsafeAWS =
-  eitherT (fail . show . awsErrorRender) pure

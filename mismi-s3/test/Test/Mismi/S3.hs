@@ -9,7 +9,6 @@ module Test.Mismi.S3 (
   ) where
 
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Catch (bracket_)
 
 import qualified Data.List as L
 import           Data.Text as T
@@ -21,6 +20,7 @@ import           Disorder.Corpus
 import           System.Posix.Env
 import           System.FilePath hiding ((</>))
 
+import           Mismi.Control.Amazonka
 import           Mismi.S3
 
 import           P
@@ -65,4 +65,4 @@ withToken t f = do
   b <- liftIO testBucket
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom
   let a = Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
-  bracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
+  awsBracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)

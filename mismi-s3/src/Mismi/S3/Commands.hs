@@ -1,258 +1,505 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PackageImports #-}
 module Mismi.S3.Commands (
-    exists
+    module AWS
+  , module A
+  , A.AWSError
+  , A.throwAWSError
+  , headObject
+  , exists
+  , getSize
   , delete
   , read
-  , headObject
-  , download
-  , downloadWithMode
-  , multipartDownload
-  , uploadCheck
+  , copy
+  , copyWithMode
+  , move
+  , upload
+  , multipartUpload'
   , uploadSingle
-  , multipartUpload
-  , calculateChunks
   , write
   , writeWithMode
   , getObjects
+  , getObjectsRecursively
   , listObjects
   , list
-  , getObjectsRecursively
+  , download
+  , downloadWithMode
+  , downloadSingle
+  , downloadWithRange
+  , multipartDownload
+  , listMultipartParts
+  , listMultiparts
+  , listOldMultiparts
+  , listOldMultiparts'
+  , abortMultipart
+  , abortMultipart'
+  , filterOld
+  , filterNDays
   , listRecursively
-  , getSize
+  , listRecursively'
+  , sync
+  , syncWithMode
+  , retryAWSAction
+  , retryAWS
+  , retryAWS'
+  , sse
   ) where
 
-import qualified Aws.S3 as S3
-import           Aws.S3 hiding (headObject, putObject, multipartUpload)
 
 import           Control.Arrow ((***))
 
+import           Control.Concurrent
 import           Control.Concurrent.MSem
 import           Control.Concurrent.Async
-import           Control.Retry
 
-import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Catch (catch)
-import           Control.Monad.Trans.Reader
+import           Control.Lens
+import           Control.Retry
+import           Control.Monad.Catch
+import           Control.Monad.Cont (ContT(..))
+import           Control.Monad.Morph (hoist)
+import           Control.Monad.Trans.AWS
+import           Control.Monad.Trans.Cont (evalContT)
+import           Control.Monad.Trans.Either hiding (hoistEither)
 import           Control.Monad.Trans.Resource
+import           Control.Monad.Reader (ask, local)
+import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
+
 import           Data.Conduit
+import qualified Data.Conduit.List as DC
 import           Data.Conduit.Binary
-import qualified Data.Conduit.List as C
+
+import           Data.String
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
-import qualified Data.Text as T
+import qualified Data.Semigroup as SG
 import           Data.Text (Text)
-import           Data.Text.Encoding as T
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TL
+import           Data.Time.Clock
 
-import           Mismi.Control
-import qualified Mismi.S3.Amazonka as AWS
-import           Mismi.S3.Control
+import           Mismi.Control.Amazonka hiding (AWSError, throwAWSError)
+import qualified Mismi.Control.Amazonka as A
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 
-import           Network.HTTP.Conduit (responseBody, requestBodySource , RequestBody(..))
-import           Network.HTTP.Types.Status (status404)
+import           Network.AWS.S3 hiding (headObject, Bucket, bucket, listObjects)
+import qualified Network.AWS.S3 as AWS
+import           Network.AWS.Data hiding (Object, list)
+import           Network.HTTP.Client (HttpException (..))
+import           Network.HTTP.Types.Status (status500, status404)
 
 import           P
-
 import           Prelude (error)
 
 import           System.IO
-import           System.FilePath
+import           System.IO.Error (userError)
 import           System.Directory
+import           System.FilePath hiding ((</>))
+import           System.Posix.IO
+import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
-import           X.Data.Conduit.Binary
+headObject :: Address -> AWS (Maybe HeadObjectResponse)
+headObject a = do
+  res <- sendCatch $ fencode' AWS.headObject a
+  handle404 res
 
-
-sse :: ServerSideEncryption
-sse =
-  AES256
-
-exists :: Address -> S3Action Bool
+exists :: Address -> AWS Bool
 exists a =
-  headObject a >>= pure . isJust
+  headObject a >>= pure . maybe False (const True)
 
-headObject :: Address -> S3Action (Maybe S3.ObjectMetadata)
-headObject a =
-  awsRequest (f' S3.headObject a) >>= pure . S3.horMetadata
-
-getSize :: Address -> S3Action (Maybe Int)
+getSize :: Address -> AWST IO (Maybe Int)
 getSize a =
-  ifM (exists a) (liftAWSAction $ AWS.getSize a) (pure Nothing)
+  headObject a >>= pure . maybe Nothing (^. horContentLength)
 
-delete :: Address -> S3Action ()
-delete a =
-  void . awsRequest $ ff' S3.DeleteObject a
+delete :: Address -> AWS ()
+delete =
+  send_ . fencode' deleteObject
 
-read :: Address -> S3Action (Maybe Text)
-read a =
-  let get = f' S3.getObject a in
-  (awsRequest get >>=
-   fmap Just . lift . fmap (T.decodeUtf8 . BS.concat) . ($$+- C.consume) . responseBody . S3.gorResponse)
-  `catch` (\(e :: S3.S3Error) -> if S3.s3StatusCode e == status404 then pure Nothing else throwM e)
+handle404 :: Either (ServiceError RESTError) a -> AWS (Maybe a)
+handle404 res = case res of
+  Left e -> case e of
+    HttpError e' -> case e' of
+      StatusCodeException s _ _ ->
+        if s == status404
+          then pure Nothing
+          else throwAWSError e
+      _ -> throwAWSError e
+    SerializerError _ _ -> throwAWSError e
+    ServiceError _ s _ ->
+      if s == status404
+        then pure Nothing
+        else throwAWSError e
+    Errors _ -> throwAWSError e
+  Right rs -> pure $ Just rs
 
-download :: RetryPolicy -> Address -> FilePath -> S3Action ()
-download rp a p =
-  downloadWithMode rp Fail a p
+getObject' :: Address -> AWS (Maybe GetObjectResponse)
+getObject' a = do
+  let req = fencode' getObject a
+  res <- sendCatch req
+  handle404 res
 
-downloadWithMode :: RetryPolicy -> WriteMode -> Address -> FilePath -> S3Action ()
-downloadWithMode rp mode a p = do
-  when (mode == Fail) . whenM (liftIO $ doesFileExist p) . fail $ "Can not download to a target that already exists [" <> p <> "]."
-  unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
-  liftIO $ createDirectoryIfMissing True (dropFileName p)
-  s' <- getSize a
-  size <- maybe (fail $ "Can not calculate the file size [" <> (T.unpack $ addressToText a) <> "].") pure s'
-  if (size > 200 * 1024 * 1024)
-     then
-       multipartDownload rp a p size 100 100
-     else
-       downloadSingle a p
+read :: Address -> AWS (Maybe Text)
+read a = do
+  resp <- getObject' a
+  let format y = T.concat . TL.toChunks . TL.decodeUtf8 $ y
+  z <- liftIO . sequence $ (\r -> runResourceT (r ^. gorBody . _RsBody $$+- sinkLbs)) <$> resp
+  pure (format <$> z)
 
-downloadSingle :: Address -> FilePath -> S3Action ()
-downloadSingle a p = withFileSafe p $ \p' ->
-  awsRequest (f' S3.getObject a) >>= lift . ($$+- sinkFile p') . responseBody . S3.gorResponse
+copy :: Address -> Address -> AWS ()
+copy source dest =
+  copyWithMode Fail source dest
 
-multipartDownload :: RetryPolicy -> Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
-multipartDownload rp source destination' size chunk' fork = withFileSafe destination' $ \destination -> do
-  -- get config / region to run currently
-  (cfg, s3', mgr) <- ask
-  r <- maybe (fail $ "Invalid s3 endpoint [" <> (show $ s3Endpoint s3') <> "].") pure (epToRegion $ s3Endpoint s3')
+copyWithMode :: WriteMode -> Address -> Address -> AWS ()
+copyWithMode mode s d = do
+  unlessM (exists s) . fail $ "Can not copy when the soruce does not exists exists [" <> (T.unpack $ addressToText s)  <> "]."
+  foldWriteMode  (whenM (exists d) . fail $ "Can not copy to a file that already exists [" <> (T.unpack $ addressToText d) <> "].") (pure ()) mode
+  copy' s d
 
-  -- chunks
-  let chunk = chunk' * 1024 * 1024
-  let chunks = calculateChunks size (fromInteger chunk)
+copy' :: Address -> Address -> AWS ()
+copy' (Address (Bucket sb) (Key sk)) (Address (Bucket b) k) =
+  send_ $ copyObject b (sb <> "/" <> sk) (encodeKey k) & coServerSideEncryption .~ Just sse & coMetadataDirective .~ Just Copy
 
-  let writer :: (Int, Int, Int) -> IO ()
-      writer (o, c, _) = do
-        let req = downloadPart source o (o + c) destination
-            ioq = runResourceT $ runS3WithManager cfg r mgr req
-        retryHttpWithPolicy rp ioq
+move :: Address -> Address -> AWS ()
+move source destination' =
+  copy source destination' >>
+    delete source
 
-  -- create sparse file
-  liftIO $ withFile destination WriteMode $ \h ->
-    hSetFileSize h (toInteger size)
-
-  sem <- liftIO $ new fork
-  z <- liftIO $ (mapConcurrently (with sem . writer) chunks)
-  pure $ mconcat z
-
-downloadPart :: Address -> Int -> Int -> FilePath -> S3Action ()
-downloadPart source start end destination =
-  liftAWSAction $ AWS.downloadWithRange source start end destination
-
-uploadCheck :: FilePath -> Address -> S3Action Upload
-uploadCheck file a = do
+upload :: FilePath -> Address -> AWS ()
+upload f a = do
   whenM (exists a) . fail $ "Can not upload to a target that already exists [" <> (T.unpack $ addressToText a) <> "]."
-  unlessM (liftIO $ doesFileExist file) . fail $ "Can not upload when the source does not exist [" <> file <> "]."
-  s <- liftIO $ withFile file ReadMode $ \h ->
+  unlessM (liftIO $ doesFileExist f) . fail $ "Can not upload when the source does not exist [" <> f <> "]."
+  s <- liftIO $ withFile f ReadMode $ \h ->
     hFileSize h
   let chunk = 100 * 1024 * 1024
-  pure $ if s < chunk
-    then UploadSingle
-    else UploadMultipart s (if s > 1024 * 1024 * 1024 then 10 * chunk else chunk)
+  if s < chunk
+    then do
+      uploadSingle f a
+    else do
+      if (s > 1024 * 1024 * 1024)
+         then multipartUpload' f a s (10 * chunk)
+         else multipartUpload' f a s chunk
 
-uploadSingle :: FilePath -> Address -> S3Action ()
+uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
   x <- liftIO $ LBS.readFile file
-  void . awsRequest $ putObject a (RequestBodyLBS x) sse
+  send_ $ fencode' (putObject $ toBody x) a & poServerSideEncryption .~ pure sse
 
-multipartUpload :: RetryPolicy -> FilePath -> Address -> Integer -> Integer -> S3Action ()
-multipartUpload rp file a fileSize chunk = do
-  let mpu = (f' S3.postInitiateMultipartUpload a) { imuServerSideEncryption = Just sse }
-  mpur <- awsRequest mpu
-  (cfg, scfg, mgr) <- ask
-  let upi :: Text = S3.imurUploadId mpur
-  let p = calculateChunks (fromInteger fileSize) (fromInteger chunk)
-  let x :: (Int, Int, Int) -> IO (Either S3.S3Error S3.UploadPartResponse) = (\(o :: Int, c :: Int, i :: Int) -> do
-            let body = requestBodySource (fromInteger . toInteger $ c) $
-                  slurpWithBuffer file (toInteger o) (Just $ toInteger c) (1024 * 1024)
-            let up = (f' S3.uploadPart a (toInteger i) upi body)
-            let runUpPart = flip runReaderT (cfg, scfg, mgr) $ awsRequest up
-            let res = (runResourceT runUpPart >>= pure . Right) `catch` (\(e :: S3.S3Error) -> pure . Left $ e)
-            retryHttpWithPolicy rp res
-          )
-  prts <- liftIO (mapConcurrently x p)
-  case sequence prts of
-    Left _ ->
-      void . awsRequest $ f' S3.postAbortMultipartUpload a upi
-    Right prts' -> do
-      let prts'' = (uncurry (\(_, _, i) pr -> (toInteger i, uprETag pr))) <$> L.zip p prts'
-      void . awsRequest $ (f' S3.postCompleteMultipartUpload a upi prts'')
+multipartUpload' :: FilePath -> Address -> Integer -> Integer -> AWS ()
+multipartUpload' file a fileSize chunk = do
+  e <- ask
+  mpu' <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ pure sse
+  mpu <- maybe (fail "Failed to create multipart upload") pure (mpu' ^. cmurUploadId)
 
-write :: Address -> Text -> S3Action ()
+  let chunks = calculateChunks (fromInteger fileSize) (fromInteger chunk)
+  let uploader :: (Int, Int, Int) -> IO (Either A.AWSError UploadPartResponse)
+      uploader (o, c, i) = evalContT $ do
+         h <- ContT $ withFile file ReadMode
+         req' <- liftIO $ do
+           hSeek h AbsoluteSeek (toInteger o)
+           cont <- LBS.hGetContents h
+           let bod = toBody (LBS.take (fromIntegral c) cont)
+           return $ fencode' (uploadPart bod) a i mpu
+         liftIO . runEitherT . runAWSWithEnv e $ send req'
+
+  prts <- liftIO $ mapConcurrently uploader chunks
+  case partitionEithers prts of
+    ([], ps) -> do
+      let cps = L.zipWith (\(_, _, i) p -> completedPart & cpPartNumber .~ pure i & cpETag .~ (p ^. uprETag)) chunks ps
+      send_ $ fencode' completeMultipartUpload a mpu &
+          cmu1MultipartUpload .~ (pure $ completedMultipartUpload & cmuParts .~ cps)
+    (_, _) -> send_ $ fencode' abortMultipartUpload a mpu
+
+write :: Address -> Text -> AWS ()
 write =
   writeWithMode Fail
 
-writeWithMode :: WriteMode -> Address -> Text -> S3Action ()
+writeWithMode :: WriteMode -> Address -> Text -> AWS ()
 writeWithMode w a t = do
   case w of
     Fail        -> whenM (exists a) . fail $ "Can not write to a file that already exists [" <> show a <> "]."
     Overwrite   -> return ()
-  let body = RequestBodyBS $ T.encodeUtf8 t
-  void . awsRequest $ putObject a body sse
-
-putObject :: Address -> RequestBody -> S3.ServerSideEncryption -> S3.PutObject
-putObject a body e =
-  (f' S3.putObject a body) { S3.poServerSideEncryption = Just e }
+  send_ $ fencode' (putObject . toBody . T.encodeUtf8 $ t) a & poServerSideEncryption .~ Just sse
 
 -- pair of prefixs and keys
-getObjects :: Address -> S3Action ([Key], [Key])
+getObjects :: Address -> AWS ([Key], [Key])
 getObjects (Address (Bucket buck) (Key ky)) =
-  ((Key <$>) *** (Key <$>)) <$> (ff $ (S3.getBucket buck) { S3.gbPrefix = Just $ pp ky, S3.gbDelimiter = Just $ "/" })
+  ((Key <$>) *** (Key <$>)) <$> (ff $ (AWS.listObjects buck & loPrefix .~ Just (pp ky) & loDelimiter .~ Just "/" ))
   where
     pp :: Text -> Text
     pp k = if T.null k then "" else if T.isSuffixOf "/" k then k else k <> "/"
-    ff :: S3.GetBucket -> S3Action ([T.Text], [T.Text])
+    ff :: ListObjects -> AWS ([T.Text], [T.Text])
     ff b = do
-      r <- awsRequest b
-      if S3.gbrIsTruncated r
+      r <- send b
+      if r ^. lorIsTruncated == Just True
         then
         do
-          let d = (S3.gbrCommonPrefixes r, S3.objectKey <$> S3.gbrContents r)
-          n <- ff $ b { S3.gbMarker = S3.gbrNextMarker r }
+          let d = (maybeToList =<< fmap (^. cpPrefix) (r ^. lorCommonPrefixes), fmap (^. oKey) (r ^. lorContents))
+          n <- ff $ b & loMarker .~ (r ^. lorNextMarker)
           pure $ (d <> n)
         else
-        pure $ (S3.gbrCommonPrefixes r, S3.objectKey <$> S3.gbrContents r)
+        pure $ (maybeToList =<< fmap (^. cpPrefix) (r ^. lorCommonPrefixes), fmap (^. oKey) (r ^. lorContents))
 
--- Pair of list of prefixes and list of keys
-listObjects :: Address -> S3Action ([Address], [Address])
-listObjects a =
-  (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k) )<$> getObjects a
-
--- list the addresses, keys first, then prefixes
-list :: Address -> S3Action [Address]
-list a =
-  (\(p, k) -> k <> p) <$> listObjects a
-
-getObjectsRecursively :: Address -> S3Action [S3.ObjectInfo]
+getObjectsRecursively :: Address -> AWS [Object]
 getObjectsRecursively (Address (Bucket b) (Key ky)) =
-  getObjects' $ (S3.getBucket b) { S3.gbPrefix = Just $ pp ky }
+  getObjects' $ (AWS.listObjects b) & loPrefix .~ Just (pp ky)
   where
     pp :: Text -> Text
     pp k = if T.null k then "" else if T.isSuffixOf "/" k then k else k <> "/"
     -- Hoping this will have ok performance in cases where the results are large, it shouldnt
     -- affect correctness since we search through the list for it anyway
-    go :: S3.GetBucket -> NEL.NonEmpty S3.ObjectInfo -> S3Action [S3.ObjectInfo]
-    go x ks = (NEL.toList ks <>) <$> getObjects' (x { S3.gbMarker = Just $ S3.objectKey $ NEL.last ks })
-    getObjects' :: S3.GetBucket -> S3Action [S3.ObjectInfo]
+    go x ks = (NEL.toList ks <>) <$> getObjects' (x & loMarker .~ Just (NEL.last ks ^. oKey))
+    getObjects' :: ListObjects -> AWS [Object]
     getObjects' x = do
-      resp <- awsRequest x
-      if S3.gbrIsTruncated resp
+      resp <- send x
+      if resp ^. lorIsTruncated == Just True
         then
           maybe
             (Prelude.error "vee: error: truncated response with empty contents list.")
             (go x)
-            (NEL.nonEmpty $ S3.gbrContents resp)
+            (NEL.nonEmpty $ resp ^. lorContents)
         else
-          pure $ S3.gbrContents resp
+          pure $ resp ^. lorContents
 
-listRecursively :: Address -> S3Action [Address]
-listRecursively a =
-  fmap (Address (bucket a) . Key . S3.objectKey) <$> getObjectsRecursively a
+-- Pair of list of prefixes and list of keys
+listObjects :: Address -> AWS ([Address], [Address])
+listObjects a =
+  (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k) )<$> getObjects a
+
+-- list the addresses, keys first, then prefixes
+list :: Address -> AWS [Address]
+list a =
+  (\(p, k) -> k <> p) <$> listObjects a
+
+download :: Address -> FilePath -> AWS ()
+download = downloadWithMode Fail
+
+downloadWithMode :: WriteMode -> Address -> FilePath -> AWS ()
+downloadWithMode mode a f = do
+  when (mode == Fail) . whenM (liftIO $ doesFileExist f) . fail $ "Can not download to a target that already exists [" <> f <> "]."
+  unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
+  liftIO $ createDirectoryIfMissing True (dropFileName f)
+  r <- getObject' a
+  r' <- maybe (fail "shit") pure r
+  liftIO . runResourceT . ($$+- sinkFile f) $ r' ^. gorBody ^. _RsBody
+
+downloadSingle :: Address -> FilePath -> AWS ()
+downloadSingle a p = do
+  r <- send $ fencode' getObject a
+  liftIO . withFileSafe p $ \p' ->
+    runResourceT . ($$+- sinkFile p') $ r ^. gorBody ^. _RsBody
+
+
+multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> AWS ()
+multipartDownload source destination' size chunk' fork = do
+  e <- ask
+
+  let chunk = chunk' * 1024 * 1024
+  let chunks = calculateChunks size (fromInteger chunk)
+
+  let writer :: (Int, Int, Int) -> IO (Either A.AWSError ())
+      writer (o, c, _) = do
+        let req = downloadWithRange source o (o + c) destination'
+            ioq = runAWSWithEnv e req
+        runEitherT ioq
+
+  -- create sparse file
+  liftIO $ withFile destination' WriteMode $ \h ->
+    hSetFileSize h (toInteger size)
+
+  sem <- liftIO $ new fork
+  z <- liftIO $ (mapConcurrently (with sem . writer) chunks)
+  hoistAWSError $ foldl' (SG.<>) (Right ()) z
+
+downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
+downloadWithRange source start end dest = do
+  let req = fencode' getObject source & goRange .~ (Just $ downRange start end)
+  r <- send req
+  let p :: AWS.GetObjectResponse = r
+  let y :: RsBody = p ^. AWS.gorBody
+
+  fd <- liftIO $ openFd dest WriteOnly Nothing defaultFileFlags
+  void . liftIO $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
+  liftIO $ do
+    let rs :: ResumableSource (ResourceT IO) BS.ByteString = y ^. _RsBody
+    let s = awaitForever $ \bs -> liftIO $
+              UBS.fdWrite fd bs
+    runResourceT $ ($$+- s) rs
+  liftIO $ closeFd fd
+
+listMultipartParts :: Address -> T.Text -> AWS [Part]
+listMultipartParts a uploadId = do
+  let req = fencode' AWS.listParts a uploadId
+  paginate req $$ DC.foldMap (^. lprParts)
+
+listMultiparts :: Bucket -> AWS [MultipartUpload]
+listMultiparts b = do
+  let req = listMultipartUploads $ unBucket b
+  paginate req $$ DC.foldMap (^. lmurUploads)
+
+listOldMultiparts :: Bucket -> AWS [MultipartUpload]
+listOldMultiparts b = do
+  mus <- listMultiparts b
+  now <- liftIO getCurrentTime
+  pure $ filter (filterOld now) mus
+
+listOldMultiparts' :: Bucket -> Int -> AWS [MultipartUpload]
+listOldMultiparts' b i = do
+  mus <- listMultiparts b
+  now <- liftIO getCurrentTime
+  pure $ filter (filterNDays i now) mus
+
+filterOld :: UTCTime -> MultipartUpload -> Bool
+filterOld = filterNDays 7
+
+filterNDays :: Int -> UTCTime -> MultipartUpload -> Bool
+filterNDays n now m = case m ^. muInitiated of
+  Nothing -> False
+  Just x -> nDaysOld n now x
+
+nDaysOld :: Int -> UTCTime -> UTCTime -> Bool
+nDaysOld n now utc = do
+  let n' = fromInteger $ toInteger n
+  let diff = -1 * 60 * 60 * 24 * n' :: NominalDiffTime
+  let boundary = addUTCTime diff now
+  boundary > utc
+
+abortMultipart :: Bucket -> MultipartUpload -> AWS ()
+abortMultipart (Bucket b) mu = do
+  let x :: String -> ServiceError String = ServiceError "amu" status500
+  k <- maybe (throwAWSError $ x "Multipart key missing") pure (mu ^. muKey)
+  i <- maybe (throwAWSError $ x "Multipart uploadId missing") pure (mu ^. muUploadId)
+  abortMultipart' (Address (Bucket b) (Key k)) i
+
+abortMultipart' :: Address -> T.Text -> AWS ()
+abortMultipart' a i =
+  send_ $ fencode' abortMultipartUpload a i
+
+listRecursively :: Address -> AWS [Address]
+listRecursively a = do
+  a' <- listRecursively' a
+  a' $$ DC.consume
+
+listRecursively' :: Address -> AWS (Source AWS Address)
+listRecursively' a@(Address (Bucket b) (Key k)) = do
+  e <- ask
+  pure . hoist (retryConduit e) $ (paginate $ AWS.listObjects b & loPrefix .~ Just k) =$= liftAddress a
+
+liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
+liftAddress a =
+  DC.mapFoldable (\r -> (\o -> a { key = Key $ o ^. oKey }) <$> (r ^. lorContents) )
+
+retryConduit :: Env -> AWS a -> AWS a
+retryConduit e action =
+  local (const e) action
+
+sync :: Address -> Address -> Int -> AWS ()
+sync =
+  syncWithMode FailSync
+
+syncWithMode :: SyncMode -> Address -> Address -> Int -> AWS ()
+syncWithMode mode source dest fork = do
+  (c, r) <- liftIO $ (,) <$> newChan <*> newChan
+  e <- ask
+
+  -- worker
+  tid <- liftIO $ forM [1..fork] (const . forkIO $ worker source dest mode e c r)
+
+  -- sink list to channel
+  l <- listRecursively' source
+  i <- sinkChanWithDelay 50000 l c
+
+  -- wait for threads and lift errors
+  r' <- liftIO $ waitForNResults i r
+  liftIO $ forM_ tid killThread
+  forM_ r' hoistWorkerResult
+
+hoistWorkerResult :: WorkerResult -> AWS ()
+hoistWorkerResult =
+  foldWR hoistErr (pure ())
+
+hoistErr :: Err -> AWS ()
+hoistErr =
+  foldErr throwM (throwM . userError . T.unpack) liftAWSError
+
+worker :: Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
+worker source dest mode e c errs = forever $ do
+  let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
+      keep :: Address -> Key -> IO WorkerResult
+      keep a k = do
+        e' <- runEitherT $ keep' a k
+        pure $ case e' of
+          Left er -> WorkerErr er
+          Right _ -> WorkerOk
+
+      keep' :: Address -> Key -> EitherT Err IO ()
+      keep' a k = do
+        let out = withKey (</> k) dest
+            action :: EitherT Err AWS ()
+            action = EitherT $ do
+              let cp = copy a out >>= pure . Right
+                  ex = exists out
+                  te = pure . Left $ Target a out
+              foldSyncMode
+                (ifM ex te cp)
+                cp
+                (ifM ex (pure $ Right ()) cp)
+                mode
+        (mapEitherT (runEitherT . bimapEitherT AwsErr id . runAWSWithEnv e) action >>= EitherT . pure)
+          `catchAll` (left . UnknownErr)
+
+  a <- readChan c
+  wr <- maybe invariant (keep a) $ removeCommonPrefix source a
+  writeChan errs wr
+
+data WorkerResult =
+  WorkerOk
+  | WorkerErr Err
+
+foldWR :: (Err -> m a) -> m a -> WorkerResult -> m a
+foldWR e a = \case
+  WorkerOk -> a
+  WorkerErr err -> e err
+
+data Err =
+  Invariant Text
+  | Target Address Address
+  | AwsErr A.AWSError
+  | UnknownErr SomeException
+
+foldErr :: (SomeException -> m a) -> (Text -> m a) -> (A.AWSError -> m a) -> Err -> m a
+foldErr se p err = \case
+  Invariant t -> p $ "[Mismi internal error] - " <> t
+  Target a o -> p $ "[Mismi internal error] - " <> "Can not copy [" <> addressToText a <> "] to [" <> addressToText o <> "]. Target file exists"
+  AwsErr e -> err e
+  UnknownErr e -> se e
+
+retryAWSAction :: RetryPolicy -> AWS a -> AWS a
+retryAWSAction rp a = do
+  local (retryAWS' rp) $ a
+
+retryAWS :: Int -> Env -> Env
+retryAWS i = retryAWS' (retryWithBackoff i)
+
+retryAWS' :: RetryPolicy -> Env -> Env
+retryAWS' r e =
+  let err c v = case v of
+        NoResponseDataReceived -> pure True
+        StatusCodeException s _ _ -> pure $ s == status500
+        FailedConnectionException _ _ -> pure True
+        FailedConnectionException2 _ _ _ _ -> pure True
+        TlsException _ -> pure True
+        _ -> (e ^. envRetryCheck) c v
+  in
+  e & envRetryPolicy .~ Just r & envRetryCheck .~ err
+
+sse :: ServerSideEncryption
+sse =
+  AES256

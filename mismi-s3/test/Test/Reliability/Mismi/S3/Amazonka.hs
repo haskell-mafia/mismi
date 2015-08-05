@@ -13,15 +13,14 @@ import qualified Data.Text as T
 import           Disorder.Corpus
 
 import           Mismi.S3.Data
-import qualified Mismi.S3.Default as S3
-import           Mismi.S3.DefaultK
+import qualified Mismi.S3.Aws.Default as S3
+import           Mismi.S3.Default
 
 import           P
 
 import           System.IO
 import           System.IO.Error
 
-import           Test.Mismi.Amazonka (liftS3)
 import           Test.Reliability.Reliability
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
@@ -34,7 +33,7 @@ prop_sync = forAll (elements muppets) $ \m -> testAWS' $ \a b i -> do
 
 createFiles :: Address -> Text -> Int -> AWS ()
 createFiles prefix name n = do
-  mapM_ (liftS3 . flip S3.write "data") $ files prefix name n
+  mapM_ (flip S3.write "data") $ files prefix name n
 
 files :: Address -> Text -> Int -> [Address]
 files prefix name n =

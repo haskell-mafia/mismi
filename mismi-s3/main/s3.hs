@@ -10,9 +10,10 @@ import qualified Data.Conduit.List as DC
 import           Data.Text hiding (copy)
 
 import           Mismi.Environment
-import           Mismi.S3
 import           Mismi.Control.Amazonka (runAWS, awsErrorRender)
-import qualified Mismi.S3.Amazonka as A
+import           Mismi.S3
+import           Mismi.S3.Commands (listRecursively')
+import qualified Mismi.S3.Default as A
 
 import           Options.Applicative
 
@@ -91,17 +92,17 @@ runK k = do
   r <- either (const . pure $ Sydney) pure r'
   orDie awsErrorRender . runAWS r $ case k of
     Uploadk s d ->
-      A.upload s d
+      upload s d
     Downloadk s d ->
-      A.download s d
+      download s d
     Sizek a ->
-      A.getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
+      getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
     Synck s d m f ->
       A.syncWithMode m s d f
     Listk a ->
-      A.listRecursively' a >>= ($$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText))
+      listRecursively' a >>= ($$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText))
     Existsk a ->
-      A.exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
+      exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
 
 runC :: AwsCommand -> IO ()
 runC c = runS3WithDefaults $ case c of

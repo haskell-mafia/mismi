@@ -16,10 +16,9 @@ library
                      , p
                      , template-haskell
                      , x-conduit
-                     , aws                             == 0.11.*
-                     , amazonka                        == 99.0.5
-                     , amazonka-core                   == 99.0.5
-                     , amazonka-s3                     == 99.0.5
+                     , amazonka                        == 99.0.7
+                     , amazonka-core                   == 99.0.7
+                     , amazonka-s3                     == 99.0.7
                      , bytestring                      == 0.10.*
                      , bifunctors                      == 4.2.*
                      , conduit                         == 1.2.*
@@ -28,8 +27,8 @@ library
                      , either
                      , exceptions                      >= 0.6        && < 0.9
                      , filepath                        == 1.3.*
-                     , http-client                     == 0.4.*
-                     , http-conduit                    == 2.1.5
+                     , http-client                     == 0.4.18.*
+                     , http-conduit                    == 2.1.5.*
                      , http-types                      == 0.8.*
                      , mismi-core
                      , mtl                             >= 2.1       && < 2.3
@@ -61,15 +60,15 @@ library
 
   exposed-modules:
                        Mismi.S3
-                       Mismi.S3.Amazonka
-                       Mismi.S3.Control
+                       Mismi.S3.Aws.Data
+                       Mismi.S3.Aws.Control
+                       Mismi.S3.Aws.Default
+                       Mismi.S3.Commands
                        Mismi.S3.Data
                        Mismi.S3.Default
-                       Mismi.S3.DefaultK
                        Mismi.S3.Internal
-                       Mismi.S3.Retry
   other-modules:
-                       Mismi.S3.Commands
+                       Mismi.S3.Aws.Commands
 
 executable s3
   main-is:             s3.hs
@@ -95,10 +94,9 @@ test-suite test
                      , mismi-core
                      , mismi-core-test
                      , mismi-s3
-                     , aws
-                     , amazonka                        == 99.0.5
-                     , amazonka-core                   == 99.0.5
-                     , amazonka-s3                     == 99.0.5
+                     , amazonka                        == 99.0.7
+                     , amazonka-core                   == 99.0.7
+                     , amazonka-s3                     == 99.0.7
                      , either
                      , exceptions
                      , filepath
@@ -114,7 +112,7 @@ test-suite test
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
                      , uuid                            == 1.3.*
-                     , lens                            == 4.9.*
+                     , lens
                      , time                            == 1.4.*
                      , conduit                         == 1.2.*
 
@@ -128,9 +126,8 @@ test-suite test-io
                      , mismi-core
                      , mismi-core-test
                      , mismi-s3
-                     , aws
-                     , amazonka                        == 99.0.5
-                     , amazonka-core                   == 99.0.5
+                     , amazonka                        == 99.0.7
+                     , amazonka-core                   == 99.0.7
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
@@ -146,7 +143,7 @@ test-suite test-io
                      , unix                            == 2.7.*
                      , uuid                            == 1.3.*
                      , bytestring                      == 0.10.*
-                     , lens                            == 4.9.*
+                     , lens
                      , either                          == 4.3.*
                      , cryptohash
 
@@ -160,8 +157,8 @@ test-suite test-reliability
                      , mismi-core
                      , mismi-core-test
                      , mismi-s3
-                     , amazonka                        == 99.0.5
-                     , amazonka-core                   == 99.0.5
+                     , amazonka                        == 99.0.7
+                     , amazonka-core                   == 99.0.7
                      , exceptions
                      , filepath
                      , p
@@ -176,7 +173,7 @@ test-suite test-reliability
                      , bytestring                      == 0.10.*
                      , either                          == 4.3.*
                      , temporary                       == 1.2.*
-                     , lens                            == 4.9.*
+                     , lens
 
 test-suite test-cli
   type:                exitcode-stdio-1.0
