@@ -1,12 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Test.IO.Mismi.SQS.Commands where
 
-import qualified Aws.Sqs as SQS
-
-import           Disorder.Core.IO
+import           Control.Lens
 import           Data.Maybe
+import           Disorder.Core.IO
 
 import           Mismi.SQS
 
@@ -15,31 +13,51 @@ import           P
 import           System.IO
 
 import           Test.Mismi.SQS
-import           Test.Mismi.SQS.Arbitrary ()
 import           Test.QuickCheck
 
+
 prop_write_read :: Queue -> NonEmptyMessage -> Property
-prop_write_read queue' msg =
-  testIO . runSQSWithQueue' queue' $ \q -> do
-    _ <- writeMessage q (unMessage msg) Nothing
-    msg2 <- readMessages q (Just 1) Nothing
-    pure $ [unMessage msg] === fmap SQS.mBody msg2
+prop_write_read queue' (NonEmptyMessage b) =
+  testIO . runSQSWithQueue queue' $ \q -> do
+    void $ writeMessage q b Nothing
+    ms <- readMessages q (Just 1) Nothing
+    pure $ [Just b] === fmap (^. mBody) ms
+
+prop_write_read_twice_visible :: Queue -> NonEmptyMessage -> Property
+prop_write_read_twice_visible queue' (NonEmptyMessage b) =
+  testIO . runSQSWithQueueArg (Just 0) queue' $ \q -> do
+    void $ writeMessage q b Nothing
+    ms1 <- readMessages q (Just 1) Nothing
+    ms2 <- readMessages q (Just 1) Nothing
+    pure $
+      [Just b] === fmap (^. mBody) ms1 .&&.
+      [Just b] === fmap (^. mBody) ms2
+
+prop_write_read_twice_hidden :: Queue -> NonEmptyMessage -> Property
+prop_write_read_twice_hidden queue' (NonEmptyMessage b) =
+  testIO . runSQSWithQueue queue' $ \q -> do
+    void $ writeMessage q b Nothing
+    ms1 <- readMessages q (Just 1) Nothing
+    ms2 <- readMessages q (Just 1) Nothing
+    pure $
+      [Just b] === fmap (^. mBody) ms1 .&&.
+      [] === fmap (^. mBody) ms2
 
 prop_write_delete_read :: Queue -> NonEmptyMessage -> Property
-prop_write_delete_read queue' msg =
-  testIO . runSQSWithQueue' queue' $ \q -> do
-    _ <- writeMessage q (unMessage msg) Nothing
-    msg2 <- readMessages q (Just 1) Nothing
-    forM_ msg2 (deleteMessage q)
-    msg3 <- readMessages q (Just 1) Nothing
-    pure $ [] === msg3
+prop_write_delete_read queue' (NonEmptyMessage b) =
+  testIO . runSQSWithQueue queue' $ \q -> do
+    void $ writeMessage q b Nothing
+    ms <- readMessages q (Just 1) Nothing
+    forM_ ms (deleteMessage q)
+    ms' <- readMessages q (Just 1) Nothing
+    pure $ [] === ms'
 
 prop_with_queue :: Queue -> NonEmptyMessage -> Property
-prop_with_queue queue' msg =
-  testIO . runSQSWithQueue' queue' $ \q1 -> onQueue queue' Nothing $ \q -> do
-    _ <- writeMessage q (unMessage msg) Nothing
-    msg2 <- readMessages q (Just 1) Nothing
-    pure $ ([unMessage msg], q1)  === (fmap SQS.mBody msg2, q)
+prop_with_queue queue' (NonEmptyMessage b) =
+  testIO . runSQSWithQueue queue' $ \q1 -> onQueue queue' Nothing $ \q -> do
+    void $ writeMessage q b Nothing
+    ms <- readMessages q (Just 1) Nothing
+    pure $ ([Just b], q1)  === (fmap (^. mBody) ms, q)
 
 return []
 tests :: IO Bool

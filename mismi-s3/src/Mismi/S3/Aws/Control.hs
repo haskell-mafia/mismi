@@ -13,7 +13,6 @@ module Mismi.S3.Aws.Control (
 import           Data.ByteString hiding (unpack, find)
 
 import           Mismi.Control
-
 import           Mismi.S3.Aws.Data
 
 import qualified Network.AWS.S3.Types as AWS
@@ -26,7 +25,7 @@ import           System.IO
 type S3Action = AWS
 
 runS3WithDefaults :: S3Action a -> IO a
-runS3WithDefaults = unsafeAWS . runAWSDefaultRegion
+runS3WithDefaults = runS3WithRegion Sydney
 
 runS3WithRegion :: Region -> S3Action a -> IO a
 runS3WithRegion r = unsafeAWS . runAWS r

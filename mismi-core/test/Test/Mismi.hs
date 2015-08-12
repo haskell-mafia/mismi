@@ -9,7 +9,7 @@ import           Control.Monad.Trans.Either
 import           Disorder.Core
 import           Disorder.Core.IO
 
-import           Mismi.Control
+import           Mismi
 
 import           P
 
