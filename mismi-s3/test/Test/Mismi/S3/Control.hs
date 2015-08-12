@@ -12,11 +12,9 @@ import           Data.Text
 
 import           Disorder.Core.IO
 
-import           Mismi.S3.Control
+import           Mismi.S3.Aws.Control
 
 import           P
-
-import           Network.HTTP.Client (HttpException (..))
 
 import           System.IO
 
@@ -44,18 +42,6 @@ prop_liftS3 r t = testAWS r $ do
   f <- liftIO $ readIORef ref
   pure $ f === t
 
-prop_retry :: Text -> Property
-prop_retry t = t /= "" ==> testIO . runS3WithDefaults $ do
-  ref <- liftIO $ newIORef ""
-  let action = liftAWSAction $ do
-        let m = modifyIORef ref (<> t)
-        z <- liftIO $ readIORef ref
-        if (z == "")
-          then liftIO m >> hoistEither (Left (HttpError ResponseTimeout :: Error))
-          else liftIO m
-  retryHttp 2 action
-  z <- liftIO $ readIORef ref
-  pure $ z === t <> t
 
 return []
 tests :: IO Bool

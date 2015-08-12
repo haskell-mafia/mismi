@@ -20,6 +20,7 @@ module Mismi.Control.Amazonka (
   , throwError
   , hoistAWSError
   , liftAWSError
+  , unsafeAWS
   ) where
 
 import           Aws.Aws
@@ -185,3 +186,7 @@ throwError = \case
 fail' :: (MonadThrow m) => (e -> Text) -> e -> m a
 fail' f =
   throwM . userError . unpack . f
+
+unsafeAWS :: EitherT AWSError IO a -> IO a
+unsafeAWS =
+  eitherT (fail . show . awsErrorRender) pure

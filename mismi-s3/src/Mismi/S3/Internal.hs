@@ -1,11 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 module Mismi.S3.Internal (
-    f'
-  , fencode'
+    fencode'
   , encodeKey
-  , ff'
   , calculateChunks
   , downRange
   , sinkChan
@@ -41,9 +38,6 @@ import           System.Directory
 import           System.IO
 import           System.FilePath
 
-f' :: (Text -> Text -> a) -> Address -> a
-f' f a =
-  uncurry f (unBucket $ bucket a, unKey $ key a)
 
 fencode' :: (Text -> Text -> a) -> Address -> a
 fencode' f (Address (Bucket b) k) =
@@ -59,9 +53,6 @@ encodeKey (Key k) =
   in
   decodeUtf8 bsEncoded
 
-ff' :: (Text -> Text -> a) -> Address -> a
-ff' f a =
-  uncurry f (unKey $ key a, unBucket $ bucket a)
 
 -- filesize -> Chunk -> [(offset, chunk, index)]
 calculateChunks :: Int -> Int -> [(Int, Int, Int)]

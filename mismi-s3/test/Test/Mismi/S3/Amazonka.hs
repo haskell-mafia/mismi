@@ -8,7 +8,7 @@ import           Control.Lens
 
 import           Data.Time.Clock
 
-import           Mismi.S3.Amazonka
+import           Mismi.S3.Commands
 
 import           Disorder.Core.IO
 

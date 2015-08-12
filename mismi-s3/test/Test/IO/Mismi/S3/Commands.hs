@@ -2,9 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE PackageImports #-}
 module Test.IO.Mismi.S3.Commands where
-
-import qualified Aws.S3 as S3
 
 import           Control.Monad.Catch (catchAll)
 import           Control.Monad.IO.Class
@@ -25,9 +24,7 @@ import           Disorder.Corpus
 import           Disorder.Core.IO
 import           Disorder.Core.UniquePair hiding (snd)
 
-import           Mismi.S3.Control
-import           Mismi.S3.Data
-import           Mismi.S3.Default
+import           Mismi.S3
 
 import           P
 
@@ -165,14 +162,14 @@ prop_read_empty k = ioProperty $ do
 prop_getObjects_empty :: Property
 prop_getObjects_empty = testS3 $ \a -> do
   objs <- getObjectsRecursively $ a
-  pure $ fmap S3.objectKey objs === []
+  pure $ fmap objectKey objs === []
 
 prop_getObjectsR :: Text -> Key -> Key -> Property
 prop_getObjectsR t p1 p2 = p1 /= p2 ==> testS3 $ \root -> do
   let keys = [p1, p2 </> p1, p2 </> p2]
   forM_ keys $ \k -> write (withKey (</> k) root) t
   objs <- getObjectsRecursively root
-  pure $ on (===) sort (S3.objectKey <$> objs) (unKey . (</>) (key root) <$> keys)
+  pure $ on (===) sort (objectKey <$> objs) (unKey . (</>) (key root) <$> keys)
 
 prop_listRecursively :: Property
 prop_listRecursively = testS3 $ \a -> do

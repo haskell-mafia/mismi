@@ -16,20 +16,21 @@ library
                      , p
                      , template-haskell
                      , aws                             == 0.11.*
-                     , amazonka                        == 99.0.5
-                     , amazonka-core                   == 99.0.5
+                     , amazonka                        == 99.0.7
+                     , amazonka-core                   == 99.0.7
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
                      , either                          == 4.3.*
                      , exceptions                      >= 0.6        && < 0.9
-                     , http-client                     == 0.4.*
+                     , http-client                     == 0.4.18.*
+                     , http-conduit                    == 2.1.5.*
                      , http-types                      == 0.8.*
                      , mtl                             >= 2.1       && < 2.3
                      , profunctors                     >= 4         && < 5
                      , resourcet                       == 1.1.*
                      , text                            == 1.2.*
                      , transformers                    >= 0.3        && < 0.5
-                     , lens                            >= 4.8        && < 4.12
+                     , lens                            >= 4.8        && < 4.10
                      , these                           == 0.4.1
                      , x-exception
 
@@ -54,8 +55,8 @@ test-suite test
   build-depends:       base
                      , mismi-core
                      , aws
-                     , amazonka                        == 99.0.5
-                     , amazonka-core                   == 99.0.5
+                     , amazonka                        == 99.0.7
+                     , amazonka-core                   == 99.0.7
                      , either
                      , exceptions
                      , filepath

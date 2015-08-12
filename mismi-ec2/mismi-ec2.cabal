@@ -14,12 +14,12 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , p
-                     , amazonka                        == 99.0.5
-                     , amazonka-core                   == 99.0.5
+                     , amazonka                        == 99.0.7
+                     , amazonka-core                   == 99.0.7
                      , bytestring                      == 0.10.*
                      , either
-                     , http-client                     == 0.4.*
-                     , http-conduit                    == 2.1.5
+                     , http-client                     == 0.4.18.*
+                     , http-conduit                    == 2.1.5.*
                      , mismi-core
                      , mtl                             >= 2.2.1      && < 2.3
                      , text                            == 1.2.*

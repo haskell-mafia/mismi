@@ -9,11 +9,10 @@ library
                      , mismi-core
                      , mismi-core-test
                      , mismi-s3
-                     , aws                             == 0.11.*
-                     , amazonka                        == 99.0.5
-                     , amazonka-core                   == 99.0.5
-                     , amazonka-s3                     == 99.0.5
-                     , lens                            == 4.9.*
+                     , amazonka                        == 99.0.7
+                     , amazonka-core                   == 99.0.7
+                     , amazonka-s3                     == 99.0.7
+                     , lens                            >= 4.8        && < 4.10
                      , conduit                         == 1.2.*
                      , time
                      , disorder-core

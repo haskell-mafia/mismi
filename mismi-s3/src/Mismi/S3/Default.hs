@@ -1,11 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {- |
 An exposed set of S3 operations that have the default retries/backoff for batch operations.
-See "Mismi.S3.Retry" for operations that support arbitrary 'RetryPolicy'.
-See "Mismi.S3.Commands" for the raw operations that by-and-large don't retry.
+See "Mismi.S3.Commands" for the raw operations that use the default, global retry.
 -}
 module Mismi.S3.Default (
-    exists
+    module X
+  , exists
   , headObject
   , getSize
   , delete
@@ -17,76 +17,102 @@ module Mismi.S3.Default (
   , write
   , writeWithMode
   , copy
+  , copyWithMode
   , move
   , listObjects
   , list
-  , getObjectsRecursively
+  , listMultiparts
   , listRecursively
+  , listRecursively'
+  , getObjectsRecursively
+  , abortMultipart
   , sync
+  , syncWithMode
   ) where
 
-import           Data.Text as T hiding (copy)
+import           Data.Text hiding (copy)
 
-import           Mismi.S3.Control
+import           Data.Conduit
+
+import           Mismi.S3.Commands as X (AWS, MultipartUpload, muUploadId, retryAWSAction)
+import qualified Mismi.S3.Commands as A
 import           Mismi.S3.Data
-import qualified Mismi.S3.Retry as M
 import           Mismi.S3.Internal
 
 import           P
 
-import           System.IO
+import           System.IO (FilePath)
 
 
-exists :: Address -> S3Action Bool
-exists = M.exists (retryWithBackoff 5)
+headObject :: Address -> AWS (Maybe A.HeadObjectResponse)
+headObject = retryAction 5 . A.headObject
 
-headObject :: Address -> S3Action (Maybe ObjectMetadata)
-headObject = M.headObject (retryWithBackoff 5)
+exists :: Address -> AWS Bool
+exists = retryAction 5 . A.exists
 
-getSize :: Address -> S3Action (Maybe Int)
-getSize = M.getSize (retryWithBackoff 5)
+getSize :: Address -> AWS (Maybe Int)
+getSize = retryAction 5 . A.getSize
 
-delete :: Address -> S3Action ()
-delete = M.delete (retryWithBackoff 5)
+delete :: Address -> AWS ()
+delete = retryAction 5 . A.delete
 
-read :: Address -> S3Action (Maybe Text)
-read = M.read (retryWithBackoff 5)
+read :: Address -> AWS (Maybe Text)
+read = retryAction 5 . A.read
 
-download :: Address -> FilePath -> S3Action ()
-download = M.download (retryWithBackoff 5)
+copy :: Address -> Address -> AWS ()
+copy s = retryAction 5 . A.copy s
 
-downloadWithMode :: WriteMode -> Address -> FilePath -> S3Action ()
-downloadWithMode = M.downloadWithMode (retryWithBackoff 5)
+copyWithMode :: WriteMode -> Address -> Address -> AWS ()
+copyWithMode m s = retryAction 5 . A.copyWithMode m s
 
-multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> S3Action ()
-multipartDownload = M.multipartDownload (retryWithBackoff 3)
+move :: Address -> Address -> AWS ()
+move s = retryAction 5 . A.move s
 
-upload :: FilePath -> Address -> S3Action ()
-upload = M.upload (retryWithBackoff 3)
+listObjects :: Address -> AWS ([Address], [Address])
+listObjects = retryAction 5 . A.listObjects
 
-write :: Address -> Text -> S3Action ()
-write = M.write (retryWithBackoff 5)
+list :: Address -> AWS [Address]
+list = retryAction 5 . A.list
 
-writeWithMode :: WriteMode -> Address -> Text -> S3Action ()
-writeWithMode = M.writeWithMode (retryWithBackoff 5)
+listMultiparts :: Bucket -> AWS [MultipartUpload]
+listMultiparts = retryAction 5 . A.listMultiparts
 
-copy :: Address -> Address -> S3Action ()
-copy = M.copy (retryWithBackoff 5)
+getObjectsRecursively :: Address -> AWS [A.Object]
+getObjectsRecursively = retryAction 5 . A.getObjectsRecursively
 
-move :: Address -> Address -> S3Action ()
-move = M.move (retryWithBackoff 5)
+abortMultipart :: Bucket -> MultipartUpload -> AWS ()
+abortMultipart b = retryAction 5 . A.abortMultipart b
 
-listObjects :: Address -> S3Action ([Address], [Address])
-listObjects = M.listObjects (retryWithBackoff 5)
+upload :: FilePath -> Address -> AWS ()
+upload f = retryAction 3 . A.upload f
 
-list :: Address -> S3Action [Address]
-list = M.list (retryWithBackoff 5)
+write :: Address -> Text -> AWS ()
+write a = retryAction 5 . A.write a
 
-getObjectsRecursively :: Address -> S3Action [ObjectInfo]
-getObjectsRecursively = M.getObjectsRecursively (retryWithBackoff 5)
+writeWithMode :: WriteMode -> Address -> Text -> AWS ()
+writeWithMode m a = retryAction 5 . A.writeWithMode m a
 
-listRecursively :: Address -> S3Action [Address]
-listRecursively = M.listRecursively (retryWithBackoff 5)
+download :: Address -> FilePath -> AWS ()
+download a = retryAction 5 . A.download a
 
-sync :: SyncMode -> Address -> Address -> Int -> S3Action ()
-sync = M.sync (retryWithBackoff 3)
+downloadWithMode :: WriteMode -> Address -> FilePath -> AWS ()
+downloadWithMode m a = retryAction 5 . A.downloadWithMode m a
+
+multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> AWS ()
+multipartDownload a s d sz = retryAction 3 . A.multipartDownload a s d sz
+
+listRecursively :: Address -> AWS [Address]
+listRecursively = retryAction 5 . A.listRecursively
+
+listRecursively' :: Address -> AWS (Source AWS Address)
+listRecursively' = retryAction 5 . A.listRecursively'
+
+
+sync :: Address -> Address -> Int -> AWS ()
+sync s d = retryAction 3 . A.sync s d
+
+syncWithMode :: SyncMode -> Address -> Address -> Int -> AWS ()
+syncWithMode m s d = retryAction 3 . A.syncWithMode m s d
+
+retryAction :: Int -> AWS a -> AWS a
+retryAction r = retryAWSAction (retryWithBackoff r)

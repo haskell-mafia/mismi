@@ -1,5 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 module Mismi.S3.Data (
     WriteMode(..)
@@ -8,8 +8,6 @@ module Mismi.S3.Data (
   , Address (..)
   , Key (..)
   , Upload (..)
-  , S3.ObjectInfo (..)
-  , S3.ObjectMetadata (..)
   , (</>)
   , combineKey
   , dirname
@@ -22,8 +20,6 @@ module Mismi.S3.Data (
   , withKey
   , s3Parser
   ) where
-
-import qualified Aws.S3 as S3
 
 import           Data.Align
 import           Data.Attoparsec.Text hiding (parse, Fail)
