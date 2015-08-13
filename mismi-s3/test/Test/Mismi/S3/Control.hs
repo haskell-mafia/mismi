@@ -12,6 +12,7 @@ import           P
 
 import           System.IO
 
+import           Test.Mismi.S3 ()
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
