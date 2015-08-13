@@ -60,7 +60,7 @@ testBucket :: IO Bucket
 testBucket =
   Bucket . T.pack . fromMaybe "ambiata-dev-view" <$> getEnv "AWS_TEST_BUCKET"
 
-withToken :: Token -> (Address -> S3Action a) -> S3Action a
+withToken :: Token -> (Address -> AWS a) -> AWS a
 withToken t f = do
   b <- liftIO testBucket
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom

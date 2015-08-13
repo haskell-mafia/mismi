@@ -60,6 +60,7 @@ library
 
   exposed-modules:
                        Mismi.S3
+                       Mismi.S3.Aws
                        Mismi.S3.Aws.Data
                        Mismi.S3.Aws.Control
                        Mismi.S3.Aws.Default

@@ -19,9 +19,9 @@ import           Control.Lens
 import           Control.Monad.Trans.AWS hiding (AWSError)
 import           Control.Monad.IO.Class (liftIO)
 
-import           Mismi.S3.Commands
+import           Mismi.S3
+import           Mismi.S3.Commands hiding (listRecursively, listRecursively', delete)
 import           Mismi.S3.Internal
-import           Mismi.S3.Data
 
 import           Test.Mismi.S3
 import           Test.QuickCheck.Instances ()
