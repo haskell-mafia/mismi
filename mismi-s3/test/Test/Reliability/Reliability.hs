@@ -11,6 +11,7 @@ import           Disorder.Core.IO
 
 import           Mismi.Control.Amazonka
 import           Mismi.S3
+import           Mismi.S3.Aws
 
 import           P
 import qualified Prelude as P

@@ -7,11 +7,6 @@ module Mismi.S3.Aws.Data (
   , StorageClass(..)
   , UserInfo(..)
   , CanonicalUserId
-  , TimeInfo(..)
-  , Credentials(..)
-  , V4Key
-  , Logger
-  , LogLevel(..)
   , s3EndpointUsClassic
   , s3EndpointUsWest
   , s3EndpointUsWest2
@@ -21,14 +16,11 @@ module Mismi.S3.Aws.Data (
   , s3EndpointApNorthEast
   ) where
 
-import           Data.IORef
 import           Data.Text
 import           Data.Time
 import qualified Data.ByteString          as B
 
 import           P
-
-import           System.IO
 
 
 data ObjectMetadata = ObjectMetadata {
@@ -67,45 +59,6 @@ data UserInfo = UserInfo {
   } deriving (Show)
 
 type CanonicalUserId = Text
-
-
--- | Whether to restrict the signature validity with a plain timestamp, or with explicit expiration
--- (absolute or relative).
-data TimeInfo =
-    Timestamp                                      -- ^ Use a simple timestamp to let AWS check the request validity.
-  | ExpiresAt { fromExpiresAt :: UTCTime }         -- ^ Let requests expire at a specific fixed time.
-  | ExpiresIn { fromExpiresIn :: NominalDiffTime } -- ^ Let requests expire a specific number of seconds after they
-                                                     -- were generated.
-   deriving (Show)
-
-
--- | AWS access credentials.
-data Credentials
-    = Credentials {
-        -- | AWS Access Key ID.
-        accessKeyID :: B.ByteString
-        -- | AWS Secret Access Key.
-      , secretAccessKey :: B.ByteString
-        -- | Signing keys for signature version 4
-      , v4SigningKeys :: IORef [V4Key]
-        -- | Signed IAM token
-      , iamToken :: Maybe B.ByteString
-      }
-
--- | Signature version 4: ((region, service),(date,key))
-type V4Key = ((B.ByteString,B.ByteString),(B.ByteString,B.ByteString))
-
--- | The interface for any logging function. Takes log level and a log message, and can perform an arbitrary
--- IO action.
-type Logger = LogLevel -> Text -> IO ()
-
--- | The severity of a log message, in rising order.
-data LogLevel =
-    Debug
-  | Info
-  | Warning
-  | Error
-  deriving (Show, Eq, Ord)
 
 
 s3EndpointUsClassic :: B.ByteString

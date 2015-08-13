@@ -10,10 +10,7 @@ import qualified Data.Conduit.List as DC
 import           Data.Text hiding (copy)
 
 import           Mismi.Environment
-import           Mismi.Control.Amazonka (runAWS, awsErrorRender)
 import           Mismi.S3
-import           Mismi.S3.Commands (listRecursively')
-import qualified Mismi.S3.Default as A
 
 import           Options.Applicative
 
@@ -98,36 +95,39 @@ runK k = do
     Sizek a ->
       getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
     Synck s d m f ->
-      A.syncWithMode m s d f
+      syncWithMode m s d f
     Listk a ->
       listRecursively' a >>= ($$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText))
     Existsk a ->
       exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
 
 runC :: AwsCommand -> IO ()
-runC c = runS3WithDefaults $ case c of
-  List a r ->
-    rec (list a) (listRecursively a) r >>= liftIO . mapM_ (putStrLn . unpack . addressToText)
-  Upload s d ->
-    upload s d
-  Download s d ->
-    download s d
-  Copy s d ->
-    copy s d
-  Move s d ->
-    move s d
-  Exists a ->
-    exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
-  Delete a ->
-    delete a
-  Write a t w ->
-    writeWithMode w a t
-  Read a ->
-    read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
-  Size a ->
-    getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
-  Sync s d m f ->
-    sync m s d f
+runC c = do
+  r' <- getRegionFromEnv
+  r <- either (const . pure $ Sydney) pure r'
+  orDie awsErrorRender . runAWS r $ case c of
+    List a rq ->
+      rec (list a) (listRecursively a) rq >>= liftIO . mapM_ (putStrLn . unpack . addressToText)
+    Upload s d ->
+      upload s d
+    Download s d ->
+      download s d
+    Copy s d ->
+      copy s d
+    Move s d ->
+      move s d
+    Exists a ->
+      exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
+    Delete a ->
+      delete a
+    Write a t w ->
+      writeWithMode w a t
+    Read a ->
+      read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
+    Size a ->
+      getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
+    Sync s d m f ->
+      syncWithMode m s d f
 
 
 mismi :: Parser (SafeCommand Command)
