@@ -93,7 +93,7 @@ prop_abort_multipart = withMultipart $ \a i -> do
 
 prop_list_parts = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
-  l2 <- C.listMultipartParts a i
+  l2 <- retryAction $ C.listMultipartParts a i
   pure (length l2 === 1)
 
 prop_list_recursively = withAWS $ \a -> do
