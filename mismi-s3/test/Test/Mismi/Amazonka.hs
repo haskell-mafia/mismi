@@ -8,6 +8,7 @@ module Test.Mismi.Amazonka (
   , withAWS'
   , withLocalAWS
   , withAWSToken
+  , retryAction
   ) where
 
 import           Data.Text as T
@@ -38,12 +39,12 @@ import           System.IO.Temp
 import           Test.QuickCheck
 
 createMultipart :: Address -> AWS Text
-createMultipart a = do
+createMultipart a = retryAction $ do
   r <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ Just sse
   maybe (fail "Failed to create multipart upload") pure (r ^. cmurUploadId)
 
 sendMultipart :: Text -> Address -> Int -> Text -> AWS ()
-sendMultipart t a i ui = do
+sendMultipart t a i ui = retryAction $ do
   let req = fencode' (uploadPart (toBody $ encodeUtf8 t)) a i ui
   send_ req
 
@@ -77,4 +78,7 @@ withAWSToken t f = do
   b <- liftIO testBucket
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom
   let a = Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
-  awsBracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
+  awsBracket_ (pure ()) ((retryAction . listRecursively) a >>= mapM_ delete >> delete a) (retryAction $ f a)
+
+retryAction :: AWS a -> AWS a
+retryAction = retryAWSAction (retryWithBackoff 5)
