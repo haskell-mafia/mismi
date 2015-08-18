@@ -15,8 +15,8 @@ library
                        base                            >= 3          && < 5
                      , p
                      , template-haskell
-                     , amazonka                        == 99.0.8
-                     , amazonka-core                   == 99.0.8
+                     , amazonka                        == 99.0.9
+                     , amazonka-core                   == 99.0.9
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
                      , either                          == 4.3.*
