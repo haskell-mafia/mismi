@@ -17,9 +17,6 @@ instance Arbitrary Queue where
   arbitrary = Queue <$> arbitrary <*> arbitrary
 
 instance Arbitrary QueueName where
-  arbitrary = (QueueName . T.pack) <$> sized (\n -> vectorOf (max 80 n) (oneof [
-      choose ('a', 'z')
-    , choose ('0', '9')
-    , pure '-'
-    , pure '_'
-    ]))
+  arbitrary = fmap (QueueName . T.pack) . vectorOf 80 . elements
+    $ ['a'..'z'] <> ['0'..'9'] <> "-_"
+

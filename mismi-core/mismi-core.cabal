@@ -15,9 +15,8 @@ library
                        base                            >= 3          && < 5
                      , p
                      , template-haskell
-                     , aws                             == 0.11.*
-                     , amazonka                        == 99.0.7
-                     , amazonka-core                   == 99.0.7
+                     , amazonka                        == 99.0.8
+                     , amazonka-core                   == 99.0.8
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
                      , either                          == 4.3.*
@@ -54,9 +53,8 @@ test-suite test
   hs-source-dirs:      test
   build-depends:       base
                      , mismi-core
-                     , aws
-                     , amazonka                        == 99.0.7
-                     , amazonka-core                   == 99.0.7
+                     , amazonka
+                     , amazonka-core
                      , either
                      , exceptions
                      , filepath

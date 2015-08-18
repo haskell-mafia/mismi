@@ -6,7 +6,6 @@ module Mismi.Control.Amazonka (
     module X
   , AWSError (..)
   , foldAWSError
-  , awskaConfig
   , runAWS
   , runAWSDefaultRegion
   , runAWSWithEnv
@@ -23,9 +22,6 @@ module Mismi.Control.Amazonka (
   , unsafeAWS
   ) where
 
-import           Aws.Aws
-import           Aws.Core
-
 import           Control.Lens
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
@@ -35,7 +31,6 @@ import qualified Control.Monad.Trans.AWS as AWS
 import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Except (runExceptT)
 
-import           Data.IORef
 import           Data.Bifunctor
 import qualified Data.ByteString.Char8 as BS
 import           Data.Text as T
@@ -68,17 +63,6 @@ foldAWSError r e = \case
   AWSRegionError r' -> r r'
   AWSRunError e' -> e e'
 
-awskaConfig :: AWS Configuration
-awskaConfig = do
-  env <- ask
-  (AuthEnv (AccessKey ak) (SecretKey sak) st _) <- withAuth (env ^. envAuth) pure
-  let st' = fmap (\(SecurityToken t') -> t') st
-  v4sk <- liftIO $ newIORef []
-  pure $ Configuration {
-      timeInfo = Timestamp
-    , credentials = Credentials ak sak v4sk st'
-    , logger = defaultLog Warning
-  }
 
 runAWS :: Region -> AWS a -> EitherT AWSError IO a
 runAWS r a = do

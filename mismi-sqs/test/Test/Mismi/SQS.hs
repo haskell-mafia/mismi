@@ -1,26 +1,31 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Test.Mismi.SQS (
-    NonEmptyMessage(..)
+    module X
+  , NonEmptyMessage(..)
   , withQueue
+  , withQueueArg
+  , runSQSWithQueue
+  , runSQSWithQueueArg
   , runSQSWithCfgWithDefaults
-  , runSQSWithQueue'
   ) where
-
-import           Control.Monad.Catch
 
 import           Data.Text
 
 import           Mismi.Environment
 import           Mismi.SQS
 
+import           Test.Mismi as X
+import           Test.Mismi.SQS.Arbitrary ()
 import           Test.QuickCheck
 
 import           P
 
 import           System.IO
 
-data NonEmptyMessage = NonEmptyMessage { unMessage :: Text } deriving (Eq,Show)
+data NonEmptyMessage = NonEmptyMessage {
+    unMessage :: Text
+  } deriving (Eq, Show)
 
 instance Arbitrary NonEmptyMessage where
   arbitrary = do
@@ -33,16 +38,26 @@ genSQSText =
            let invalid = P.concat [['\x9'],['\xA'],['\xD'], ['\x20'..'\xD7FF'], ['\xE000'..'\xFFFD'], ['\x10000'..'\x10FFFF']]
            in suchThat (pack . P.filter (\x -> P.elem x invalid) <$> arbitrary) (not . Data.Text.null)
 
-withQueue :: QueueName -> (QueueUrl -> SQSAction a) -> SQSAction a
-withQueue qName f =
-  bracket (createQueue qName (Just 8400)) (void . deleteQueue) f
+withQueue :: QueueName -> (QueueUrl -> AWS a) -> AWS a
+withQueue = withQueueArg testVisibilityTimeout
 
-runSQSWithQueue' :: Queue -> (QueueUrl -> SQSAction a) -> IO a
-runSQSWithQueue' (Queue qn r) f =
-  runSQSWithRegion r $ withQueue qn f
+withQueueArg :: Maybe Int -> QueueName -> (QueueUrl -> AWS a) -> AWS a
+withQueueArg v q f =
+  awsBracket (createQueue q v) (void . deleteQueue) f
 
-runSQSWithCfgWithDefaults :: SQSAction b -> IO b
+
+runSQSWithQueue :: Queue -> (QueueUrl -> AWS a) -> IO a
+runSQSWithQueue = runSQSWithQueueArg testVisibilityTimeout
+
+runSQSWithQueueArg :: Maybe Int -> Queue -> (QueueUrl -> AWS a) -> IO a
+runSQSWithQueueArg v (Queue qn r) f =
+  runSQSWithRegion r $ withQueueArg v qn f
+
+runSQSWithCfgWithDefaults :: AWS b -> IO b
 runSQSWithCfgWithDefaults f = do
   r <- getRegionFromEnv
   let e = fromMaybe Sydney $ P.rightToMaybe r
   runSQSWithRegion e f
+
+testVisibilityTimeout :: Maybe Int
+testVisibilityTimeout = Just 8400

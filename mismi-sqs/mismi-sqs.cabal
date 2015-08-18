@@ -15,9 +15,9 @@ library
                        base                            >= 3          && < 5
                      , p
                      , template-haskell
-                     , aws                             == 0.11.*
-                     , amazonka                        == 99.0.7
-                     , amazonka-core                   == 99.0.7
+                     , amazonka                        == 99.0.8
+                     , amazonka-core                   == 99.0.8
+                     , amazonka-sqs                    == 99.0.8
                      , bytestring                      == 0.10.*
                      , exceptions                      >= 0.6        && < 0.9
                      , http-client                     == 0.4.18.*
@@ -28,6 +28,9 @@ library
                      , text                            == 1.2.*
                      , transformers                    >= 0.3        && < 0.5
                      , lens                            >= 4.8        && < 4.10
+                     , unordered-containers            == 0.2.5.*
+                     , scientific                      == 0.3.3.*
+
 
   ghc-options:
                        -Wall
@@ -38,9 +41,13 @@ library
 
   exposed-modules:
                        Mismi.SQS
-                       Mismi.SQS.Data
-                       Mismi.SQS.Control
+                       Mismi.SQS.Aws
+                       Mismi.SQS.Aws.Commands
+                       Mismi.SQS.Aws.Control
+                       Mismi.SQS.Aws.Data
                        Mismi.SQS.Commands
+                       Mismi.SQS.Control
+                       Mismi.SQS.Data
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -51,9 +58,8 @@ test-suite test
                      , mismi-core
                      , mismi-core-test
                      , mismi-sqs
-                     , aws
-                     , amazonka                        == 99.0.7
-                     , amazonka-core                   == 99.0.7
+                     , amazonka
+                     , amazonka-core
                      , disorder-core
                      , disorder-corpus
                      , exceptions
@@ -72,12 +78,12 @@ test-suite test-io
                      , mismi-core
                      , mismi-core-test
                      , mismi-sqs
-                     , aws
-                     , amazonka                        == 99.0.7
-                     , amazonka-core                   == 99.0.7
+                     , amazonka
+                     , amazonka-core
                      , disorder-core
                      , disorder-corpus
                      , exceptions
+                     , lens
                      , p
                      , text
                      , transformers

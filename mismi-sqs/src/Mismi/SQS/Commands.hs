@@ -1,7 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 module Mismi.SQS.Commands (
-    onQueue
+    module A
+  , onQueue
   , createQueue
   , deleteQueue
   , readMessages
@@ -9,59 +12,62 @@ module Mismi.SQS.Commands (
   , deleteMessage
   ) where
 
-import qualified Aws.Sqs as SQS
-
-import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Trans.Reader
+import           Control.Lens
 
 import           Data.Text as T
+import qualified Data.HashMap.Strict as M
 
-import           Mismi.Control
-import           Mismi.SQS.Control
+import           Mismi
 import           Mismi.SQS.Data
+
+import           Network.AWS.SQS as A hiding (createQueue, deleteQueue, deleteMessage)
+import qualified Network.AWS.SQS as A
 
 import           P
 
 
 -- | Create a queue, which may be in a different region than our global/current one (which will be ignored)
-onQueue :: Queue -> Maybe Int -> (QueueUrl -> SQSAction a) -> SQSAction a
-onQueue (Queue q r) v action = do
-  e <- liftIO $ regionEndpointOrFail r
-  local (\(ac, sc, m) -> (ac, sc { SQS.sqsEndpoint = e }, m)) (action =<< createQueue q v)
+onQueue :: Queue -> Maybe Int -> (QueueUrl -> AWS a) -> AWS a
+onQueue (Queue q r) v action =
+  within r (action =<< createQueue q v)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
-createQueue :: QueueName -> Maybe Int -> SQSAction QueueUrl
+createQueue :: QueueName -> Maybe Int -> AWS QueueUrl
 createQueue q v = do
-  let createQReq = SQS.CreateQueue v . unQueueName $ q
-  SQS.CreateQueueResponse qUrl <-  awsRequest $ createQReq
-  maybe (fail . T.unpack $ "Failed to parse aws account number from queue url " <> qUrl) (\x -> pure . QueueUrl $ SQS.QueueName (unQueueName q) x) (awsAccountNum qUrl)
+  res <- send $ A.createQueue (unQueueName q) &
+           cqAttributes .~
+             (M.fromList . maybeToList
+                $ (("VisibilityTimeout",) <$> ((T.pack . show) <$> v)))
+  maybe
+    (fail $ "Failed to create new queue: " <> show q)
+    (pure . QueueUrl)
+    (res ^. cqrQueueUrl)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html
-deleteQueue :: QueueUrl -> SQSAction ()
-deleteQueue (QueueUrl q) =
-  void . awsRequest . SQS.DeleteQueue $ q
+deleteQueue :: QueueUrl -> AWS ()
+deleteQueue =
+  send_ . A.deleteQueue . unQueueUrl
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
-writeMessage :: QueueUrl -> Text -> Maybe Int -> SQSAction (MessageId)
-writeMessage (QueueUrl qName) msg d = do
-  let sqsSendMessage = SQS.SendMessage msg qName [] d
-  SQS.SendMessageResponse _ mid _ <- awsRequest $ sqsSendMessage
-  pure . MessageId $ mid
+writeMessage :: QueueUrl -> Text -> Maybe Int -> AWS (MessageId)
+writeMessage q m d = do
+  res <- send $ A.sendMessage (unQueueUrl q) m & smDelaySeconds .~ d
+  maybe
+    (fail "Failed to parse MessageId")
+    (pure . MessageId)
+    (res ^. smrMessageId)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
-readMessages :: QueueUrl -> Maybe Int -> Maybe Int -> SQSAction [SQS.Message]
-readMessages (QueueUrl qName) n w = do
-  let receiveMessageReq = SQS.ReceiveMessage Nothing [] n [] qName w
-  SQS.ReceiveMessageResponse r <- awsRequest $ receiveMessageReq
-  pure r
+readMessages :: QueueUrl -> Maybe Int -> Maybe Int -> AWS [A.Message]
+readMessages q n w = do
+  res <- send $ A.receiveMessage (unQueueUrl q) &
+           rmMaxNumberOfMessages .~ n &
+           rmWaitTimeSeconds .~ w
+  pure $ res ^. rmrMessages
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteMessage.html
-deleteMessage :: QueueUrl -> SQS.Message -> SQSAction ()
+deleteMessage :: QueueUrl -> A.Message -> AWS ()
 deleteMessage q m = do
-   void . awsRequest $ (SQS.DeleteMessage (SQS.mReceiptHandle m) (unQueueUrl q))
+   i <- maybe (fail "MessageId cannot be Nothing") pure (m ^. mReceiptHandle)
+   send_ $ A.deleteMessage (unQueueUrl q) i
 
-awsAccountNum :: Text -> Maybe Text
-awsAccountNum url =
-  case split (== '/') url of
-    (_:_:_:a:_) -> Just a
-    _ -> Nothing
