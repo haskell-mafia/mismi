@@ -7,8 +7,8 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , mismi-core
-                     , amazonka                        == 99.0.9
-                     , amazonka-core                   == 99.0.9
+                     , amazonka
+                     , amazonka-core
                      , disorder-core
                      , disorder-corpus
                      , either                          == 4.3.*
