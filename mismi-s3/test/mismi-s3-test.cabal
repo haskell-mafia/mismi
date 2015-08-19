@@ -1,4 +1,4 @@
-name:                  mismi-s3-test
+name:                  ambiata-mismi-s3-test
 version:               0.0.1
 cabal-version:         >= 1.8
 build-type:            Simple
@@ -6,9 +6,9 @@ build-type:            Simple
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , mismi-core
-                     , mismi-core-test
-                     , mismi-s3
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
+                     , ambiata-mismi-s3
                      , ambiata-p
                      , amazonka                        == 99.0.9
                      , amazonka-core                   == 99.0.9

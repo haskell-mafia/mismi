@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE LambdaCase #-}
 
-import           BuildInfo_mismi_s3
+import           BuildInfo_ambiata_mismi_s3
 
 import           Control.Monad.IO.Class
 

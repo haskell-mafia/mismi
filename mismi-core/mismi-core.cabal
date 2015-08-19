@@ -1,4 +1,4 @@
-name:                  mismi-core
+name:                  ambiata-mismi-core
 version:               0.0.1
 license:               AllRightsReserved
 author:                Ambiata <info@ambiata.com>
@@ -52,7 +52,7 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
-                     , mismi-core
+                     , ambiata-mismi-core
                      , ambiata-p
                      , amazonka
                      , amazonka-core

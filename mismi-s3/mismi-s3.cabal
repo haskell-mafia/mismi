@@ -1,4 +1,4 @@
-name:                  mismi-s3
+name:                  ambiata-mismi-s3
 version:               0.0.1
 license:               AllRightsReserved
 author:                Ambiata <info@ambiata.com>
@@ -13,7 +13,7 @@ description:           mismi-s3.
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , mismi-core
+                     , ambiata-mismi-core
                      , ambiata-p
                      , ambiata-x-conduit
                      , ambiata-x-exception
@@ -76,8 +76,8 @@ executable s3
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      main
   build-depends:       base
-                     , mismi-core
-                     , mismi-s3
+                     , ambiata-mismi-core
+                     , ambiata-mismi-s3
                      , ambiata-p
                      , ambiata-x-optparse
                      , optparse-applicative            == 0.11.*
@@ -92,9 +92,9 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
-                     , mismi-core
-                     , mismi-core-test
-                     , mismi-s3
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
+                     , ambiata-mismi-s3
                      , ambiata-p
                      , amazonka
                      , amazonka-core
@@ -124,9 +124,9 @@ test-suite test-io
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
-                     , mismi-core
-                     , mismi-core-test
-                     , mismi-s3
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
+                     , ambiata-mismi-s3
                      , ambiata-p
                      , amazonka
                      , amazonka-core
@@ -155,9 +155,9 @@ test-suite test-reliability
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
-                     , mismi-core
-                     , mismi-core-test
-                     , mismi-s3
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
+                     , ambiata-mismi-s3
                      , ambiata-p
                      , amazonka
                      , amazonka-core

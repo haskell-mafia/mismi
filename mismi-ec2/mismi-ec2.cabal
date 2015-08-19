@@ -1,4 +1,4 @@
-name:                  mismi-ec2
+name:                  ambiata-mismi-ec2
 version:               0.0.1
 license:               AllRightsReserved
 author:                Ambiata <info@ambiata.com>
@@ -14,13 +14,13 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , ambiata-p
+                     , ambiata-mismi-core
                      , amazonka                        == 99.0.9
                      , amazonka-core                   == 99.0.9
                      , bytestring                      == 0.10.*
                      , either
                      , http-client                     == 0.4.18.*
                      , http-conduit                    == 2.1.5.*
-                     , mismi-core
                      , mtl                             >= 2.2.1      && < 2.3
                      , text                            == 1.2.*
                      , transformers                    >= 0.3        && < 0.5
@@ -43,7 +43,7 @@ test-suite test
   hs-source-dirs:      test
   build-depends:       base
                      , disorder-core
-                     , mismi-core
-                     , mismi-ec2
+                     , ambiata-mismi-core
+                     , ambiata-mismi-ec2
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
