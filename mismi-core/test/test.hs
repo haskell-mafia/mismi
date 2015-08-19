@@ -1,9 +1,9 @@
 import           Disorder.Core.Main
 
-import qualified Test.Mismi.Control.Amazonka
+import qualified Test.Mismi.Control
 
 main :: IO ()
 main =
   disorderMain [
-      Test.Mismi.Control.Amazonka.tests
+      Test.Mismi.Control.tests
     ]

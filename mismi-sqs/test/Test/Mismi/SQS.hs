@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 module Test.Mismi.SQS (
     module X
   , NonEmptyMessage(..)
@@ -55,9 +56,9 @@ runSQSWithQueueArg v (Queue qn r) f =
 
 runSQSWithCfgWithDefaults :: AWS b -> IO b
 runSQSWithCfgWithDefaults f = do
-  r <- getRegionFromEnv
-  let e = fromMaybe Sydney $ P.rightToMaybe r
-  runSQSWithRegion e f
+  mr <- getRegionFromEnv
+  let r = fromMaybe Sydney mr
+  runSQSWithRegion r f
 
 testVisibilityTimeout :: Maybe Int
 testVisibilityTimeout = Just 8400

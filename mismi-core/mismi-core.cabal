@@ -17,8 +17,8 @@ library
                      , ambiata-p
                      , ambiata-x-exception
                      , template-haskell
-                     , amazonka                        == 99.0.9
-                     , amazonka-core                   == 99.0.9
+                     , amazonka                        == 1.1.*
+                     , amazonka-core                   == 1.1.*
                      , bifunctors                      == 4.2.*
                      , bytestring                      == 0.10.*
                      , either                          == 4.3.*
@@ -30,9 +30,9 @@ library
                      , profunctors                     >= 4         && < 5
                      , resourcet                       == 1.1.*
                      , text                            == 1.2.*
+                     , time                            == 1.4.*
                      , transformers                    >= 0.3        && < 0.5
                      , lens                            >= 4.8        && < 4.10
-                     , these                           == 0.4.1
 
   ghc-options:
                        -Wall
@@ -44,7 +44,6 @@ library
   exposed-modules:
                        Mismi
                        Mismi.Control
-                       Mismi.Control.Amazonka
                        Mismi.Environment
 
 test-suite test

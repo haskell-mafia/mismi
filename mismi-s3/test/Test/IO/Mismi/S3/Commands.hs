@@ -5,7 +5,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.IO.Mismi.S3.Commands where
 
-import           Control.Monad.Catch (catchAll)
+import           Control.Monad.Catch -- (catchAll)
 import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
@@ -30,6 +30,11 @@ import           Test.Mismi.S3 (LocalPath (..))
 import           Test.Mismi.Amazonka
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
+
+
+prop_headObject = withAWS $ \a -> do
+  h <- C.headObject a
+  pure $ h === Nothing
 
 prop_exists = withAWS $ \a -> do
   write a ""

@@ -20,7 +20,7 @@ import           Disorder.Corpus
 import           System.Posix.Env
 import           System.FilePath hiding ((</>))
 
-import           Mismi.Control.Amazonka
+import           Mismi.Control
 import           Mismi.S3
 
 import           P

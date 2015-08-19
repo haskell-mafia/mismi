@@ -6,11 +6,10 @@ module Mismi.SQS.Control (
   ) where
 
 import           Mismi.Control as X
-import           P
 import           System.IO
 
 runSQSWithDefaults :: AWS b -> IO b
-runSQSWithDefaults = unsafeAWS . runAWSDefaultRegion
+runSQSWithDefaults = runAWSDefaultRegion
 
 runSQSWithRegion :: Region -> AWS a -> IO a
-runSQSWithRegion r = unsafeAWS . runAWS r
+runSQSWithRegion r = runAWSWithRegion r

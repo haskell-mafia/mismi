@@ -15,7 +15,8 @@ import           Data.ByteString hiding (unpack, find)
 import           Mismi.Control
 import           Mismi.S3.Aws.Data
 
-import qualified Network.AWS.S3.Types as AWS
+import           Network.AWS.S3
+import           Network.AWS.Endpoint
 
 import           P
 
@@ -28,7 +29,7 @@ runS3WithDefaults :: S3Action a -> IO a
 runS3WithDefaults = runS3WithRegion Sydney
 
 runS3WithRegion :: Region -> S3Action a -> IO a
-runS3WithRegion r = unsafeAWS . runAWS r
+runS3WithRegion = runAWSWithRegion
 
 liftAWSAction :: AWS a -> S3Action a
 liftAWSAction = id
@@ -37,11 +38,8 @@ liftS3Action :: S3Action a -> AWS a
 liftS3Action = id
 
 regionToEp :: Region -> ByteString
-regionToEp r =
-  _endpointHost $ endpoint s3service r
-
-s3service :: (Service AWS.S3)
-s3service = service
+regionToEp =
+  _endpointHost . defaultEndpoint s3
 
 epToRegion :: ByteString -> Maybe Region
 epToRegion bs = snd <$> find ((== bs) . fst) [

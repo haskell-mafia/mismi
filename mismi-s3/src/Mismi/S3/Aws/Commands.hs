@@ -50,14 +50,15 @@ headObject :: Address -> S3Action (Maybe ObjectMetadata)
 headObject a = A.headObject a >>= \mr -> return . join $ (toObj <$> mr)
   where
     toObj r = ObjectMetadata
-      <$> r ^. A.horDeleteMarker
-      <*> r ^. A.horETag
-      <*> r ^. A.horLastModified
-      <*> pure (r ^. A.horVersionId)
-      <*> (pure . fmap (first toText) . M.toList $ r ^. A.horMetadata)
-      <*> (pure . pure . T.pack . show $ r ^. A.horMissingMeta)
-      <*> (pure . toEncr <$> (r ^. A.horServerSideEncryption))
-    toEncr A.AES256 = AES256
+      <$> r ^. A.horsDeleteMarker
+      <*> (toText <$> r ^. A.horsETag)
+      <*> r ^. A.horsLastModified
+      <*> (pure $ fmap toText (r ^. A.horsVersionId))
+      <*> (pure . fmap (first toText) . M.toList $ r ^. A.horsMetadata)
+      <*> (pure . pure . T.pack . show $ r ^. A.horsMissingMeta)
+      <*> (toEncr <$> (r ^. A.horsServerSideEncryption))
+    toEncr A.AES256 = Just AES256
+    toEncr A.AWSKMS = Nothing
 
 getSize :: Address -> S3Action (Maybe Int)
 getSize = A.getSize
@@ -118,18 +119,18 @@ getObjectsRecursively :: Address -> S3Action [ObjectInfo]
 getObjectsRecursively a = A.getObjectsRecursively a >>= return . fmap toObj
   where
     toObj r = ObjectInfo
-      (r ^. A.oKey)
+      (r ^. A.oKey . to toText)
       (r ^. A.oLastModified)
-      (r ^. A.oETag)
+      (r ^. A.oETag . to toText)
       (r ^. A.oSize.to fromIntegral)
       (r ^. A.oStorageClass.to toClass)
       (r ^. A.oOwner.to toUser)
-    toClass A.Glacier = Glacier
-    toClass A.ReducedRedundancy = ReducedRedundancy
-    toClass A.Standard = Standard
+    toClass A.OSCGlacier = Glacier
+    toClass A.OSCReducedRedundancy = ReducedRedundancy
+    toClass A.OSCStandard = Standard
     toUser Nothing = Nothing
     toUser (Just o) = UserInfo
-      <$> (o ^. A.oID)
+      <$> (o ^. A.oId)
       <*> (o ^. A.oDisplayName)
 
 listRecursively :: Address -> S3Action [Address]

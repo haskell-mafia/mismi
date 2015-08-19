@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module Mismi.S3.Data (
     WriteMode(..)
   , SyncMode (..)
@@ -8,6 +9,7 @@ module Mismi.S3.Data (
   , Address (..)
   , Key (..)
   , Upload (..)
+  , S3Error(..)
   , (</>)
   , combineKey
   , dirname
@@ -19,17 +21,49 @@ module Mismi.S3.Data (
   , removeCommonPrefix
   , withKey
   , s3Parser
+  , s3ErrorRender
   ) where
 
-import           Data.Align
+import           Control.Exception.Base
+
 import           Data.Attoparsec.Text hiding (parse, Fail)
 import qualified Data.Attoparsec.Text as AT
 import qualified Data.Text as T
 import           Data.Text (Text)
-import           Data.List (init)
+import           Data.List (init, zipWith)
 import           Data.String
+import           Data.Typeable
 
 import           P
+
+import           System.FilePath (FilePath)
+
+
+data S3Error =
+    SourceMissing Address
+  | SourceFileMissing FilePath
+  | DestinationAlreadyExists Address
+  | Invariant Text
+  | Target Address Address
+  deriving (Typeable)
+
+instance Exception S3Error
+
+instance Show S3Error where
+  show = T.unpack . s3ErrorRender
+
+s3ErrorRender :: S3Error -> Text
+s3ErrorRender (SourceMissing a) =
+  "Can not copy when the source bucket does not exist [" <> addressToText a <> "]"
+s3ErrorRender (SourceFileMissing f) =
+  "Can not copy when the source file does not exist [" <> T.pack f <> "]"
+s3ErrorRender (DestinationAlreadyExists a) =
+  "Can not copy to a bucket that already exists [" <> addressToText a <> "]"
+s3ErrorRender (Invariant e) =
+  "[Mismi internal error] - " <> e
+s3ErrorRender (Target a o) =
+  "[Mismi internal error] - " <> "Can not copy [" <> addressToText a <> "] to [" <> addressToText o <> "]. Target file exists"
+
 
 -- |
 -- Describes the semantics for destructive operation that may result in overwritten files.
@@ -70,6 +104,7 @@ data Address = Address {
 newtype Key = Key {
     unKey :: Text
   } deriving (Eq, Show, Ord)
+
 
 instance Show Address where
   show (Address b k) =
@@ -112,8 +147,7 @@ removeCommonPrefix prefix addr =
           (Just . T.pack $ drop (length y) x)
           (check x y)
       check :: String -> String -> Bool
-      check x y =
-        all (\(l, r) -> Just l == r) (rpadZip y x)
+      check x y = y == zipWith const x y
   in
   if bucket addr == bucket prefix
      then

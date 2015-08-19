@@ -6,8 +6,8 @@ build-type:            Simple
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , amazonka                        == 99.0.9
-                     , amazonka-core                   == 99.0.9
+                     , amazonka                        == 1.1.*
+                     , amazonka-core                   == 1.1.*
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-mismi-core

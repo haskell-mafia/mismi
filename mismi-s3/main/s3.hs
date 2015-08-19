@@ -3,11 +3,14 @@
 
 import           BuildInfo_ambiata_mismi_s3
 
+import           Control.Monad.Catch
 import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Either
 
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 import           Data.Text hiding (copy)
+import           Data.Typeable
 
 import           Mismi.Environment
 import           Mismi.S3
@@ -85,9 +88,9 @@ run = \case
 
 runK :: AmazonkaCommand -> IO ()
 runK k = do
-  r' <- getRegionFromEnv
-  r <- either (const . pure $ Sydney) pure r'
-  orDie awsErrorRender . runAWS r $ case k of
+  mr <- getRegionFromEnv
+  let r = fromMaybe Sydney mr
+  orDie renderError . EitherT . tryJust exceptExit . runAWSWithRegion r $ case k of
     Uploadk s d ->
       upload s d
     Downloadk s d ->
@@ -99,13 +102,13 @@ runK k = do
     Listk a ->
       listRecursively' a >>= ($$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText))
     Existsk a ->
-      exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
+      exists a >>= \b -> liftIO $ unless b exitFailure
 
 runC :: AwsCommand -> IO ()
 runC c = do
-  r' <- getRegionFromEnv
-  r <- either (const . pure $ Sydney) pure r'
-  orDie awsErrorRender . runAWS r $ case c of
+  mr <- getRegionFromEnv
+  let r = fromMaybe Sydney mr
+  orDie renderError. EitherT . tryJust exceptExit . runAWSWithRegion r $ case c of
     List a rq ->
       rec (list a) (listRecursively a) rq >>= liftIO . mapM_ (putStrLn . unpack . addressToText)
     Upload s d ->
@@ -117,7 +120,7 @@ runC c = do
     Move s d ->
       move s d
     Exists a ->
-      exists a >>= \b -> liftIO $ if b then exitSuccess else exitFailure
+      exists a >>= \b -> liftIO $ unless b exitFailure
     Delete a ->
       delete a
     Write a t w ->
@@ -236,3 +239,11 @@ fork' = option auto $
   <> metavar "INT"
   <> help "Number of threads to fork CopyObject call by."
   <> value 8
+
+renderError :: SomeException -> Text
+renderError = pack . show
+
+exceptExit :: SomeException -> Maybe SomeException
+exceptExit e@(SomeException ie)
+  | typeOf ie == typeOf (ExitFailure 1) = Nothing
+  | otherwise = Just e

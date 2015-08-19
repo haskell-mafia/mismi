@@ -4,23 +4,19 @@ module Test.Mismi (
     testAWS
   ) where
 
-import           Control.Monad.Trans.Either
+import           Control.Monad.Catch
 
-import           Disorder.Core
 import           Disorder.Core.IO
 
 import           Mismi
 
 import           P
 
-import           System.IO
-
-import           Test.QuickCheck
 import           Test.Mismi.Arbitrary ()
+import           Test.QuickCheck
+import           Test.QuickCheck.Property
 
 
 testAWS :: Testable a => Region -> AWS a -> Property
-testAWS r a =
-  testIO $ do
-    e <- runEitherT $ runAWS r a
-    pure $ either (\e' -> failWith $ "Property failed [" <> awsErrorRender e' <> "].") property e
+testAWS r a = testIO $
+  (runAWSWithRegion r a >> return succeeded) `catch` (return . exception "AWS action failed with exception")
