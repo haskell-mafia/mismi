@@ -13,7 +13,7 @@ description:           mismi.
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , p
+                     , ambiata-p
                      , template-haskell
                      , amazonka                        == 99.0.9
                      , amazonka-core                   == 99.0.9
@@ -55,6 +55,7 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
+                     , ambiata-p
                      , mismi-core
                      , mismi-core-test
                      , mismi-sqs
@@ -63,7 +64,6 @@ test-suite test
                      , disorder-core
                      , disorder-corpus
                      , exceptions
-                     , p
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*
@@ -75,6 +75,7 @@ test-suite test-io
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
+                     , ambiata-p
                      , mismi-core
                      , mismi-core-test
                      , mismi-sqs
@@ -84,7 +85,6 @@ test-suite test-io
                      , disorder-corpus
                      , exceptions
                      , lens
-                     , p
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*

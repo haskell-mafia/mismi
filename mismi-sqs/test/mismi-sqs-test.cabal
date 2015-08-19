@@ -9,6 +9,7 @@ library
                      , mismi-core
                      , mismi-core-test
                      , mismi-sqs
+                     , ambiata-p
                      , amazonka                        == 99.0.9
                      , amazonka-core                   == 99.0.9
                      , disorder-core
@@ -16,7 +17,6 @@ library
                      , either                          == 4.3.*
                      , exceptions                      >= 0.6        && < 0.9
                      , filepath                        == 1.3.*
-                     , p
                      , http-client                     == 0.4.18.*
                      , text                            == 1.2.*
                      , transformers                    >= 0.3        && < 0.5

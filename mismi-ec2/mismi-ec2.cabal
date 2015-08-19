@@ -13,7 +13,7 @@ description:           mismi-ec2.
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , p
+                     , ambiata-p
                      , amazonka                        == 99.0.9
                      , amazonka-core                   == 99.0.9
                      , bytestring                      == 0.10.*

@@ -13,9 +13,11 @@ description:           mismi-s3.
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , p
+                     , mismi-core
+                     , ambiata-p
+                     , ambiata-x-conduit
+                     , ambiata-x-exception
                      , template-haskell
-                     , x-conduit
                      , amazonka                        == 99.0.9
                      , amazonka-core                   == 99.0.9
                      , amazonka-s3                     == 99.0.9
@@ -30,7 +32,6 @@ library
                      , http-client                     == 0.4.18.*
                      , http-conduit                    == 2.1.5.*
                      , http-types                      == 0.8.*
-                     , mismi-core
                      , mtl                             >= 2.1       && < 2.3
                      , process                         == 1.2.*
                      , resourcet                       == 1.1.*
@@ -43,7 +44,6 @@ library
                      , retry                           == 0.6.*
                      , lens                            >= 4.8        && < 4.10
                      , these                           == 0.4.*
-                     , x-exception
                      , SafeSemaphore                   == 0.10.*
                      , unix-bytestring                 == 0.3.7.*
                      , time                            == 1.4.*
@@ -78,13 +78,13 @@ executable s3
   build-depends:       base
                      , mismi-core
                      , mismi-s3
+                     , ambiata-p
+                     , ambiata-x-optparse
                      , optparse-applicative            == 0.11.*
                      , transformers
                      , conduit
-                     , x-optparse
                      , unix                            == 2.7.*
                      , text
-                     , p
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -95,6 +95,7 @@ test-suite test
                      , mismi-core
                      , mismi-core-test
                      , mismi-s3
+                     , ambiata-p
                      , amazonka
                      , amazonka-core
                      , amazonka-s3
@@ -104,7 +105,6 @@ test-suite test
                      , directory                       == 1.2.*
                      , disorder-core
                      , disorder-corpus
-                     , p
                      , http-client
                      , temporary                       == 1.2.*
                      , text
@@ -127,12 +127,12 @@ test-suite test-io
                      , mismi-core
                      , mismi-core-test
                      , mismi-s3
+                     , ambiata-p
                      , amazonka
                      , amazonka-core
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
-                     , p
                      , http-client
                      , disorder-core
                      , disorder-corpus
@@ -158,11 +158,11 @@ test-suite test-reliability
                      , mismi-core
                      , mismi-core-test
                      , mismi-s3
+                     , ambiata-p
                      , amazonka
                      , amazonka-core
                      , exceptions
                      , filepath
-                     , p
                      , disorder-core
                      , disorder-corpus
                      , text
