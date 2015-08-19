@@ -99,7 +99,7 @@ initialize () {
 
     for submodule in $CABAL_SOURCES; do
         if ! grep -q "${submodule}\"" ${SANDBOX_DIR}/add-source-timestamps; then
-            cabal sandbox add-source ${SANDBOX:-} "$PROJECT_ROOT/$submodule"
+            cabal sandbox add-source ${SANDBOX:-} "$PROJECT_ROOT/$submodule" --snapshot
         fi
     done
 

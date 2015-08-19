@@ -9,8 +9,8 @@ library
                      , mismi-core
                      , mismi-core-test
                      , mismi-sqs
-                     , amazonka                        == 99.0.9
-                     , amazonka-core                   == 99.0.9
+                     , amazonka
+                     , amazonka-core
                      , disorder-core
                      , disorder-corpus
                      , either                          == 4.3.*
