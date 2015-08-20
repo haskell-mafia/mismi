@@ -1,4 +1,4 @@
-name:                  mismi-sqs
+name:                  ambiata-mismi-sqs
 version:               0.0.1
 license:               AllRightsReserved
 author:                Ambiata <info@ambiata.com>
@@ -13,7 +13,8 @@ description:           mismi.
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , p
+                     , ambiata-p
+                     , ambiata-mismi-core
                      , template-haskell
                      , amazonka                        == 99.0.9
                      , amazonka-core                   == 99.0.9
@@ -23,7 +24,6 @@ library
                      , http-client                     == 0.4.18.*
                      , http-conduit                    == 2.1.5.*
                      , mtl                             >= 2.2.1      && < 2.3
-                     , mismi-core
                      , resourcet                       == 1.1.*
                      , text                            == 1.2.*
                      , transformers                    >= 0.3        && < 0.5
@@ -55,15 +55,15 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
-                     , mismi-core
-                     , mismi-core-test
-                     , mismi-sqs
+                     , ambiata-p
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
+                     , ambiata-mismi-sqs
                      , amazonka
                      , amazonka-core
                      , disorder-core
                      , disorder-corpus
                      , exceptions
-                     , p
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*
@@ -75,16 +75,16 @@ test-suite test-io
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
-                     , mismi-core
-                     , mismi-core-test
-                     , mismi-sqs
+                     , ambiata-p
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
+                     , ambiata-mismi-sqs
                      , amazonka
                      , amazonka-core
                      , disorder-core
                      , disorder-corpus
                      , exceptions
                      , lens
-                     , p
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*

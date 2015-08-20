@@ -1,4 +1,4 @@
-name:                  mismi-core
+name:                  ambiata-mismi-core
 version:               0.0.1
 license:               AllRightsReserved
 author:                Ambiata <info@ambiata.com>
@@ -13,7 +13,8 @@ description:           mismi.
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , p
+                     , ambiata-p
+                     , ambiata-x-exception
                      , template-haskell
                      , amazonka                        == 99.0.9
                      , amazonka-core                   == 99.0.9
@@ -31,7 +32,6 @@ library
                      , transformers                    >= 0.3        && < 0.5
                      , lens                            >= 4.8        && < 4.10
                      , these                           == 0.4.1
-                     , x-exception
 
   ghc-options:
                        -Wall
@@ -52,7 +52,8 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
-                     , mismi-core
+                     , ambiata-mismi-core
+                     , ambiata-p
                      , amazonka
                      , amazonka-core
                      , either
@@ -61,7 +62,6 @@ test-suite test
                      , directory                       == 1.2.*
                      , disorder-core
                      , disorder-corpus
-                     , p
                      , http-client
                      , temporary                       == 1.2.*
                      , text
