@@ -43,7 +43,7 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
-                     , disorder-core
+                     , ambiata-disorder-core
                      , ambiata-mismi-core
                      , ambiata-mismi-ec2
                      , QuickCheck                      == 2.7.*

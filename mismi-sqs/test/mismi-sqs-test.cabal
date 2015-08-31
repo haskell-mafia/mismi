@@ -6,14 +6,14 @@ build-type:            Simple
 library
   build-depends:
                        base                            >= 3          && < 5
+                     , amazonka                        == 99.0.9
+                     , amazonka-core                   == 99.0.9
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-sqs
                      , ambiata-p
-                     , amazonka                        == 99.0.9
-                     , amazonka-core                   == 99.0.9
-                     , disorder-core
-                     , disorder-corpus
                      , either                          == 4.3.*
                      , exceptions                      >= 0.6        && < 0.9
                      , filepath                        == 1.3.*

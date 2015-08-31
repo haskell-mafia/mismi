@@ -93,6 +93,8 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
@@ -104,8 +106,6 @@ test-suite test
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
-                     , disorder-core
-                     , disorder-corpus
                      , http-client
                      , temporary                       == 1.2.*
                      , text
@@ -125,18 +125,18 @@ test-suite test-io
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
+                     , amazonka
+                     , amazonka-core
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
                      , ambiata-p
-                     , amazonka
-                     , amazonka-core
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
                      , http-client
-                     , disorder-core
-                     , disorder-corpus
                      , temporary                       == 1.2.*
                      , text
                      , transformers
@@ -156,16 +156,16 @@ test-suite test-reliability
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
+                     , amazonka
+                     , amazonka-core
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
                      , ambiata-p
-                     , amazonka
-                     , amazonka-core
                      , exceptions
                      , filepath
-                     , disorder-core
-                     , disorder-corpus
                      , text
                      , transformers
                      , QuickCheck                      == 2.7.*
@@ -189,4 +189,4 @@ test-suite test-cli
 
   build-depends:
                        base                            >= 3          && < 5
-                     , disorder-core
+                     , ambiata-disorder-core
