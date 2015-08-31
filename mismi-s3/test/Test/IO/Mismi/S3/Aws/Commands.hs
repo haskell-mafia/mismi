@@ -21,7 +21,7 @@ import qualified Data.ByteString.Lazy as LBS
 
 import           Disorder.Corpus
 import           Disorder.Core.IO
-import           Disorder.Core.UniquePair hiding (snd)
+import           Disorder.Core.UniquePair
 
 import qualified Mismi.S3 as A
 import           Mismi.S3.Aws

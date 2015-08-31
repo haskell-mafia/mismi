@@ -56,14 +56,14 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
+                     , amazonka
+                     , amazonka-core
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , ambiata-p
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-sqs
-                     , amazonka
-                     , amazonka-core
-                     , disorder-core
-                     , disorder-corpus
                      , exceptions
                      , text
                      , transformers
@@ -76,14 +76,14 @@ test-suite test-io
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
+                     , amazonka
+                     , amazonka-core
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , ambiata-p
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-sqs
-                     , amazonka
-                     , amazonka-core
-                     , disorder-core
-                     , disorder-corpus
                      , exceptions
                      , lens
                      , text
