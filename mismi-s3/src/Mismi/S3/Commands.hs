@@ -17,6 +17,7 @@ module Mismi.S3.Commands (
   , copyWithMode
   , move
   , upload
+  , uploadWithMode
   , multipartUpload'
   , uploadSingle
   , write
@@ -173,9 +174,15 @@ move source destination' =
     delete source
 
 upload :: FilePath -> Address -> AWS ()
-upload f a = do
-  whenM (exists a) . fail $ "Can not upload to a target that already exists [" <> (T.unpack $ addressToText a) <> "]."
-  unlessM (liftIO $ doesFileExist f) . fail $ "Can not upload when the source does not exist [" <> f <> "]."
+upload =
+  uploadWithMode Fail
+
+uploadWithMode :: WriteMode -> FilePath -> Address -> AWS ()
+uploadWithMode m f a = do
+  when (m == Fail) . whenM (exists a) .
+    fail $ "Can not upload to a target that already exists [" <> (T.unpack $ addressToText a) <> "]."
+  unlessM (liftIO $ doesFileExist f) .
+    fail $ "Can not upload when the source does not exist [" <> f <> "]."
   s <- liftIO $ withFile f ReadMode $ \h ->
     hFileSize h
   let chunk = 100 * 1024 * 1024

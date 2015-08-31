@@ -14,6 +14,7 @@ module Mismi.S3.Default (
   , downloadWithMode
   , multipartDownload
   , upload
+  , uploadWithMode
   , write
   , writeWithMode
   , copy
@@ -85,6 +86,9 @@ abortMultipart b = retryAction 5 . A.abortMultipart b
 
 upload :: FilePath -> Address -> AWS ()
 upload f = retryAction 3 . A.upload f
+
+uploadWithMode :: WriteMode -> FilePath -> Address -> AWS ()
+uploadWithMode m f = retryAction 3 . A.uploadWithMode m f
 
 write :: Address -> Text -> AWS ()
 write a = retryAction 5 . A.write a

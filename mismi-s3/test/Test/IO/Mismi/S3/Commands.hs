@@ -72,6 +72,31 @@ prop_upload d l = withLocalAWS $ \p a -> do
   r <- read a
   pure $ r === Just d
 
+prop_upload_mode d l m = withLocalAWS $ \p a -> do
+  let t = p F.</> localPath l
+  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
+  liftIO $ T.writeFile t d
+  uploadWithMode m t a
+  r <- read a
+  pure $ r === Just d
+
+prop_upload_overwrite d1 d2 l = withLocalAWS $ \p a -> do
+  let t = p F.</> localPath l
+  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
+  liftIO $ T.writeFile t d1
+  uploadWithMode Fail t a
+  liftIO $ T.writeFile t d2
+  uploadWithMode Overwrite t a
+  r <- read a
+  pure $ r === Just d2
+
+prop_upload_fail d l = withLocalAWS $ \p a -> do
+  let t = p F.</> localPath l
+  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
+  liftIO $ T.writeFile t d
+  uploadWithMode Fail t a
+  (False <$ uploadWithMode Fail t a) `catchAll` (const . pure $ True)
+
 prop_download d l = withLocalAWS $ \p a -> do
   let t = p F.</> localPath  l
   write a d
