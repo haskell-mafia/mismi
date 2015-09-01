@@ -38,8 +38,6 @@ import           Data.Text.Encoding as T
 
 import           Mismi.Environment
 
-import           Network.AWS.Data
-
 import           Network.HTTP.Client (Manager)
 import           Network.HTTP.Client.Internal (mResponseTimeout)
 import           Network.HTTP.Types.Status
@@ -76,12 +74,14 @@ runAWS r a = do
            (SecurityToken . BS.pack <$> token')
   runAWSWithEnv env a
 
-runAWSWithCreds :: Region -> AccessKey -> SecretKey -> Maybe SecurityToken -> Maybe UTCTime -> AWS a -> EitherT AWSError IO a
-runAWSWithCreds r ak sk st ex a = do
-  e <- liftIO $ AWS.getEnv r Discover
-  let auth = Auth $ AuthEnv ak sk st ex
-  let env = e & envAuth .~ auth
-  runAWSWithEnv env a
+runAWSWithCreds :: Region -> AccessKey -> SecretKey -> Maybe SecurityToken -> AWS a -> EitherT AWSError IO a
+runAWSWithCreds r ak sk st a = do
+  e <- liftIO . AWS.getEnv r $ case st of
+    Nothing ->
+      FromKeys ak sk
+    Just st' ->
+      FromSession ak sk st'
+  runAWSWithEnv e a
 
 runAWSDefaultRegion :: AWS a -> EitherT AWSError IO a
 runAWSDefaultRegion a = do
