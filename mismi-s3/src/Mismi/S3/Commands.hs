@@ -24,6 +24,7 @@ module Mismi.S3.Commands (
   , getObjectsRecursively
   , listObjects
   , list
+  , list'
   , download
   , downloadWithMode
   , downloadSingle
@@ -255,10 +256,23 @@ listObjects :: Address -> AWS ([Address], [Address])
 listObjects a =
   (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k) )<$> getObjects a
 
--- list the addresses, keys first, then prefixes
 list :: Address -> AWS [Address]
 list a =
-  (\(p, k) -> k <> p) <$> listObjects a
+  list' a >>= ($$ DC.consume)
+
+list' :: Address -> AWS (Source AWS Address)
+list' a@(Address (Bucket b) (Key k)) = do
+  let pp kk = if T.null kk then "" else if T.isSuffixOf "/" kk then kk else kk <> "/"
+  e <- ask
+  pure . hoist (retryConduit e) $ (paginate $ AWS.listObjects (BucketName b) & loPrefix .~ Just (pp k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
+
+liftAddressAndPrefix :: Address -> Conduit ListObjectsResponse AWS Address
+liftAddressAndPrefix a =
+  DC.mapFoldable (\r ->
+       fmap (\o -> let ObjectKey t = o ^. oKey in a { key = Key t })(r ^. lorsContents)
+    <> join (traverse (\cp -> maybeToList .fmap (\cp' -> a { key = Key cp' }) $ cp ^. cpPrefix) (r ^. lorsCommonPrefixes))
+  )
+
 
 download :: Address -> FilePath -> AWS ()
 download = downloadWithMode Fail
