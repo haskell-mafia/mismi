@@ -18,8 +18,6 @@ import           Control.Lens hiding (elements)
 import           Mismi.S3
 import qualified Mismi.S3.Commands as C
 
-import           Disorder.Core
-
 import           P
 
 import qualified System.Directory as D
@@ -119,7 +117,9 @@ prop_abort_multipart = withMultipart $ \a i -> do
   l <- listMultiparts (bucket a)
   forM_ (findMultiparts i l) $ abortMultipart (bucket a)
   r <- listMultiparts (bucket a)
-  pure (neg $ multipartExists i r)
+  pure $
+     (filter (== Just i) . fmap (^. muUploadId) $ l) === [Just i] .&&.
+      findMultiparts i r === []
 
 prop_list_parts = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
