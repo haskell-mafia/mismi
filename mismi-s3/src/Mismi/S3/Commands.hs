@@ -136,7 +136,7 @@ copy source dest =
 
 copyWithMode :: WriteMode -> Address -> Address -> AWS ()
 copyWithMode mode s d = do
-  unlessM (exists s) . throwM . SourceMissing $ s
+  unlessM (exists s) . throwM $ SourceMissing CopyError s
   foldWriteMode  (whenM (exists d) . throwM . DestinationAlreadyExists $ d) (pure ()) mode
   copy' s d
 
@@ -279,11 +279,10 @@ download = downloadWithMode Fail
 
 downloadWithMode :: WriteMode -> Address -> FilePath -> AWS ()
 downloadWithMode mode a f = do
-  when (mode == Fail) . whenM (liftIO $ doesFileExist f) . fail $ "Can not download to a target that already exists [" <> f <> "]."
-  unlessM (exists a) . fail $ "Can not download when the source does not exist [" <> (T.unpack $ addressToText a) <> "]."
+  when (mode == Fail) . whenM (liftIO $ doesFileExist f) . throwM $ DestinationFileExists f
   liftIO $ createDirectoryIfMissing True (dropFileName f)
   r <- getObject' a
-  r' <- maybe (fail "shit") pure r
+  r' <- maybe (throwM $ SourceMissing DownloadError a) pure r
   liftIO . runResourceT . ($$+- sinkFile f) $ r' ^. gorsBody ^. to bodyResponse
 
 downloadSingle :: Address -> FilePath -> AWS ()

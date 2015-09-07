@@ -3,13 +3,14 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module Mismi.S3.Data (
-    WriteMode(..)
+    WriteMode (..)
   , SyncMode (..)
-  , Bucket(..)
+  , Bucket (..)
   , Address (..)
   , Key (..)
   , Upload (..)
-  , S3Error(..)
+  , S3Error (..)
+  , ErrorType (..)
   , (</>)
   , combineKey
   , dirname
@@ -40,9 +41,10 @@ import           System.FilePath (FilePath)
 
 
 data S3Error =
-    SourceMissing Address
+    SourceMissing ErrorType Address
   | SourceFileMissing FilePath
   | DestinationAlreadyExists Address
+  | DestinationFileExists FilePath
   | Invariant Text
   | Target Address Address
   deriving (Typeable)
@@ -53,17 +55,30 @@ instance Show S3Error where
   show = T.unpack . s3ErrorRender
 
 s3ErrorRender :: S3Error -> Text
-s3ErrorRender (SourceMissing a) =
-  "Can not copy when the source bucket does not exist [" <> addressToText a <> "]"
-s3ErrorRender (SourceFileMissing f) =
-  "Can not copy when the source file does not exist [" <> T.pack f <> "]"
-s3ErrorRender (DestinationAlreadyExists a) =
-  "Can not copy to a bucket that already exists [" <> addressToText a <> "]"
-s3ErrorRender (Invariant e) =
-  "[Mismi internal error] - " <> e
-s3ErrorRender (Target a o) =
-  "[Mismi internal error] - " <> "Can not copy [" <> addressToText a <> "] to [" <> addressToText o <> "]. Target file exists"
+s3ErrorRender s3err = "[Mismi internal error] - " <> case s3err of
+  SourceMissing e a ->
+    "Can not " <> renderErrorType e <> " when the source object does not exist [" <> addressToText a <> "]"
+  SourceFileMissing f ->
+    "Can not copy when the source file does not exist [" <> T.pack f <> "]"
+  DestinationAlreadyExists a ->
+    "Can not copy to a bucket that already exists [" <> addressToText a <> "]"
+  DestinationFileExists f ->
+    "Can not download to a target that already exists [" <> T.pack f <> "]"
+  Invariant e ->
+    e
+  Target a o ->
+    "Can not copy [" <> addressToText a <> "] to [" <> addressToText o <> "]. Target file exists"
 
+data ErrorType =
+    DownloadError
+  | CopyError
+
+renderErrorType :: ErrorType -> Text
+renderErrorType e = case e of
+  DownloadError ->
+    "download"
+  CopyError ->
+    "copy"
 
 -- |
 -- Describes the semantics for destructive operation that may result in overwritten files.
