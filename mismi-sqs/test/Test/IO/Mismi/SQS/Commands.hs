@@ -59,6 +59,28 @@ prop_with_queue queue' (NonEmptyMessage b) =
     ms <- readMessages q (Just 1) Nothing
     pure $ ([Just b], q1)  === (fmap (^. mBody) ms, q)
 
+-- | Old 'ordinance' new 'sanction' situation
+prop_create_upgrade :: Queue -> NonEmptyMessage -> Property
+prop_create_upgrade queue' (NonEmptyMessage b) =
+  -- create queue with default VisibilityTimeout
+  testIO . runSQSWithQueueArg Nothing queue' $ \q -> do
+    -- get existing queue with non-default VisibilityTimeout
+    q' <- createQueue (queueName queue') (Just 8400)
+    void $ writeMessage q b Nothing
+    ms <- readMessages q' (Just 1) Nothing
+    pure $ [Just b] === fmap (^. mBody) ms
+
+prop_create_downgrade :: Queue -> NonEmptyMessage -> Property
+prop_create_downgrade queue' (NonEmptyMessage b) =
+  -- create queue with non-default VisibilityTimeout
+  testIO . runSQSWithQueueArg (Just 8400) queue' $ \q -> do
+    -- get existing queue with default VisibilityTimeout
+    q' <- createQueue (queueName queue') Nothing
+    void $ writeMessage q b Nothing
+    ms <- readMessages q' (Just 1) Nothing
+    pure $ [Just b] === fmap (^. mBody) ms
+
+
 return []
 tests :: IO Bool
 tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 2 })

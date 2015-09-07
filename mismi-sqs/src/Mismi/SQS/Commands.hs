@@ -12,7 +12,9 @@ module Mismi.SQS.Commands (
   , deleteMessage
   ) where
 
+import           Control.Exception.Lens
 import           Control.Lens
+import           Control.Monad.Catch
 
 import           Data.Text as T
 import qualified Data.HashMap.Strict as M
@@ -34,28 +36,33 @@ onQueue (Queue q r) v action =
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
 createQueue :: QueueName -> Maybe Int -> AWS QueueUrl
 createQueue q v = do
-  res <- send $ A.createQueue (unQueueName q) &
+  res <- handleExists . send $ A.createQueue (unQueueName q) &
            cqAttributes .~
              (M.fromList . maybeToList
-                $ (("VisibilityTimeout",) <$> ((T.pack . show) <$> v)))
+                $ ((VisibilityTimeout,) <$> ((T.pack . show) <$> v)))
   maybe
-    (fail $ "Failed to create new queue: " <> show q)
+    (throwM . Invariant $ "Failed to create new queue: " <> (pack . show) q)
     (pure . QueueUrl)
-    (res ^. cqrQueueUrl)
+    (res ^. cqrsQueueURL)
+  where
+    -- If queue alsready exists (and has different VisibilityTimeout)
+    handleExists = handling _QueueNameExists $ \_ ->
+      -- Get existing queue (using default parameters)
+      send $ A.createQueue (unQueueName q)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html
 deleteQueue :: QueueUrl -> AWS ()
 deleteQueue =
-  send_ . A.deleteQueue . unQueueUrl
+  void . send . A.deleteQueue . unQueueUrl
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
 writeMessage :: QueueUrl -> Text -> Maybe Int -> AWS (MessageId)
 writeMessage q m d = do
   res <- send $ A.sendMessage (unQueueUrl q) m & smDelaySeconds .~ d
   maybe
-    (fail "Failed to parse MessageId")
+    (throwM . Invariant $ "Failed to parse MessageId")
     (pure . MessageId)
-    (res ^. smrMessageId)
+    (res ^. smrsMessageId)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
 readMessages :: QueueUrl -> Maybe Int -> Maybe Int -> AWS [A.Message]
@@ -63,11 +70,12 @@ readMessages q n w = do
   res <- send $ A.receiveMessage (unQueueUrl q) &
            rmMaxNumberOfMessages .~ n &
            rmWaitTimeSeconds .~ w
-  pure $ res ^. rmrMessages
+
+  pure $ res ^. rmrsMessages
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteMessage.html
 deleteMessage :: QueueUrl -> A.Message -> AWS ()
 deleteMessage q m = do
-   i <- maybe (fail "MessageId cannot be Nothing") pure (m ^. mReceiptHandle)
-   send_ $ A.deleteMessage (unQueueUrl q) i
+   i <- maybe (throwM . Invariant $ "MessageId cannot be Nothing") pure (m ^. mReceiptHandle)
+   void . send $ A.deleteMessage (unQueueUrl q) i
 

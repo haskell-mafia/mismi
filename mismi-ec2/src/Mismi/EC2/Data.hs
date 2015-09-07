@@ -1,11 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Mismi.EC2.Data (
-    InstanceId (..)
+    module X
+  , InstanceId (..)
   , UserData (..)
   ) where
 
 import           Data.Text
+
+import qualified Network.AWS.EC2 as X
+import           Network.AWS.EC2 hiding (UserData)
 
 import           P
 

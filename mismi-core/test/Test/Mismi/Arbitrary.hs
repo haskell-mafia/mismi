@@ -24,5 +24,5 @@ instance Arbitrary AccessKey where
 instance Arbitrary SecretKey where
   arbitrary = SecretKey <$> (encodeUtf8 <$> arbitrary)
 
-instance Arbitrary SecurityToken where
-  arbitrary = SecurityToken <$> (encodeUtf8 <$> arbitrary)
+instance Arbitrary SessionToken where
+  arbitrary = SessionToken <$> (encodeUtf8 <$> arbitrary)

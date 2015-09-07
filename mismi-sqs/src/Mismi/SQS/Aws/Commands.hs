@@ -99,9 +99,9 @@ toMessageAttribute = \case
   "SentTimestamp" -> pure SenderId
   u -> fail $ "Unsupported MessageAttribute: " <> unpack u
 
-toAttributes :: M.HashMap Text Text -> SQSAction [(MessageAttribute, T.Text)]
+toAttributes :: M.HashMap A.QueueAttributeName Text -> SQSAction [(MessageAttribute, T.Text)]
 toAttributes = traverse toPair . M.toList
-  where toPair (a, v) = (,) <$> toMessageAttribute a <*> pure v
+  where toPair (a, v) = (,) <$> toMessageAttribute (A.toText a) <*> pure v
 
 parseMaybe :: Text -> Maybe a -> SQSAction a
 parseMaybe f = maybe (fail $ "Required field " <> unpack f <> "is missing in response") pure

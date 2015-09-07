@@ -16,10 +16,11 @@ library
                        base                            >= 3          && < 5
                      , ambiata-p
                      , ambiata-mismi-core
-                     , amazonka                        == 99.0.9
-                     , amazonka-core                   == 99.0.9
+                     , amazonka                        == 1.1.*
+                     , amazonka-core                   == 1.1.*
+                     , amazonka-ec2                    == 1.1.*
                      , bytestring                      == 0.10.*
-                     , either
+                     , either                          == 4.3.*
                      , http-client                     == 0.4.18.*
                      , http-conduit                    == 2.1.5.*
                      , mtl                             >= 2.2.1      && < 2.3

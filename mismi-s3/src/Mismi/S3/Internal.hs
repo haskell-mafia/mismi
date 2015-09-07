@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.S3.Internal (
     fencode'
-  , encodeKey
   , calculateChunks
   , downRange
   , sinkChan
@@ -18,41 +17,26 @@ import           Control.Retry
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 
-import qualified Data.ByteString as BS
-
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 
 import           Data.Text hiding (length)
-import           Data.Text.Encoding
 import           Data.UUID
 import           Data.UUID.V4
 
 import           P
 
 import           Mismi.S3.Data
-
-import           Network.HTTP.Types (urlEncode)
+import           Network.AWS.S3
 
 import           System.Directory
 import           System.IO
 import           System.FilePath
 
 
-fencode' :: (Text -> Text -> a) -> Address -> a
+fencode' :: (BucketName -> ObjectKey -> a) -> Address -> a
 fencode' f (Address (Bucket b) k) =
-  uncurry f (b, encodeKey k)
-
--- Url is being sent as a header not as a query therefore
--- requires special url encoding. (Do not encode the delimiters)
--- https://github.com/brendanhay/amazonka/issues/127
-encodeKey :: Key -> Text
-encodeKey (Key k) =
-  let splitEncoded = urlEncode True . encodeUtf8 <$> split (== '/') k
-      bsEncoded = BS.intercalate "/" splitEncoded
-  in
-  decodeUtf8 bsEncoded
-
+  BucketName b `f` ObjectKey (unKey k)
 
 -- filesize -> Chunk -> [(offset, chunk, index)]
 calculateChunks :: Int -> Int -> [(Int, Int, Int)]

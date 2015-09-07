@@ -19,9 +19,9 @@ library
                      , ambiata-x-conduit
                      , ambiata-x-exception
                      , template-haskell
-                     , amazonka                        == 99.0.9
-                     , amazonka-core                   == 99.0.9
-                     , amazonka-s3                     == 99.0.9
+                     , amazonka                        == 1.1.*
+                     , amazonka-core                   == 1.1.*
+                     , amazonka-s3                     == 1.1.*
                      , bytestring                      == 0.10.*
                      , bifunctors                      == 4.2.*
                      , conduit                         == 1.2.*
@@ -44,8 +44,8 @@ library
                      , async                           == 2.0.*
                      , retry                           == 0.6.*
                      , lens                            >= 4.8        && < 4.10
-                     , these                           == 0.4.*
                      , SafeSemaphore                   == 0.10.*
+                     , lifted-async                    == 0.7.*
                      , unix-bytestring                 == 0.3.7.*
                      , time                            == 1.4.*
                      , unordered-containers            == 0.2.5.*
@@ -77,6 +77,8 @@ executable s3
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      main
   build-depends:       base
+                     , either
+                     , exceptions
                      , ambiata-mismi-core
                      , ambiata-mismi-s3
                      , ambiata-p
@@ -84,7 +86,7 @@ executable s3
                      , optparse-applicative            == 0.11.*
                      , transformers
                      , conduit
-                     , unix                            == 2.7.*
+                     , unix
                      , text
 
 test-suite test
@@ -112,10 +114,10 @@ test-suite test
                      , transformers
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
-                     , unix                            == 2.7.*
-                     , uuid                            == 1.3.*
+                     , unix
+                     , uuid
                      , lens
-                     , time                            == 1.4.*
+                     , time
                      , conduit
 
 
@@ -135,18 +137,18 @@ test-suite test-io
                      , ambiata-p
                      , exceptions
                      , filepath
-                     , directory                       == 1.2.*
+                     , directory
                      , http-client
                      , temporary                       == 1.2.*
                      , text
                      , transformers
-                     , QuickCheck                      == 2.7.*
-                     , quickcheck-instances            == 0.3.*
-                     , unix                            == 2.7.*
-                     , uuid                            == 1.3.*
-                     , bytestring                      == 0.10.*
+                     , QuickCheck
+                     , quickcheck-instances
+                     , unix
+                     , uuid
+                     , bytestring
                      , lens
-                     , either                          == 4.3.*
+                     , either
                      , cryptohash
 
 
@@ -168,13 +170,13 @@ test-suite test-reliability
                      , filepath
                      , text
                      , transformers
-                     , QuickCheck                      == 2.7.*
-                     , quickcheck-instances            == 0.3.*
-                     , unix                            == 2.7.*
-                     , uuid                            == 1.3.*
-                     , bytestring                      == 0.10.*
-                     , either                          == 4.3.*
-                     , temporary                       == 1.2.*
+                     , QuickCheck
+                     , quickcheck-instances
+                     , unix
+                     , uuid
+                     , bytestring
+                     , either
+                     , temporary
                      , lens
 
 test-suite test-cli

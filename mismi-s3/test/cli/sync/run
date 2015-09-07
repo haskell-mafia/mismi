@@ -21,7 +21,7 @@ $MISMI sync $S3 $S3OUT || exit_cleanup $?
 $MISMI ls $S3OUT > ${TEST}/output || exit_cleanup $?
 
 if [ $(wc -l ${TEST}/output | awk '{ print $1 }') = "2" ] && grep -q $S3OUT/file1 ${TEST}/output && grep -q $S3OUT/file2 ${TEST}/output; then
-    echo "PASSED [snyc]"
+    echo "PASSED [sync]"
 else
     echo ""
     echo "Test case [sync] failed."
@@ -36,7 +36,7 @@ $MISMI sync $S3 $S3OUT --skip || exit_cleanup $?
 $MISMI ls $S3OUT > ${TEST}/output || exit_cleanup $?
 
 if [ $(wc -l ${TEST}/output | awk '{ print $1 }') = "3" ] && grep -q $S3OUT/file3 ${TEST}/output; then
-    echo "PASSED [snyc --skip]"
+    echo "PASSED [sync --skip]"
 else
     echo ""
     echo "Test case [sync --skip] failed."
