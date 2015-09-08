@@ -1,6 +1,3 @@
-lib/amazonka/amazonka
-lib/amazonka/amazonka-ec2
-lib/amazonka/core
 lib/disorder/disorder-core
 lib/disorder/disorder-corpus
 lib/p
