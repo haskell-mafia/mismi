@@ -22,6 +22,7 @@ module Mismi.S3.Default (
   , move
   , listObjects
   , list
+  , list'
   , listMultiparts
   , listRecursively
   , listRecursively'
@@ -74,6 +75,9 @@ listObjects = retryAction 5 . A.listObjects
 
 list :: Address -> AWS [Address]
 list = retryAction 5 . A.list
+
+list' :: Address -> AWS (Source AWS Address)
+list' = retryAction 5 . A.list'
 
 listMultiparts :: Bucket -> AWS [MultipartUpload]
 listMultiparts = retryAction 5 . A.listMultiparts
