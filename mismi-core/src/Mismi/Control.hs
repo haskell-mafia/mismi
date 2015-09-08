@@ -1,17 +1,22 @@
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Mismi.Control (
     module A
   , runAWS
+  , runAWST
   , runAWSDefaultRegion
   , runAWSWithRegion
+  , runAWSWithRegionT
   , runAWSWithCreds
+  , runAWSWithCredsT
   , awsBracket
   , awsBracket_
   , errorRender
   ) where
 
 import           Control.Lens
+import           Control.Monad.Trans.Either
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
@@ -43,6 +48,14 @@ runAWS e =
   let e' = over envManager (\m -> m { mResponseTimeout = Just 60000000 }) e
   in runResourceT . A.runAWS e'
 
+runAWST :: (MonadIO m, MonadCatch m) => Env -> AWS a -> EitherT Error m a
+runAWST e =
+  catchError . runAWS e
+
+catchError :: (MonadIO m, MonadCatch m) => IO a -> EitherT Error m a
+catchError =
+  EitherT . try . liftIO
+
 runAWSWithCreds :: Region -> AccessKey -> SecretKey -> Maybe SessionToken -> AWS a -> IO a
 runAWSWithCreds r ak sk st a = do
   e <- liftIO . newEnv r $ case st of
@@ -51,6 +64,10 @@ runAWSWithCreds r ak sk st a = do
     Just st' ->
       FromSession ak sk st'
   runAWS e a
+
+runAWSWithCredsT :: (MonadIO m, MonadCatch m) => Region -> AccessKey -> SecretKey -> Maybe SessionToken -> AWS a -> EitherT Error m a
+runAWSWithCredsT r ak sk st =
+  catchError . runAWSWithCreds r ak sk st
 
 runAWSWithRegion :: Region -> AWS a -> IO a
 runAWSWithRegion r a = do
@@ -63,6 +80,10 @@ runAWSWithRegion r a = do
                pure $ e & envAuth .~ auth)
            (SessionToken . BS.pack <$> token')
   runAWS e' a
+
+runAWSWithRegionT :: (MonadIO m, MonadCatch m) => Region -> AWS a -> EitherT Error m a
+runAWSWithRegionT r =
+  catchError . runAWSWithRegion r
 
 runAWSDefaultRegion :: AWS a -> IO a
 runAWSDefaultRegion a = do
