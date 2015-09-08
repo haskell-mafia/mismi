@@ -172,7 +172,9 @@ prop_abort_multipart = withMultipart $ \a i -> do
   l <- listMultiparts (bucket a)
   forM_ (findMultiparts i l) $ abortMultipart (bucket a)
   r <- listMultiparts (bucket a)
-  pure (neg $ multipartExists i r)
+  pure $
+     (P.filter (== Just i) . fmap (^. muUploadId) $ l) === [Just i] .&&.
+      findMultiparts i r === []
 
 prop_list_multipart :: Property
 prop_list_multipart = withMultipart $ \a i -> do
