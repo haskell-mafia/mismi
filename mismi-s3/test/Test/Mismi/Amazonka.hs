@@ -79,4 +79,4 @@ withAWSToken t f = do
   awsBracket_ (pure ()) ((retryAction . listRecursively) a >>= mapM_ delete >> delete a) (retryAction $ f a)
 
 retryAction :: AWS a -> AWS a
-retryAction = retryAWSAction (retryWithBackoff 5)
+retryAction = retryAWSAction 5

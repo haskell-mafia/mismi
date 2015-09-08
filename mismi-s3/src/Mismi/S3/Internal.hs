@@ -8,7 +8,6 @@ module Mismi.S3.Internal (
   , sinkChanWithDelay
   , waitForNResults
   , withFileSafe
-  , retryWithBackoff
   ) where
 
 import           Control.Concurrent
@@ -86,8 +85,3 @@ withFileSafe f1 run = do
   onException
     (run f2 >>= \a -> liftIO $ whenM (doesFileExist f2) (renameFile f2 f1) >> pure a)
     (liftIO $ removeFile f2)
-
-retryWithBackoff :: Int -> RetryPolicy
-retryWithBackoff i =
-  capDelay 60000000 {- 60 seconds -} $
-  limitRetries i <> exponentialBackoff 100000 {- 100 milliseconds -}

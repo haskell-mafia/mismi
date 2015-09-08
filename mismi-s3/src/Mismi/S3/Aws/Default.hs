@@ -31,7 +31,6 @@ import           Mismi.S3.Aws.Data
 import qualified Mismi.S3.Aws.Commands as M
 import qualified Mismi.S3.Commands as A
 import           Mismi.S3.Data
-import           Mismi.S3.Internal
 
 import           P
 
@@ -94,4 +93,4 @@ sync m s d = retryAction 3 . M.sync m s d
 
 
 retryAction :: Int -> S3Action a -> S3Action a
-retryAction r = A.retryAWSAction (retryWithBackoff r)
+retryAction = A.retryAWSAction
