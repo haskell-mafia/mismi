@@ -8,7 +8,7 @@ module Mismi.EC2.Metadata (
   , metadataErrorRender
   ) where
 
-import           Control.Monad.Except
+import           Control.Monad.Catch
 import           Control.Monad.Trans.Either
 
 import           Data.ByteString.Char8      as BS
@@ -34,12 +34,12 @@ data MetadataError =
 fetchMetadata :: AWS.Metadata -> EitherT MetadataError IO ByteString
 fetchMetadata  metadata' = EitherT $ do
   m <- managerWithDefaultTimeout
-  fmap (mapLeft MetadataHttpError) . runExceptT $ metadata m metadata'
+  fmap (mapLeft MetadataHttpError) . try $ metadata m metadata'
 
 fetchUserData :: EitherT MetadataError IO (Maybe M.UserData)
 fetchUserData = EitherT $ do
   m <- managerWithDefaultTimeout
-  fmap (mapLeft MetadataHttpError) . runExceptT $ userdata m >>=
+  fmap (mapLeft MetadataHttpError) . try $ userdata m >>=
      pure . fmap (M.UserData . T.decodeUtf8)
 
 fetchInstanceId :: EitherT MetadataError IO M.InstanceId
