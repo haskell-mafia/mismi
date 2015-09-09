@@ -111,7 +111,6 @@ prop_copy_fail t = withAWS' $ \a b -> do
   write b t
   (False <$ copyWithMode Fail a b) `catchAll` (const . pure $ True)
 
-
 prop_move :: Text -> Token -> Property
 prop_move t d' = withAWS $ \s ->
   withToken d' $ \d -> do
@@ -126,7 +125,7 @@ prop_upload_mode d l m = withLocalAWS $ \p a -> do
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
-  uploadWithMode m t a
+  uploadWithModeOrFail m t a
   r <- read a
   pure $ r === Just d
 
@@ -135,9 +134,9 @@ prop_upload_overwrite d1 d2 l = withLocalAWS $ \p a -> do
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d1
-  uploadWithMode Fail t a
+  uploadWithModeOrFail Fail t a
   liftIO $ T.writeFile t d2
-  uploadWithMode Overwrite t a
+  uploadWithModeOrFail Overwrite t a
   r <- read a
   pure $ r === Just d2
 
@@ -146,15 +145,15 @@ prop_upload_fail d l = withLocalAWS $ \p a -> do
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
-  uploadWithMode Fail t a
-  (False <$ uploadWithMode Fail t a) `catchAll` (const . pure $ True)
+  uploadWithModeOrFail Fail t a
+  (False <$ uploadWithModeOrFail Fail t a) `catchAll` (const . pure $ True)
 
 prop_upload :: Text -> LocalPath -> Property
 prop_upload d l = withLocalAWS $ \p a -> do
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
-  upload t a
+  uploadOrFail t a
   r <- read a
   pure $ r === Just d
 
@@ -164,7 +163,7 @@ prop_upload_multipart l = forAll arbitrary $ \bs -> withLocalAWS $ \p a -> do
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ withFile t WriteMode $ \h ->
     replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
-  upload t a
+  uploadOrFail t a
   exists a
 
 prop_abort_multipart :: Property
@@ -247,7 +246,7 @@ prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> el
   liftIO $ withFile t WriteMode $ \h ->
     replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
   size <- liftIO . withFile t ReadMode $ hFileSize
-  upload t a
+  uploadOrFail t a
 
   let ten :: Int = 10
 
