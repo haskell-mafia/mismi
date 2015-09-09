@@ -11,7 +11,6 @@ import           Disorder.Core.IO
 
 import           Mismi.Control
 import           Mismi.S3
-import           Mismi.S3.Aws
 
 import           P
 import qualified Prelude as P
@@ -22,7 +21,7 @@ import           System.Environment
 import           Test.Mismi.Amazonka
 import           Test.QuickCheck
 
-testS3 :: Testable a => (Address -> Int -> S3Action a) -> Property
+testS3 :: Testable a => (Address -> Int -> AWS a) -> Property
 testS3 = testAWS
 
 testAWS :: Testable a => (Address -> Int -> AWS a) -> Property
