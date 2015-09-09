@@ -42,10 +42,6 @@ library
 
   exposed-modules:
                        Mismi.SQS
-                       Mismi.SQS.Aws
-                       Mismi.SQS.Aws.Commands
-                       Mismi.SQS.Aws.Control
-                       Mismi.SQS.Aws.Data
                        Mismi.SQS.Commands
                        Mismi.SQS.Control
                        Mismi.SQS.Data

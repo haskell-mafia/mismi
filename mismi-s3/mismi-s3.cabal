@@ -61,16 +61,10 @@ library
 
   exposed-modules:
                        Mismi.S3
-                       Mismi.S3.Aws
-                       Mismi.S3.Aws.Data
-                       Mismi.S3.Aws.Control
-                       Mismi.S3.Aws.Default
                        Mismi.S3.Commands
                        Mismi.S3.Data
                        Mismi.S3.Default
                        Mismi.S3.Internal
-  other-modules:
-                       Mismi.S3.Aws.Commands
 
 executable s3
   main-is:             s3.hs

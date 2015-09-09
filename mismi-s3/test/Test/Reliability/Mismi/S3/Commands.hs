@@ -29,6 +29,11 @@ prop_sync = forAll (elements muppets) $ \m -> testAWS' $ \a b i -> do
   mapM_ (\e -> exists e >>= \e' -> when (e' == False) (throwM $ userError "Output files do not exist")) (files a m i)
   pure $ True === True
 
+prop_list = forAll (elements muppets) $ \m -> testS3 $ \a i -> do
+  createFiles a m i
+  replicateM_ 100 (list a >>= \z -> when (length z /=  i) (throwM $ userError "List is not the same as original response"))
+  pure $ True === True
+
 createFiles :: Address -> Text -> Int -> AWS ()
 createFiles prefix name n = do
   mapM_ (flip write "data") $ files prefix name n

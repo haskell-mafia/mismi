@@ -29,4 +29,3 @@ library
   exposed-modules:
                        Test.Mismi.SQS
                        Test.Mismi.SQS.Arbitrary
-                       Test.Mismi.SQS.Aws
