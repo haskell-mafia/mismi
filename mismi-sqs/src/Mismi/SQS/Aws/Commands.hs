@@ -96,7 +96,7 @@ toMessageAttribute = \case
   "ApproximateFirstReceiveTimestamp" -> pure ApproximateFirstReceiveTimestamp
   "ApproximateReceiveCount" -> pure ApproximateReceiveCount
   "SenderId" -> pure SenderId
-  "SentTimestamp" -> pure SenderId
+  "SentTimestamp" -> pure SentTimestamp
   u -> fail $ "Unsupported MessageAttribute: " <> unpack u
 
 toAttributes :: M.HashMap A.QueueAttributeName Text -> SQSAction [(MessageAttribute, T.Text)]

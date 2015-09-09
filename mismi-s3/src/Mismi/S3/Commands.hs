@@ -43,8 +43,8 @@ module Mismi.S3.Commands (
   , sync
   , syncWithMode
   , retryAWSAction
+  , retryAWSAction'
   , retryAWS
-  , retryAWS'
   , sse
   ) where
 
@@ -453,25 +453,25 @@ foldWR e a = \case
   WorkerErr err -> e err
 
 
-retryAWSAction :: RetryPolicy -> AWS a -> AWS a
-retryAWSAction rp a = do
-  local (retryAWS' rp) $ a
+retryAWSAction' :: Retry -> AWS a -> AWS a
+retryAWSAction' r =
+  local (override (serviceRetry .~ r))
+
+retryAWSAction :: Int -> AWS a -> AWS a
+retryAWSAction =
+  local . retryAWS
 
 retryAWS :: Int -> Env -> Env
-retryAWS i = retryAWS' (retryWithBackoff i)
-
-retryAWS' :: RetryPolicy -> Env -> Env
-retryAWS' _ e =
-  let err c v = case v of
-        NoResponseDataReceived -> True
-        StatusCodeException s _ _ -> s == status500
-        FailedConnectionException _ _ -> True
-        FailedConnectionException2 _ _ _ _ -> True
-        TlsException _ -> True
-        _ -> (e ^. envRetryCheck) c v
-  in
-  e & envRetryCheck .~ err
-
+retryAWS i e = e & envRetryCheck .~ err
+  where
+    err c _ | c >= i = False
+    err c v = case v of
+      NoResponseDataReceived -> True
+      StatusCodeException s _ _ -> s == status500
+      FailedConnectionException _ _ -> True
+      FailedConnectionException2 _ _ _ _ -> True
+      TlsException _ -> True
+      _ -> (e ^. envRetryCheck) c v
 
 handle404 :: AWS a -> AWS (Maybe a)
 handle404 m = fmap Just m `catch` \ (e :: Error) ->

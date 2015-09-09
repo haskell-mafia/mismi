@@ -39,7 +39,6 @@ import           Data.Conduit
 import           Mismi.S3.Commands as X (AWS, MultipartUpload, muUploadId, retryAWSAction)
 import qualified Mismi.S3.Commands as A
 import           Mismi.S3.Data
-import           Mismi.S3.Internal
 
 import           P
 
@@ -123,4 +122,4 @@ syncWithMode :: SyncMode -> Address -> Address -> Int -> AWS ()
 syncWithMode m s d = retryAction 3 . A.syncWithMode m s d
 
 retryAction :: Int -> AWS a -> AWS a
-retryAction r = retryAWSAction (retryWithBackoff r)
+retryAction = retryAWSAction
