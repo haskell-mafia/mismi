@@ -6,6 +6,7 @@ module Mismi.Control (
   , runAWS
   , runAWST
   , runAWSDefaultRegion
+  , runAWSDefaultRegionT
   , runAWSWithRegion
   , runAWSWithRegionT
   , runAWSWithCreds
@@ -91,6 +92,10 @@ runAWSDefaultRegion a = do
   let r = fromMaybe Sydney mr
   e <- newEnv r Discover
   runAWS e a
+
+runAWSDefaultRegionT :: (MonadIO m, MonadCatch m) => AWS a -> EitherT Error m a
+runAWSDefaultRegionT =
+  catchError . runAWSDefaultRegion
 
 awsBracket :: AWS a -> (a -> AWS c) -> (a -> AWS b) -> AWS b
 awsBracket r f a = do
