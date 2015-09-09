@@ -19,6 +19,7 @@ import           P
 import           System.IO
 import           System.IO.Error (userError)
 
+import           Test.Mismi
 import           Test.Mismi.Arbitrary ()
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()

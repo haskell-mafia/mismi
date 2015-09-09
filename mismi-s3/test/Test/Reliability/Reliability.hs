@@ -7,8 +7,6 @@ module Test.Reliability.Reliability where
 
 import           Control.Monad.IO.Class
 
-import           Disorder.Core.IO
-
 import           Mismi.Control
 import           Mismi.S3
 
@@ -18,23 +16,19 @@ import qualified Prelude as P
 import           System.IO
 import           System.Environment
 
+import           Test.Mismi
 import           Test.Mismi.Amazonka
 import           Test.QuickCheck
 
 testS3 :: Testable a => (Address -> Int -> AWS a) -> Property
-testS3 = testAWS
-
-testAWS :: Testable a => (Address -> Int -> AWS a) -> Property
-testAWS f =
-  property $ \t -> testIO .
-    runAWSWithRegion Sydney . withAWSToken t $ \a -> do
+testS3 f =
+  property $ \t -> testAWS . withAWSToken t $ \a -> do
       i <- liftIO $ testSize
       f a i
 
 testAWS' :: Testable a => (Address -> Address -> Int -> AWS a) -> Property
 testAWS' f =
-  property $ \t t' -> testIO .
-    runAWSWithRegion Sydney . withAWSToken t $ \a ->
+  property $ \t t' -> testAWS . withAWSToken t $ \a ->
       withAWSToken t' $ \b -> do
         i <- liftIO $ testSize
         f a b i

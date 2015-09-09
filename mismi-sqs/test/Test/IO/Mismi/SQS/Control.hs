@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Test.IO.Mismi.SQS.Control where
 
-import           Mismi.SQS
+import           Mismi.SQS as M
 
 import           P
 
@@ -12,7 +12,7 @@ import           Test.Mismi.SQS
 import           Test.QuickCheck
 
 prop_result :: NonEmptyMessage -> Queue -> Property
-prop_result t (Queue q r) = testAWS r $ do
+prop_result t (Queue q r) = testAWS . M.within r $ do
   r' <- withQueue q $ \a -> do
     _ <- writeMessage a (unMessage t) Nothing
     readMessages a (Just 1) Nothing

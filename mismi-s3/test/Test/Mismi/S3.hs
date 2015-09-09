@@ -1,11 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Test.Mismi.S3 (
-    Token (..)
+    module X
+  , Token (..)
   , LocalPath (..)
   , testBucket
   , withToken
-  , testAWS
   ) where
 
 import           Control.Monad.IO.Class (liftIO)
@@ -28,7 +28,7 @@ import           P
 import           System.IO
 
 import           Test.QuickCheck
-import           Test.Mismi
+import           Test.Mismi as X
 import           Test.Mismi.Arbitrary ()
 import           Test.Mismi.S3.Arbitrary ()
 
