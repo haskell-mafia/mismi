@@ -14,9 +14,9 @@ import           Test.QuickCheck
 
 prop_chunks :: Property
 prop_chunks =
-  forAll (choose (0, 10000)) $ \size ->
-    forAll (choose (0, 10000)) $ \chunk -> chunk < size ==>
-      sum (snd' <$> calculateChunks size chunk) === size
+  forAll (choose (1, 10000)) $ \size ->
+    forAll (choose (1, size)) $ \chunk ->
+      foldl' (+) 0 (snd' <$> calculateChunks size chunk) === size
 
 snd' :: (Int, Int, Int) -> Int
 snd' (_, b, _) = b

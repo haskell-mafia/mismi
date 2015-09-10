@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns #-}
 module Mismi.S3.Internal (
     fencode'
   , calculateChunks
@@ -39,15 +40,16 @@ fencode' f (Address (Bucket b) k) =
 
 -- filesize -> Chunk -> [(offset, chunk, index)]
 calculateChunks :: Int -> Int -> [(Int, Int, Int)]
-calculateChunks size chunk =
-  let go :: Int -> Int -> [(Int, Int, Int)]
-      go i o =
-        let o' = (o + chunk) in
+calculateChunks size chunk' =
+  let chunk = max 1 chunk'
+      go :: Int -> Int -> [(Int, Int, Int)]
+      go !i o =
+        let !o' = (o + chunk) in
           if (o' < size)
             then
               (o, chunk, i) : go (i + 1) o'
             else
-              let c' = (size - o) in -- last chunk
+              let !c' = (size - o) in -- last chunk
               [(o, c', i)]
   in
     go 1 0
