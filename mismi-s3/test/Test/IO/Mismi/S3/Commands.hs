@@ -2,13 +2,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE PackageImports #-}
 module Test.IO.Mismi.S3.Commands where
 
 import           Control.Concurrent
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 
-import           Crypto.Hash
+import "cryptohash" Crypto.Hash
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
