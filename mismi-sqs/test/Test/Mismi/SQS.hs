@@ -8,13 +8,11 @@ module Test.Mismi.SQS (
   , withQueueArg
   , runSQSWithQueue
   , runSQSWithQueueArg
-  , runSQSWithCfgWithDefaults
   ) where
 
 import           Data.Text
 
-import           Mismi.Environment
-import           Mismi.SQS
+import           Mismi.SQS as M
 
 import           Test.Mismi as X
 import           Test.Mismi.SQS.Arbitrary ()
@@ -51,14 +49,8 @@ runSQSWithQueue :: Queue -> (QueueUrl -> AWS a) -> IO a
 runSQSWithQueue = runSQSWithQueueArg testVisibilityTimeout
 
 runSQSWithQueueArg :: Maybe Int -> Queue -> (QueueUrl -> AWS a) -> IO a
-runSQSWithQueueArg v (Queue qn r) f =
-  runSQSWithRegion r $ withQueueArg v qn f
-
-runSQSWithCfgWithDefaults :: AWS b -> IO b
-runSQSWithCfgWithDefaults f = do
-  mr <- getRegionFromEnv
-  let r = fromMaybe Sydney mr
-  runSQSWithRegion r f
+runSQSWithQueueArg v (Queue qn r) f = do
+  runAWSDefaultRegion . M.within r $ withQueueArg v qn f
 
 testVisibilityTimeout :: Maybe Int
 testVisibilityTimeout = Just 8400

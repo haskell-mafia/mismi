@@ -49,26 +49,26 @@ sendMultipart t a i ui = retryAction $ do
 withAWS :: Testable a => (Address -> AWS a) -> Property
 withAWS f =
   property $ \t ->
-    testIO . runAWSWithRegion Sydney . withAWSToken t $ \a ->
+    testAWS . withAWSToken t $ \a ->
       f a
 
 withAWS' :: Testable a => (Address -> Address -> AWS a) -> Property
 withAWS' f =
   property $ \t t' ->
-    testIO . runAWSWithRegion Sydney . withAWSToken t $ \a ->
+    testAWS . withAWSToken t $ \a ->
       withAWSToken t' $ \b ->
         f a b
 
 withLocalAWS :: Testable a => (FilePath -> Address -> AWS a) -> Property
 withLocalAWS f =
   property $ \t -> testIO . withSystemTempDirectory "mismi" $ \p ->
-    runAWSWithRegion Sydney . withAWSToken t $ \a ->
+    runAWSDefaultRegion . withAWSToken t $ \a ->
       f p a
 
 withMultipart :: Testable a => (Address -> Text -> AWS a) -> Property
 withMultipart f =
   property $ \t ->
-    testIO . runAWSWithRegion Sydney . withAWSToken t $ \a ->
+    testAWS . withAWSToken t $ \a ->
       awsBracket (createMultipart a) (abortMultipart' a) (f a)
 
 withAWSToken :: Token -> (Address -> AWS a) -> AWS a

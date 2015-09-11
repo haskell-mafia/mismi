@@ -5,10 +5,7 @@ module Mismi.Control (
     module A
   , runAWS
   , runAWST
-  , runAWSDefaultRegion
-  , runAWSDefaultRegionT
-  , runAWSWithRegion
-  , runAWSWithRegionT
+  , catchError
   , runAWSWithCreds
   , runAWSWithCredsT
   , awsBracket
@@ -23,12 +20,10 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Char8 as BS
 import           Data.ByteString.Builder
 import           Data.Text as T
 import           Data.Text.Encoding as T
 
-import           Mismi.Environment
 
 import           Network.AWS hiding (runAWS)
 import qualified Network.AWS as A
@@ -41,7 +36,6 @@ import           Network.HTTP.Client.Internal (mResponseTimeout)
 import           P
 
 import           System.IO
-import           System.Environment
 
 
 runAWS :: Env -> AWS a -> IO a
@@ -69,33 +63,6 @@ runAWSWithCreds r ak sk st a = do
 runAWSWithCredsT :: (MonadIO m, MonadCatch m) => Region -> AccessKey -> SecretKey -> Maybe SessionToken -> AWS a -> EitherT Error m a
 runAWSWithCredsT r ak sk st =
   catchError . runAWSWithCreds r ak sk st
-
-runAWSWithRegion :: Region -> AWS a -> IO a
-runAWSWithRegion r a = do
-  e <- newEnv r Discover
-  token' <- lookupEnv "AWS_SECURITY_TOKEN"
-  e' <- maybe
-           (pure e)
-           (\token -> do
-               auth <- withAuth (e ^. envAuth) (\ae -> pure . Auth $ ae { _authToken = Just token })
-               pure $ e & envAuth .~ auth)
-           (SessionToken . BS.pack <$> token')
-  runAWS e' a
-
-runAWSWithRegionT :: (MonadIO m, MonadCatch m) => Region -> AWS a -> EitherT Error m a
-runAWSWithRegionT r =
-  catchError . runAWSWithRegion r
-
-runAWSDefaultRegion :: AWS a -> IO a
-runAWSDefaultRegion a = do
-  mr <- getRegionFromEnv
-  let r = fromMaybe Sydney mr
-  e <- newEnv r Discover
-  runAWS e a
-
-runAWSDefaultRegionT :: (MonadIO m, MonadCatch m) => AWS a -> EitherT Error m a
-runAWSDefaultRegionT =
-  catchError . runAWSDefaultRegion
 
 awsBracket :: AWS a -> (a -> AWS c) -> (a -> AWS b) -> AWS b
 awsBracket r f a = do

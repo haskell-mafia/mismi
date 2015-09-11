@@ -3,14 +3,12 @@
 
 import           BuildInfo_ambiata_mismi_s3
 
-import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Either
 
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 import           Data.Text hiding (copy)
-import           Data.Typeable
 
 import           Mismi.Environment
 import           Mismi.S3
@@ -88,9 +86,8 @@ run = \case
 
 runK :: AmazonkaCommand -> IO ()
 runK k = do
-  mr <- getRegionFromEnv
-  let r = fromMaybe Sydney mr
-  orDie renderError . EitherT . tryJust exceptExit . runAWSWithRegion r $ case k of
+  e <- orDie envErrorRender . EitherT $ discoverAWSEnv
+  orDie errorRender . runAWST e $ case k of
     Uploadk s d ->
       upload s d
     Downloadk s d ->
@@ -106,9 +103,8 @@ runK k = do
 
 runC :: AwsCommand -> IO ()
 runC c = do
-  mr <- getRegionFromEnv
-  let r = fromMaybe Sydney mr
-  orDie renderError. EitherT . tryJust exceptExit . runAWSWithRegion r $ case c of
+  e <- orDie envErrorRender . EitherT $ discoverAWSEnv
+  orDie errorRender . runAWST e $ case c of
     List a rq ->
       rec (list a) (listRecursively a) rq >>= liftIO . mapM_ (putStrLn . unpack . addressToText)
     Upload s d ->
@@ -239,11 +235,3 @@ fork' = option auto $
   <> metavar "INT"
   <> help "Number of threads to fork CopyObject call by."
   <> value 8
-
-renderError :: SomeException -> Text
-renderError = pack . show
-
-exceptExit :: SomeException -> Maybe SomeException
-exceptExit e@(SomeException ie)
-  | typeOf ie == typeOf (ExitFailure 1) = Nothing
-  | otherwise = Just e

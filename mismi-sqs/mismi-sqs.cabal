@@ -43,7 +43,6 @@ library
   exposed-modules:
                        Mismi.SQS
                        Mismi.SQS.Commands
-                       Mismi.SQS.Control
                        Mismi.SQS.Data
 
 test-suite test
