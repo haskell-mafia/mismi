@@ -89,7 +89,7 @@ runK k = do
   e <- orDie envErrorRender . EitherT $ discoverAWSEnv
   orDie errorRender . runAWST e $ case k of
     Uploadk s d ->
-      upload s d
+      uploadOrFail s d
     Downloadk s d ->
       download s d
     Sizek a ->
@@ -108,7 +108,7 @@ runC c = do
     List a rq ->
       rec (list a) (listRecursively a) rq >>= liftIO . mapM_ (putStrLn . unpack . addressToText)
     Upload s d ->
-      upload s d
+      uploadOrFail s d
     Download s d ->
       download s d
     Copy s d ->
@@ -120,7 +120,7 @@ runC c = do
     Delete a ->
       delete a
     Write a t w ->
-      writeWithMode w a t
+      writeWithModeOrFail w a t
     Read a ->
       read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
     Size a ->

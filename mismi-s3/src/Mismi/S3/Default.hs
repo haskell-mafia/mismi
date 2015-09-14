@@ -14,9 +14,13 @@ module Mismi.S3.Default (
   , downloadWithMode
   , multipartDownload
   , upload
+  , uploadOrFail
   , uploadWithMode
+  , uploadWithModeOrFail
   , write
+  , writeOrFail
   , writeWithMode
+  , writeWithModeOrFail
   , copy
   , copyWithMode
   , move
@@ -87,17 +91,29 @@ getObjectsRecursively = retryAction 5 . A.getObjectsRecursively
 abortMultipart :: Bucket -> MultipartUpload -> AWS ()
 abortMultipart b = retryAction 5 . A.abortMultipart b
 
-upload :: FilePath -> Address -> AWS ()
+upload :: FilePath -> Address -> AWS UploadResult
 upload f = retryAction 3 . A.upload f
 
-uploadWithMode :: WriteMode -> FilePath -> Address -> AWS ()
+uploadOrFail :: FilePath -> Address -> AWS ()
+uploadOrFail f = retryAction 3 . A.uploadOrFail f
+
+uploadWithMode :: WriteMode -> FilePath -> Address -> AWS UploadResult
 uploadWithMode m f = retryAction 3 . A.uploadWithMode m f
 
-write :: Address -> Text -> AWS ()
+uploadWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
+uploadWithModeOrFail m f = retryAction 3 . A.uploadWithModeOrFail m f
+
+write :: Address -> Text -> AWS WriteResult
 write a = retryAction 5 . A.write a
 
-writeWithMode :: WriteMode -> Address -> Text -> AWS ()
+writeOrFail :: Address -> Text -> AWS ()
+writeOrFail a = retryAction 5 . A.writeOrFail a
+
+writeWithMode :: WriteMode -> Address -> Text -> AWS WriteResult
 writeWithMode m a = retryAction 5 . A.writeWithMode m a
+
+writeWithModeOrFail :: WriteMode -> Address -> Text -> AWS ()
+writeWithModeOrFail m a = retryAction 5 . A.writeWithModeOrFail m a
 
 download :: Address -> FilePath -> AWS ()
 download a = retryAction 5 . A.download a

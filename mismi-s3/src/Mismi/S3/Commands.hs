@@ -15,11 +15,15 @@ module Mismi.S3.Commands (
   , copyWithMode
   , move
   , upload
+  , uploadOrFail
   , uploadWithMode
+  , uploadWithModeOrFail
   , multipartUpload'
   , uploadSingle
   , write
+  , writeOrFail
   , writeWithMode
+  , writeWithModeOrFail
   , getObjects
   , getObjectsRecursively
   , listObjects
@@ -61,6 +65,8 @@ import           Control.Lens
 import           Control.Retry
 import           Control.Monad.Catch
 import           Control.Monad.Morph (hoist)
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Resource
 import           Control.Monad.Reader (ask, local)
 import           Control.Monad.IO.Class
@@ -150,18 +156,35 @@ move source destination' =
   copy source destination' >>
     delete source
 
-upload :: FilePath -> Address -> AWS ()
+upload :: FilePath -> Address -> AWS UploadResult
 upload =
   uploadWithMode Fail
 
-uploadWithMode :: WriteMode -> FilePath -> Address -> AWS ()
-uploadWithMode m f a = do
-  when (m == Fail) . whenM (exists a) . throwM . DestinationAlreadyExists $ a
-  unlessM (liftIO $ doesFileExist f) . throwM . SourceFileMissing $ f
+uploadOrFail :: FilePath -> Address -> AWS ()
+uploadOrFail f a =
+  upload f a >>= liftUploadResult
+
+uploadWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
+uploadWithModeOrFail w f a =
+  uploadWithMode w f a >>= liftUploadResult
+
+liftUploadResult :: UploadResult -> AWS ()
+liftUploadResult = \case
+  UploadOk ->
+    pure ()
+  UploadError (UploadSourceMissing f) ->
+    throwM $ SourceFileMissing f
+  UploadError (UploadDestinationExists a) ->
+    throwM $ DestinationAlreadyExists a
+
+uploadWithMode :: WriteMode -> FilePath -> Address -> AWS UploadResult
+uploadWithMode m f a = eitherT (pure . UploadError) (const $ pure UploadOk) $ do
+  when (m == Fail) . whenM (lift $ exists a) . left $ UploadDestinationExists a
+  unlessM (liftIO $ doesFileExist f) . left $ UploadSourceMissing f
   s <- liftIO $ withFile f ReadMode $ \h ->
     hFileSize h
   let chunk = 100 * 1024 * 1024
-  if s < chunk
+  lift $ if s < chunk
     then do
       uploadSingle f a
     else do
@@ -200,16 +223,31 @@ multipartUpload' file a fileSize chunk = do
   where
     handle' mpu = flip catchAll $ const . void . send . fencode' abortMultipartUpload a $ mpu
 
-write :: Address -> Text -> AWS ()
+write :: Address -> Text -> AWS WriteResult
 write =
   writeWithMode Fail
 
-writeWithMode :: WriteMode -> Address -> Text -> AWS ()
-writeWithMode w a t = do
+writeOrFail :: Address -> Text -> AWS ()
+writeOrFail a t =
+  write a t >>= liftWriteResult
+
+writeWithModeOrFail :: WriteMode -> Address -> Text -> AWS ()
+writeWithModeOrFail m a t =
+  writeWithMode m a t >>= liftWriteResult
+
+liftWriteResult :: WriteResult -> AWS ()
+liftWriteResult = \case
+  WriteOk ->
+    pure ()
+  WriteDestinationExists a ->
+    throwM $ DestinationAlreadyExists a
+
+writeWithMode :: WriteMode -> Address -> Text -> AWS WriteResult
+writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
   case w of
-    Fail -> whenM (exists a) . throwM . DestinationAlreadyExists $ a
+    Fail -> whenM (lift $ exists a) . left $ WriteDestinationExists a
     Overwrite -> return ()
-  void . send $ fencode' putObject a (toBody . T.encodeUtf8 $ t) & poServerSideEncryption .~ Just sse
+  void . lift . send $ fencode' putObject a (toBody . T.encodeUtf8 $ t) & poServerSideEncryption .~ Just sse
 
 -- pair of prefixs and keys
 getObjects :: Address -> AWS ([Key], [Key])

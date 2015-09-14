@@ -11,6 +11,9 @@ module Mismi.S3.Data (
   , Upload (..)
   , S3Error (..)
   , ErrorType (..)
+  , UploadResult (..)
+  , UploadError (..)
+  , WriteResult (..)
   , (</>)
   , combineKey
   , dirname
@@ -79,6 +82,21 @@ renderErrorType e = case e of
     "download"
   CopyError ->
     "copy"
+
+data WriteResult =
+    WriteOk
+  | WriteDestinationExists Address
+  deriving (Eq, Show)
+
+data UploadResult =
+    UploadOk
+  | UploadError UploadError
+  deriving (Eq, Show)
+
+data UploadError =
+    UploadSourceMissing FilePath
+  | UploadDestinationExists Address
+  deriving (Eq, Show)
 
 -- |
 -- Describes the semantics for destructive operation that may result in overwritten files.
