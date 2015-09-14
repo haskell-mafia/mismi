@@ -4,6 +4,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Test.IO.Mismi.S3.Commands where
 
+import           Control.Concurrent
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 
@@ -170,9 +171,18 @@ prop_abort_multipart :: Property
 prop_abort_multipart = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
   l <- listMultiparts (bucket a)
-  forM_ (findMultiparts i l) $ abortMultipart (bucket a)
+  forM_ (findMultiparts i l) $ abortCheck i (bucket a) 3
   r <- listMultiparts (bucket a)
-  pure (neg $ multipartExists i r)
+  pure $
+     (P.filter (== Just i) . fmap (^. muUploadId) $ l) === [Just i] .&&.
+      findMultiparts i r === []
+  where
+    abortCheck i b n u = do
+      abortMultipart b u
+      r <- listMultiparts b
+      unless (n <= (0 :: Int) || findMultiparts i r == []) $ do
+        liftIO $ threadDelay 500000
+        abortCheck i b (n-1) u
 
 prop_list_multipart :: Property
 prop_list_multipart = withMultipart $ \a i -> do
