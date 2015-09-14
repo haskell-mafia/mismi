@@ -18,7 +18,9 @@ module Mismi.S3.Default (
   , uploadWithMode
   , uploadWithModeOrFail
   , write
+  , writeOrFail
   , writeWithMode
+  , writeWithModeOrFail
   , copy
   , copyWithMode
   , move
@@ -101,11 +103,17 @@ uploadWithMode m f = retryAction 3 . A.uploadWithMode m f
 uploadWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
 uploadWithModeOrFail m f = retryAction 3 . A.uploadWithModeOrFail m f
 
-write :: Address -> Text -> AWS ()
+write :: Address -> Text -> AWS WriteResult
 write a = retryAction 5 . A.write a
 
-writeWithMode :: WriteMode -> Address -> Text -> AWS ()
+writeOrFail :: Address -> Text -> AWS ()
+writeOrFail a = retryAction 5 . A.writeOrFail a
+
+writeWithMode :: WriteMode -> Address -> Text -> AWS WriteResult
 writeWithMode m a = retryAction 5 . A.writeWithMode m a
+
+writeWithModeOrFail :: WriteMode -> Address -> Text -> AWS ()
+writeWithModeOrFail m a = retryAction 5 . A.writeWithModeOrFail m a
 
 download :: Address -> FilePath -> AWS ()
 download a = retryAction 5 . A.download a

@@ -21,7 +21,9 @@ module Mismi.S3.Commands (
   , multipartUpload'
   , uploadSingle
   , write
+  , writeOrFail
   , writeWithMode
+  , writeWithModeOrFail
   , getObjects
   , getObjectsRecursively
   , listObjects
@@ -221,16 +223,31 @@ multipartUpload' file a fileSize chunk = do
   where
     handle' mpu = flip catchAll $ const . void . send . fencode' abortMultipartUpload a $ mpu
 
-write :: Address -> Text -> AWS ()
+write :: Address -> Text -> AWS WriteResult
 write =
   writeWithMode Fail
 
-writeWithMode :: WriteMode -> Address -> Text -> AWS ()
-writeWithMode w a t = do
+writeOrFail :: Address -> Text -> AWS ()
+writeOrFail a t =
+  write a t >>= liftWriteResult
+
+writeWithModeOrFail :: WriteMode -> Address -> Text -> AWS ()
+writeWithModeOrFail m a t =
+  writeWithMode m a t >>= liftWriteResult
+
+liftWriteResult :: WriteResult -> AWS ()
+liftWriteResult = \case
+  WriteOk ->
+    pure ()
+  WriteDestinationExists a ->
+    throwM $ DestinationAlreadyExists a
+
+writeWithMode :: WriteMode -> Address -> Text -> AWS WriteResult
+writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
   case w of
-    Fail -> whenM (exists a) . throwM . DestinationAlreadyExists $ a
+    Fail -> whenM (lift $ exists a) . left $ WriteDestinationExists a
     Overwrite -> return ()
-  void . send $ fencode' putObject a (toBody . T.encodeUtf8 $ t) & poServerSideEncryption .~ Just sse
+  void . lift . send $ fencode' putObject a (toBody . T.encodeUtf8 $ t) & poServerSideEncryption .~ Just sse
 
 -- pair of prefixs and keys
 getObjects :: Address -> AWS ([Key], [Key])

@@ -13,6 +13,7 @@ module Mismi.S3.Data (
   , ErrorType (..)
   , UploadResult (..)
   , UploadError (..)
+  , WriteResult (..)
   , (</>)
   , combineKey
   , dirname
@@ -82,6 +83,9 @@ renderErrorType e = case e of
   CopyError ->
     "copy"
 
+data WriteResult =
+    WriteOk
+  | WriteDestinationExists Address
 
 data UploadResult =
     UploadOk

@@ -120,7 +120,7 @@ runC c = do
     Delete a ->
       delete a
     Write a t w ->
-      writeWithMode w a t
+      writeWithModeOrFail w a t
     Read a ->
       read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
     Size a ->
