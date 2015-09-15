@@ -10,6 +10,7 @@ module Mismi.S3.Default (
   , getSize
   , delete
   , read
+  , read'
   , download
   , downloadWithMode
   , multipartDownload
@@ -36,6 +37,9 @@ module Mismi.S3.Default (
   , syncWithMode
   ) where
 
+import           Control.Monad.Trans.Resource (ResourceT)
+
+import           Data.ByteString (ByteString)
 import           Data.Text hiding (copy)
 
 import           Data.Conduit
@@ -46,8 +50,7 @@ import           Mismi.S3.Data
 
 import           P
 
-import           System.IO (FilePath)
-
+import           System.IO (IO, FilePath)
 
 headObject :: Address -> AWS (Maybe A.HeadObjectResponse)
 headObject = retryAction 5 . A.headObject
@@ -63,6 +66,9 @@ delete = retryAction 5 . A.delete
 
 read :: Address -> AWS (Maybe Text)
 read = retryAction 5 . A.read
+
+read' :: Address -> AWS (Maybe (ResumableSource (ResourceT IO) ByteString))
+read' = retryAction 5 . A.read'
 
 copy :: Address -> Address -> AWS ()
 copy s = retryAction 5 . A.copy s
