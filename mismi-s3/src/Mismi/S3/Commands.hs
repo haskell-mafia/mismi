@@ -11,6 +11,7 @@ module Mismi.S3.Commands (
   , getSize
   , delete
   , read
+  , read'
   , copy
   , copyWithMode
   , move
@@ -131,10 +132,14 @@ getObject' =
 
 read :: Address -> AWS (Maybe Text)
 read a = do
-  resp <- getObject' a
-  let format y = T.concat . TL.toChunks . TL.decodeUtf8 $ y
-  z <- liftIO . sequence $ (\r -> runResourceT (r ^. gorsBody . to bodyResponse $$+- sinkLbs)) <$> resp
-  pure (format <$> z)
+  r <- read' a
+  z <- liftIO . sequence $ (runResourceT . ($$+- sinkLbs)) <$> r
+  pure $ fmap (T.concat . TL.toChunks . TL.decodeUtf8) z
+
+read' :: Address -> AWS (Maybe (ResumableSource (ResourceT IO) BS.ByteString))
+read' a = do
+  r <- getObject' a
+  pure $ fmap (^. gorsBody . to bodyResponse) r
 
 copy :: Address -> Address -> AWS ()
 copy source dest =
