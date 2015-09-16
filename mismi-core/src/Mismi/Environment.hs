@@ -4,6 +4,7 @@
 module Mismi.Environment (
     Region (..)
   , RegionError (..)
+  , EnvError (..)
   , getRegionFromEnv
   , regionErrorRender
   , discoverAWSEnv
