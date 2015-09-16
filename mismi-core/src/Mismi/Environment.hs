@@ -42,6 +42,9 @@ data EnvError =
     MissingRegion
   deriving (Eq, Typeable)
 
+instance Show EnvError where
+  show = T.unpack . envErrorRender
+
 getRegionFromEnv :: (MonadIO m, MonadThrow m) => m (Maybe Region)
 getRegionFromEnv = do
   mr <- liftIO $ lookupEnv "AWS_DEFAULT_REGION"
