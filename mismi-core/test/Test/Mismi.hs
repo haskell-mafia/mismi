@@ -5,8 +5,6 @@ module Test.Mismi (
   , runAWSDefaultRegion
   ) where
 
-import           Control.Monad.Catch
-
 import           Disorder.Core.IO
 
 import           Mismi
@@ -17,12 +15,10 @@ import           System.IO
 
 import           Test.Mismi.Arbitrary ()
 import           Test.QuickCheck
-import           Test.QuickCheck.Property
 
 
 testAWS :: Testable a => AWS a -> Property
-testAWS a = testIO $
-  (runAWSDefaultRegion a >> return succeeded) `catch` (return . exception "AWS action failed with exception")
+testAWS = testIO . runAWSDefaultRegion
 
 -- Default to Sydney for tests only, production should fail without the environment variable
 runAWSDefaultRegion :: AWS a -> IO a

@@ -41,6 +41,9 @@ prop_bracket_catch l final = final /= "" ==> testIO $ do
   runAWSDefaultRegion $ awsBracket (liftIO $ return r) (liftIO . after') (liftIO . action') `catchIOError` (const $ return ())
   (=== final : l) <$> readIORef r
 
+prop_testAWS :: Property
+prop_testAWS = expectFailure . Test.QuickCheck.once . testAWS $ pure False
+
 
 return []
 tests :: IO Bool
