@@ -14,6 +14,12 @@ module Mismi.S3.Commands (
   , read'
   , copy
   , copyWithMode
+  , handle403
+  , handle404
+  , handle301
+  , handleStatus
+  , onStatus
+  , onStatus_
   , move
   , upload
   , uploadOrFail
@@ -242,15 +248,13 @@ writeWithModeOrFail m a t =
 
 liftWriteResult :: WriteResult -> AWS ()
 liftWriteResult = \case
-  WriteOk ->
-    pure ()
-  WriteDestinationExists a ->
-    throwM $ DestinationAlreadyExists a
+  WriteOk   -> pure ()
+  WriteKo e -> throwM e
 
 writeWithMode :: WriteMode -> Address -> Text -> AWS WriteResult
 writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
   case w of
-    Fail -> whenM (lift $ exists a) . left $ WriteDestinationExists a
+    Fail -> whenM (lift $ exists a) . left $ WriteKo (DestinationAlreadyExists a)
     Overwrite -> return ()
   void . lift . send $ fencode' putObject a (toBody . T.encodeUtf8 $ t) & poServerSideEncryption .~ Just sse
 
@@ -518,8 +522,32 @@ retryAWS i e = e & envRetryCheck .~ err
       _ -> (e ^. envRetryCheck) c v
 
 handle404 :: AWS a -> AWS (Maybe a)
-handle404 m = fmap Just m `catch` \ (e :: Error) ->
-  if e ^? httpStatus == Just status404 then return Nothing else throwM e
+handle404 = handleStatus status404
+
+handle403 :: AWS a -> AWS (Maybe a)
+handle403 = handleStatus status403
+
+handle301 :: AWS a -> AWS (Maybe a)
+handle301 = handleStatus status301
+
+handleStatus :: Status -> AWS a -> AWS (Maybe a)
+handleStatus s m = fmap Just m `catch` \ (e :: Error) ->
+  if e ^? httpStatus == Just s then return Nothing else throwM e
+
+-- | return a result code depending on the HTTP status
+onStatus :: (Status -> Maybe r) -> AWS a -> AWS (Either r a)
+onStatus f m = (Right <$> m) `catch` \ (e :: Error) ->
+  case (e ^? httpStatus) >>= f of
+    Just r1 -> return (Left r1)
+    Nothing -> throwM e
+
+-- | return a result code depending on the HTTP status
+--   for an AWS action returning no value
+onStatus_ :: r -> (Status -> Maybe r) -> AWS () -> AWS r
+onStatus_ r f m = (const r <$> m) `catch` \ (e :: Error) ->
+  case (e ^? httpStatus) >>= f of
+    Just r1 -> return r1
+    Nothing -> throwM e
 
 sse :: ServerSideEncryption
 sse =

@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE PackageImports #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.IO.Mismi.S3.Commands where
 
 import           Control.Concurrent
@@ -39,29 +40,23 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
 
-prop_exists :: Property
 prop_exists = withAWS $ \a -> do
   writeOrFail a ""
   e <- exists a
   pure $ e === True
 
-prop_exists_empty :: Property
 prop_exists_empty = withAWS $ \a ->
   not <$> exists a
 
-prop_exists_failure :: Property
 prop_exists_failure = withAWS $ \a -> do
   e <- exists a
   pure $ e === False
 
-
-prop_headObject :: Property
 prop_headObject = withAWS $ \a -> do
   h <- C.headObject a
   pure $ h === Nothing
 
 
-prop_getObjects_empty :: Property
 prop_getObjects_empty = withAWS $ \a -> do
   objs <- getObjectsRecursively $ a
   pure $ objs === []
@@ -73,7 +68,6 @@ prop_getObjectsR t p1 p2 = p1 /= p2 ==> withAWS $ \root -> do
   objs <- getObjectsRecursively root
   pure $ on (===) L.sort ((^. C.oKey . to toText) <$> objs) (unKey . (</>) (key root) <$> keys)
 
-prop_getObjs :: Property
 prop_getObjs = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> withAWS $ \a -> A.once $ do
   forM_ [1..n] $ \n' -> writeOrFail (withKey(</> Key (m <> pack (show n'))) a) ""
   r' <- list a
@@ -85,7 +79,6 @@ prop_size t = withAWS $ \a -> do
   i <- getSize a
   pure $ i === (Just . BS.length $ T.encodeUtf8 t)
 
-prop_size_failure :: Property
 prop_size_failure = withAWS $ \a -> do
   i <- getSize a
   pure $ i === Nothing
@@ -148,7 +141,7 @@ prop_upload_fail d l = withLocalAWS $ \p a -> do
   liftIO $ T.writeFile t d
   uploadWithModeOrFail Fail t a
   r <- uploadWithMode Fail t a
-  pure $ r === (UploadError (UploadDestinationExists a))
+  pure $ r === UploadError (UploadDestinationExists a)
 
 prop_upload :: Text -> LocalPath -> Property
 prop_upload d l = withLocalAWS $ \p a -> do
@@ -181,7 +174,7 @@ prop_abort_multipart = withMultipart $ \a i -> do
     abortCheck i b n u = do
       abortMultipart b u
       r <- listMultiparts b
-      unless (n <= (0 :: Int) || findMultiparts i r == []) $ do
+      unless (n <= (0 :: Int) || L.null (findMultiparts i r)) $ do
         liftIO $ threadDelay 500000
         abortCheck i b (n-1) u
 
@@ -230,6 +223,9 @@ prop_list_recursively = withAWS $ \a -> do
   r' <- listRecursively (a { key = dirname $ key a })
   pure $ a `elem` r'
 
+prop_list_forbidden_bucket = withAWS $ \_ -> do
+  _ <- write (Address (Bucket "ambiata-dev-view") (Key "")) ""
+  pure $ True
 
 prop_download :: Text -> LocalPath -> Property
 prop_download d l = withLocalAWS $ \p a -> do
@@ -302,7 +298,7 @@ prop_write_failure :: Text -> Property
 prop_write_failure d = withAWS $ \a -> do
   writeOrFail a d
   r <- write a d
-  pure $ r === WriteDestinationExists a
+  pure $ r === WriteKo (DestinationAlreadyExists a)
 
 prop_write_overwrite :: UniquePair Text -> Property
 prop_write_overwrite (UniquePair x y) = withAWS $ \a -> do
@@ -311,14 +307,22 @@ prop_write_overwrite (UniquePair x y) = withAWS $ \a -> do
   r <- read a
   pure $ r === pure y
 
--- |
--- If the object does not exist, then the behaviour should be invariant with the WriteMode
---
+-- | If the object does not exist, then the behaviour should be invariant with the WriteMode
 prop_write_nonexisting :: WriteMode -> Text -> Property
 prop_write_nonexisting w t = withAWS $ \a -> do
   writeWithModeOrFail w a t
   r <- read a
   pure $ r === pure t
+
+prop_on_status_ok = testAWS $
+  do r <- C.onStatus_ (1 :: Int) handler (void (exists (Address (Bucket "ambiata-dev-view") (Key ""))))
+     return (r === 1)
+  where handler _ = Just 2
+
+prop_on_status_ko = testAWS $
+  do r <- C.onStatus_ (1 :: Int) handler (void (write missingAddress "text"))
+     return (r === 2)
+  where handler _ = Just 2
 
 prop_read_empty :: Key -> Property
 prop_read_empty k = ioProperty $ do
@@ -326,6 +330,10 @@ prop_read_empty k = ioProperty $ do
   t <- runAWSDefaultRegion . read $ Address bucket' k
   pure $ t === Nothing
 
+----------
+-- HELPERS
+----------
+missingAddress = Address (Bucket "ambiata-missing") (Key "m")
 
 return []
 tests :: IO Bool
