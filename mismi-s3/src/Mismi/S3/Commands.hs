@@ -116,7 +116,7 @@ headObject a =
 
 exists :: Address -> AWS Bool
 exists a =
-  headObject a >>= pure . maybe False (const True)
+  headObject a >>= pure . isJust
 
 getSize :: Address -> AWS (Maybe Int)
 getSize a =
@@ -142,8 +142,8 @@ read' a = do
   pure $ fmap (^. gorsBody . to bodyResponse) r
 
 copy :: Address -> Address -> AWS ()
-copy source dest =
-  copyWithMode Fail source dest
+copy =
+  copyWithMode Fail
 
 copyWithMode :: WriteMode -> Address -> Address -> AWS ()
 copyWithMode mode s d = do
@@ -190,10 +190,10 @@ uploadWithMode m f a = eitherT (pure . UploadError) (const $ pure UploadOk) $ do
     hFileSize h
   let chunk = 100 * 1024 * 1024
   lift $ if s < chunk
-    then do
+    then
       uploadSingle f a
-    else do
-      if (s > 1024 * 1024 * 1024)
+    else
+      if s > 1024 * 1024 * 1024
          then multipartUpload' f a s (10 * chunk)
          else multipartUpload' f a s chunk
 
@@ -222,9 +222,9 @@ multipartUpload' file a fileSize chunk = do
     prts <- liftIO $ mapConcurrently uploader chunks
     ets <- mapM (\p -> maybe (throwM . Invariant $ "uprsETag") return (p ^. uprsETag)) prts
     let cps = L.zipWith (\(_, _, i) et -> completedPart i et) chunks ets
-    ncps <- if cps == [] then throwM . Invariant $ "completedPart" else return . NEL.nonEmpty $ cps
+    ncps <- if null cps then throwM . Invariant $ "completedPart" else return . NEL.nonEmpty $ cps
     void . send $ fencode' completeMultipartUpload a mpu &
-      cMultipartUpload .~ (pure $ completedMultipartUpload & cmuParts .~ ncps)
+      cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
   where
     handle' mpu = flip catchAll $ const . void . send . fencode' abortMultipartUpload a $ mpu
 
@@ -257,10 +257,8 @@ writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
 -- pair of prefixs and keys
 getObjects :: Address -> AWS ([Key], [Key])
 getObjects (Address (Bucket buck) (Key ky)) =
-  ((Key <$>) *** ((\(ObjectKey t) -> Key t) <$>)) <$> (ff $ (AWS.listObjects (BucketName buck) & loPrefix .~ Just (pp ky) & loDelimiter .~ Just '/' ))
+  ((Key <$>) *** ((\(ObjectKey t) -> Key t) <$>)) <$> ff (AWS.listObjects (BucketName buck) & loPrefix .~ Just ((+/) ky) & loDelimiter .~ Just '/' )
   where
-    pp :: Text -> Text
-    pp k = if T.null k then "" else if T.isSuffixOf "/" k then k else k <> "/"
     ff :: ListObjects -> AWS ([T.Text], [ObjectKey])
     ff b = do
       r <- send b
@@ -269,16 +267,14 @@ getObjects (Address (Bucket buck) (Key ky)) =
         do
           let d = (maybeToList =<< fmap (^. cpPrefix) (r ^. lorsCommonPrefixes), fmap (^. oKey) (r ^. lorsContents))
           n <- ff $ b & loMarker .~ (r ^. lorsNextMarker)
-          pure $ (d <> n)
+          pure $ d <> n
         else
-        pure $ (maybeToList =<< fmap (^. cpPrefix) (r ^. lorsCommonPrefixes), fmap (^. oKey) (r ^. lorsContents))
+        pure (maybeToList =<< fmap (^. cpPrefix) (r ^. lorsCommonPrefixes), fmap (^. oKey) (r ^. lorsContents))
 
 getObjectsRecursively :: Address -> AWS [Object]
 getObjectsRecursively (Address (Bucket b) (Key ky)) =
-  getObjects' $ (AWS.listObjects (BucketName b)) & loPrefix .~ Just (pp ky)
+  getObjects' $ AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) ky)
   where
-    pp :: Text -> Text
-    pp k = if T.null k then "" else if T.isSuffixOf "/" k then k else k <> "/"
     -- Hoping this will have ok performance in cases where the results are large, it shouldnt
     -- affect correctness since we search through the list for it anyway
     go x ks = (NEL.toList ks <>) <$> getObjects' (x & loMarker .~ Just (toText $ NEL.last ks ^. oKey))
@@ -297,7 +293,7 @@ getObjectsRecursively (Address (Bucket b) (Key ky)) =
 -- Pair of list of prefixes and list of keys
 listObjects :: Address -> AWS ([Address], [Address])
 listObjects a =
-  (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k) )<$> getObjects a
+  (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k)) <$> getObjects a
 
 list :: Address -> AWS [Address]
 list a =
@@ -305,9 +301,8 @@ list a =
 
 list' :: Address -> AWS (Source AWS Address)
 list' a@(Address (Bucket b) (Key k)) = do
-  let pp kk = if T.null kk then "" else if T.isSuffixOf "/" kk then kk else kk <> "/"
   e <- ask
-  pure . hoist (retryConduit e) $ (paginate $ AWS.listObjects (BucketName b) & loPrefix .~ Just (pp k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
+  pure . hoist (retryConduit e) $ paginate (AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
 
 liftAddressAndPrefix :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddressAndPrefix a =
@@ -316,6 +311,12 @@ liftAddressAndPrefix a =
     <> join (traverse (\cp -> maybeToList .fmap (\cp' -> a { key = Key cp' }) $ cp ^. cpPrefix) (r ^. lorsCommonPrefixes))
   )
 
+-- | add a "/" at the end of some text if missing and if the text is not empty
+(+/) :: Text -> Text
+(+/) k
+  | T.null k           = ""
+  | T.isSuffixOf "/" k = k
+  | otherwise          = k <> "/"
 
 download :: Address -> FilePath -> AWS ()
 download = downloadWithMode Fail
@@ -353,7 +354,7 @@ multipartDownload source destination' size chunk' fork = do
     hSetFileSize h (toInteger size)
 
   sem <- liftIO $ new fork
-  void . liftIO $ (mapConcurrently (with sem . writer) chunks)
+  void . liftIO $ mapConcurrently (with sem . writer) chunks
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do
@@ -423,18 +424,18 @@ listRecursively a = do
   a' <- listRecursively' a
   a' $$ DC.consume
 
-listRecursively' :: Address -> AWS (Source (AWS) Address)
+listRecursively' :: Address -> AWS (Source AWS Address)
 listRecursively' a@(Address (Bucket bn) (Key k)) = do
   e <- ask
-  pure . hoist (retryConduit e) $ (paginate $ AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
+  pure . hoist (retryConduit e) $ paginate (AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
 
-liftAddress :: Address -> Conduit ListObjectsResponse (AWS) Address
+liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
-  DC.mapFoldable (\r -> (\o -> a { key = Key $ (let ObjectKey t = o ^. oKey in t) }) <$> (r ^. lorsContents) )
+  DC.mapFoldable (\r -> (\o -> a { key = Key (let ObjectKey t = o ^. oKey in t) }) <$> (r ^. lorsContents) )
 
 retryConduit :: Env -> AWS a -> AWS a
-retryConduit e action =
-  local (const e) action
+retryConduit =
+  local . const
 
 sync :: Address -> Address -> Int -> AWS ()
 sync =
