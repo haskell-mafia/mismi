@@ -10,6 +10,7 @@ import qualified Data.Conduit.List as DC
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Either
 
+import qualified Data.ByteString as BS
 import           Data.Text.IO (putStrLn)
 import           Data.Text hiding (copy)
 
@@ -46,6 +47,7 @@ data Command =
   | Delete Address
   | Write Address Text WriteMode
   | Read Address
+  | Cat Address
   | Size Address
   | Sync Address Address SyncMode Int
   | List Address Recursive
@@ -86,6 +88,8 @@ run c = do
       writeWithModeOrFail w a t
     Read a ->
       read a >>= \md -> liftIO $ maybe exitFailure pure md >>= putStrLn
+    Cat a ->
+      read' a >>= \md -> liftIO $ maybe exitFailure pure md >>= runResourceT . ($$+- DC.mapM_ (liftIO . BS.putStr))
     Size a ->
       getSize a >>= liftIO . maybe exitFailure (putStrLn . pack . show)
     Sync s d m f ->
@@ -123,6 +127,9 @@ commandP' = subparser $
   <> command' "read"
               "Read from an address."
               (Read <$> address')
+  <> command' "cat"
+              "cat from an address."
+              (Cat <$> address')
   <> command' "size"
               "Get the size of an address."
               (Size <$> address')
