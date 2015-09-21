@@ -139,7 +139,7 @@ read a = do
 read' :: Address -> AWS (Maybe (ResumableSource (ResourceT IO) BS.ByteString))
 read' a = do
   r <- getObject' a
-  pure $ fmap (^. gorsBody . to bodyResponse) r
+  pure $ fmap (^. gorsBody . to _streamBody) r
 
 copy :: Address -> Address -> AWS ()
 copy source dest =
@@ -326,13 +326,13 @@ downloadWithMode mode a f = do
   liftIO $ createDirectoryIfMissing True (dropFileName f)
   r <- getObject' a
   r' <- maybe (throwM $ SourceMissing DownloadError a) pure r
-  liftIO . runResourceT . ($$+- sinkFile f) $ r' ^. gorsBody ^. to bodyResponse
+  liftIO . runResourceT . ($$+- sinkFile f) $ r' ^. gorsBody ^. to _streamBody
 
 downloadSingle :: Address -> FilePath -> AWS ()
 downloadSingle a p = do
   r <- send $ fencode' getObject a
   liftIO . withFileSafe p $ \p' ->
-    runResourceT . ($$+- sinkFile p') $ r ^. gorsBody ^. to bodyResponse
+    runResourceT . ($$+- sinkFile p') $ r ^. gorsBody ^. to _streamBody
 
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> AWS ()
@@ -365,7 +365,7 @@ downloadWithRange source start end dest = do
   fd <- liftIO $ openFd dest WriteOnly Nothing defaultFileFlags
   void . liftIO $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
   liftIO $ do
-    let rs :: ResumableSource (ResourceT IO) BS.ByteString = y ^. to bodyResponse
+    let rs :: ResumableSource (ResourceT IO) BS.ByteString = y ^. to _streamBody
     let s = awaitForever $ \bs -> liftIO $
               UBS.fdWrite fd bs
     runResourceT $ ($$+- s) rs
