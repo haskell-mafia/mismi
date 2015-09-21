@@ -37,6 +37,16 @@ else
     exit_cleanup
 fi
 
+if [ $($MISMI cat $s3) = $(cat ${TEST}/read) ]; then
+    echo "PASSED [stream]"
+else
+    echo ""
+    echo "Test case [stream] failed."
+    exit_cleanup
+fi
+
+exit 1
+
 foo=$(unique_s3_url foo)
 $MISMI copy $s3 $foo || exit_cleanup $?
 
