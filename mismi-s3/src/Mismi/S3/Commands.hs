@@ -14,6 +14,12 @@ module Mismi.S3.Commands (
   , read'
   , copy
   , copyWithMode
+  , handle403
+  , handle404
+  , handle301
+  , handleStatus
+  , onStatus
+  , onStatus_
   , move
   , upload
   , uploadOrFail
@@ -116,7 +122,7 @@ headObject a =
 
 exists :: Address -> AWS Bool
 exists a =
-  headObject a >>= pure . maybe False (const True)
+  headObject a >>= pure . isJust
 
 getSize :: Address -> AWS (Maybe Int)
 getSize a =
@@ -142,8 +148,8 @@ read' a = do
   pure $ fmap (^. gorsBody . to _streamBody) r
 
 copy :: Address -> Address -> AWS ()
-copy source dest =
-  copyWithMode Fail source dest
+copy =
+  copyWithMode Fail
 
 copyWithMode :: WriteMode -> Address -> Address -> AWS ()
 copyWithMode mode s d = do
@@ -190,10 +196,10 @@ uploadWithMode m f a = eitherT (pure . UploadError) (const $ pure UploadOk) $ do
     hFileSize h
   let chunk = 100 * 1024 * 1024
   lift $ if s < chunk
-    then do
+    then
       uploadSingle f a
-    else do
-      if (s > 1024 * 1024 * 1024)
+    else
+      if s > 1024 * 1024 * 1024
          then multipartUpload' f a s (10 * chunk)
          else multipartUpload' f a s chunk
 
@@ -222,9 +228,9 @@ multipartUpload' file a fileSize chunk = do
     prts <- liftIO $ mapConcurrently uploader chunks
     ets <- mapM (\p -> maybe (throwM . Invariant $ "uprsETag") return (p ^. uprsETag)) prts
     let cps = L.zipWith (\(_, _, i) et -> completedPart i et) chunks ets
-    ncps <- if cps == [] then throwM . Invariant $ "completedPart" else return . NEL.nonEmpty $ cps
+    ncps <- if null cps then throwM . Invariant $ "completedPart" else return . NEL.nonEmpty $ cps
     void . send $ fencode' completeMultipartUpload a mpu &
-      cMultipartUpload .~ (pure $ completedMultipartUpload & cmuParts .~ ncps)
+      cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
   where
     handle' mpu = flip catchAll $ const . void . send . fencode' abortMultipartUpload a $ mpu
 
@@ -242,25 +248,21 @@ writeWithModeOrFail m a t =
 
 liftWriteResult :: WriteResult -> AWS ()
 liftWriteResult = \case
-  WriteOk ->
-    pure ()
-  WriteDestinationExists a ->
-    throwM $ DestinationAlreadyExists a
+  WriteOk   -> pure ()
+  WriteKo e -> throwM e
 
 writeWithMode :: WriteMode -> Address -> Text -> AWS WriteResult
 writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
   case w of
-    Fail -> whenM (lift $ exists a) . left $ WriteDestinationExists a
+    Fail -> whenM (lift $ exists a) . left $ WriteKo (DestinationAlreadyExists a)
     Overwrite -> return ()
   void . lift . send $ fencode' putObject a (toBody . T.encodeUtf8 $ t) & poServerSideEncryption .~ Just sse
 
 -- pair of prefixs and keys
 getObjects :: Address -> AWS ([Key], [Key])
 getObjects (Address (Bucket buck) (Key ky)) =
-  ((Key <$>) *** ((\(ObjectKey t) -> Key t) <$>)) <$> (ff $ (AWS.listObjects (BucketName buck) & loPrefix .~ Just (pp ky) & loDelimiter .~ Just '/' ))
+  ((Key <$>) *** ((\(ObjectKey t) -> Key t) <$>)) <$> ff (AWS.listObjects (BucketName buck) & loPrefix .~ Just ((+/) ky) & loDelimiter .~ Just '/' )
   where
-    pp :: Text -> Text
-    pp k = if T.null k then "" else if T.isSuffixOf "/" k then k else k <> "/"
     ff :: ListObjects -> AWS ([T.Text], [ObjectKey])
     ff b = do
       r <- send b
@@ -269,16 +271,14 @@ getObjects (Address (Bucket buck) (Key ky)) =
         do
           let d = (maybeToList =<< fmap (^. cpPrefix) (r ^. lorsCommonPrefixes), fmap (^. oKey) (r ^. lorsContents))
           n <- ff $ b & loMarker .~ (r ^. lorsNextMarker)
-          pure $ (d <> n)
+          pure $ d <> n
         else
-        pure $ (maybeToList =<< fmap (^. cpPrefix) (r ^. lorsCommonPrefixes), fmap (^. oKey) (r ^. lorsContents))
+        pure (maybeToList =<< fmap (^. cpPrefix) (r ^. lorsCommonPrefixes), fmap (^. oKey) (r ^. lorsContents))
 
 getObjectsRecursively :: Address -> AWS [Object]
 getObjectsRecursively (Address (Bucket b) (Key ky)) =
-  getObjects' $ (AWS.listObjects (BucketName b)) & loPrefix .~ Just (pp ky)
+  getObjects' $ AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) ky)
   where
-    pp :: Text -> Text
-    pp k = if T.null k then "" else if T.isSuffixOf "/" k then k else k <> "/"
     -- Hoping this will have ok performance in cases where the results are large, it shouldnt
     -- affect correctness since we search through the list for it anyway
     go x ks = (NEL.toList ks <>) <$> getObjects' (x & loMarker .~ Just (toText $ NEL.last ks ^. oKey))
@@ -297,7 +297,7 @@ getObjectsRecursively (Address (Bucket b) (Key ky)) =
 -- Pair of list of prefixes and list of keys
 listObjects :: Address -> AWS ([Address], [Address])
 listObjects a =
-  (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k) )<$> getObjects a
+  (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k)) <$> getObjects a
 
 list :: Address -> AWS [Address]
 list a =
@@ -305,9 +305,8 @@ list a =
 
 list' :: Address -> AWS (Source AWS Address)
 list' a@(Address (Bucket b) (Key k)) = do
-  let pp kk = if T.null kk then "" else if T.isSuffixOf "/" kk then kk else kk <> "/"
   e <- ask
-  pure . hoist (retryConduit e) $ (paginate $ AWS.listObjects (BucketName b) & loPrefix .~ Just (pp k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
+  pure . hoist (retryConduit e) $ paginate (AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
 
 liftAddressAndPrefix :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddressAndPrefix a =
@@ -316,6 +315,12 @@ liftAddressAndPrefix a =
     <> join (traverse (\cp -> maybeToList .fmap (\cp' -> a { key = Key cp' }) $ cp ^. cpPrefix) (r ^. lorsCommonPrefixes))
   )
 
+-- | add a "/" at the end of some text if missing and if the text is not empty
+(+/) :: Text -> Text
+(+/) k
+  | T.null k           = ""
+  | T.isSuffixOf "/" k = k
+  | otherwise          = k <> "/"
 
 download :: Address -> FilePath -> AWS ()
 download = downloadWithMode Fail
@@ -353,7 +358,7 @@ multipartDownload source destination' size chunk' fork = do
     hSetFileSize h (toInteger size)
 
   sem <- liftIO $ new fork
-  void . liftIO $ (mapConcurrently (with sem . writer) chunks)
+  void . liftIO $ mapConcurrently (with sem . writer) chunks
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do
@@ -423,18 +428,18 @@ listRecursively a = do
   a' <- listRecursively' a
   a' $$ DC.consume
 
-listRecursively' :: Address -> AWS (Source (AWS) Address)
+listRecursively' :: Address -> AWS (Source AWS Address)
 listRecursively' a@(Address (Bucket bn) (Key k)) = do
   e <- ask
-  pure . hoist (retryConduit e) $ (paginate $ AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
+  pure . hoist (retryConduit e) $ paginate (AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
 
-liftAddress :: Address -> Conduit ListObjectsResponse (AWS) Address
+liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
-  DC.mapFoldable (\r -> (\o -> a { key = Key $ (let ObjectKey t = o ^. oKey in t) }) <$> (r ^. lorsContents) )
+  DC.mapFoldable (\r -> (\o -> a { key = Key (let ObjectKey t = o ^. oKey in t) }) <$> (r ^. lorsContents) )
 
 retryConduit :: Env -> AWS a -> AWS a
-retryConduit e action =
-  local (const e) action
+retryConduit =
+  local . const
 
 sync :: Address -> Address -> Int -> AWS ()
 sync =
@@ -517,8 +522,32 @@ retryAWS i e = e & envRetryCheck .~ err
       _ -> (e ^. envRetryCheck) c v
 
 handle404 :: AWS a -> AWS (Maybe a)
-handle404 m = fmap Just m `catch` \ (e :: Error) ->
-  if e ^? httpStatus == Just status404 then return Nothing else throwM e
+handle404 = handleStatus status404
+
+handle403 :: AWS a -> AWS (Maybe a)
+handle403 = handleStatus status403
+
+handle301 :: AWS a -> AWS (Maybe a)
+handle301 = handleStatus status301
+
+handleStatus :: Status -> AWS a -> AWS (Maybe a)
+handleStatus s m = fmap Just m `catch` \ (e :: Error) ->
+  if e ^? httpStatus == Just s then return Nothing else throwM e
+
+-- | return a result code depending on the HTTP status
+onStatus :: (Status -> Maybe r) -> AWS a -> AWS (Either r a)
+onStatus f m = (Right <$> m) `catch` \ (e :: Error) ->
+  case (e ^? httpStatus) >>= f of
+    Just r1 -> return (Left r1)
+    Nothing -> throwM e
+
+-- | return a result code depending on the HTTP status
+--   for an AWS action returning no value
+onStatus_ :: r -> (Status -> Maybe r) -> AWS () -> AWS r
+onStatus_ r f m = (const r <$> m) `catch` \ (e :: Error) ->
+  case (e ^? httpStatus) >>= f of
+    Just r1 -> return r1
+    Nothing -> throwM e
 
 sse :: ServerSideEncryption
 sse =

@@ -47,10 +47,12 @@ data S3Error =
     SourceMissing ErrorType Address
   | SourceFileMissing FilePath
   | DestinationAlreadyExists Address
+  | DestinationDoesNotExist Address
   | DestinationFileExists FilePath
+  | AccessDenied Address
   | Invariant Text
   | Target Address Address
-  deriving (Typeable)
+  deriving (Eq, Typeable)
 
 instance Exception S3Error
 
@@ -64,9 +66,13 @@ s3ErrorRender s3err = "[Mismi internal error] - " <> case s3err of
   SourceFileMissing f ->
     "Can not copy when the source file does not exist [" <> T.pack f <> "]"
   DestinationAlreadyExists a ->
-    "Can not copy to a bucket that already exists [" <> addressToText a <> "]"
+    "Can not copy to an address that already exists [" <> addressToText a <> "]"
   DestinationFileExists f ->
     "Can not download to a target that already exists [" <> T.pack f <> "]"
+  DestinationDoesNotExist a ->
+    "This address does not exist [" <> addressToText a <> "]"
+  AccessDenied a ->
+    "The access to this address is denied [" <> addressToText a <> "]"
   Invariant e ->
     e
   Target a o ->
@@ -75,6 +81,7 @@ s3ErrorRender s3err = "[Mismi internal error] - " <> case s3err of
 data ErrorType =
     DownloadError
   | CopyError
+  deriving (Eq, Show)
 
 renderErrorType :: ErrorType -> Text
 renderErrorType e = case e of
@@ -85,7 +92,7 @@ renderErrorType e = case e of
 
 data WriteResult =
     WriteOk
-  | WriteDestinationExists Address
+  | WriteKo S3Error
   deriving (Eq, Show)
 
 data UploadResult =
