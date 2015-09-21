@@ -1,13 +1,16 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 
 import           BuildInfo_ambiata_mismi_s3
 
+import           Data.Conduit
+import qualified Data.Conduit.List as DC
+
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Either
 
-import           Data.Conduit
-import qualified Data.Conduit.List as DC
+import           Data.Text.IO (putStrLn)
 import           Data.Text hiding (copy)
 
 import           Mismi.Environment
@@ -17,7 +20,7 @@ import           Options.Applicative
 
 import           P
 
-import           System.IO
+import           System.IO hiding (putStrLn)
 import           System.Exit
 import           System.Posix.Signals
 import           System.Posix.Process
@@ -35,22 +38,7 @@ rec notrecursive recursive r = case r of
   Recursive -> recursive
 
 data Command =
-  AwsK AmazonkaCommand
-  | AwsC AwsCommand
-  deriving (Eq, Show)
-
-data AmazonkaCommand =
-  Uploadk FilePath Address
-  | Downloadk Address FilePath
-  | Sizek Address
-  | Synck Address Address SyncMode Int
-  | Listk Address
-  | Existsk Address
-  deriving (Eq, Show)
-
-data AwsCommand =
-  List Address Recursive
-  | Upload FilePath Address
+    Upload FilePath Address
   | Download Address FilePath
   | Copy Address Address
   | Move Address Address
@@ -60,6 +48,7 @@ data AwsCommand =
   | Read Address
   | Size Address
   | Sync Address Address SyncMode Int
+  | List Address Recursive
   deriving (Eq, Show)
 
 main :: IO ()
@@ -71,42 +60,16 @@ main = do
 
   dispatch mismi >>= \case
       VersionCommand ->
-        putStrLn ("s3: " <> buildInfoVersion) >> exitSuccess
+        putStrLn ("s3: " <> pack buildInfoVersion) >> exitSuccess
       RunCommand DryRun c ->
         print c >> exitSuccess
       RunCommand RealRun c ->
         run c
 
 run :: Command -> IO ()
-run = \case
-  AwsC c ->
-    runC c
-  AwsK k ->
-    runK k
-
-runK :: AmazonkaCommand -> IO ()
-runK k = do
-  e <- orDie envErrorRender . EitherT $ discoverAWSEnv
-  orDie errorRender . runAWST e $ case k of
-    Uploadk s d ->
-      uploadOrFail s d
-    Downloadk s d ->
-      download s d
-    Sizek a ->
-      getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
-    Synck s d m f ->
-      syncWithMode m s d f
-    Listk a ->
-      listRecursively' a >>= ($$ DC.mapM_ (liftIO . putStrLn . unpack . addressToText))
-    Existsk a ->
-      exists a >>= \b -> liftIO $ unless b exitFailure
-
-runC :: AwsCommand -> IO ()
-runC c = do
+run c = do
   e <- orDie envErrorRender . EitherT $ discoverAWSEnv
   orDie errorRender . runAWST e $ case c of
-    List a rq ->
-      rec (list a) (listRecursively a) rq >>= liftIO . mapM_ (putStrLn . unpack . addressToText)
     Upload s d ->
       uploadOrFail s d
     Download s d ->
@@ -122,53 +85,25 @@ runC c = do
     Write a t w ->
       writeWithModeOrFail w a t
     Read a ->
-      read a >>= \md -> liftIO $ maybe exitFailure (pure . unpack) md >>= putStrLn
+      read a >>= \md -> liftIO $ maybe exitFailure pure md >>= putStrLn
     Size a ->
-      getSize a >>= liftIO . maybe exitFailure (putStrLn . show)
+      getSize a >>= liftIO . maybe exitFailure (putStrLn . pack . show)
     Sync s d m f ->
       syncWithMode m s d f
+    List a rq ->
+      rec (list' a) (listRecursively' a) rq >>= ($$ DC.mapM_ (liftIO . putStrLn . addressToText))
 
 
 mismi :: Parser (SafeCommand Command)
-mismi =
-  safeCommand commandP'
+mismi = safeCommand commandP'
 
 commandP' :: Parser Command
-commandP' =
-  AwsC <$> commandA' <|> AwsK <$> commandK'
-
-commandK' :: Parser AmazonkaCommand
-commandK' = subparser $
-     command' "uploadk"
+commandP' = subparser $
+     command' "upload"
               "Upload a file to s3."
-              (Uploadk <$> filepath' <*> address')
-  <> command' "downloadk"
-              "Download a file from s3."
-              (Downloadk <$> address' <*> filepath')
-  <> command' "sizek"
-              "Get the size of an address."
-              (Sizek <$> address')
-  <> command' "synck"
-              "sync between two prefixes."
-              (Synck <$> address' <*> address' <*> syncMode' <*> fork')
-  <> command' "list"
-              "Stream a recursively list of objects on a prefixe"
-              (Listk <$> address')
-  <> command' "existsk"
-              "Check if an address exists."
-              (Existsk <$> address')
-
-
-commandA' :: Parser (AwsCommand)
-commandA' = subparser $
-     command' "ls"
-             "List on a prefix."
-              (List <$> address' <*> recursive')
-  <> command' "upload"
-              "Upload file to s3."
               (Upload <$> filepath' <*> address')
   <> command' "download"
-              "Download file from s3."
+              "Download a file from s3."
               (Download <$> address' <*> filepath')
   <> command' "copy"
               "Copy a file from an S3 address to another S3 address."
@@ -194,6 +129,9 @@ commandA' = subparser $
   <> command' "sync"
               "Sync between two prefixes."
               (Sync <$> address' <*> address' <*> syncMode' <*> fork')
+  <> command' "ls"
+              "Stream a recursively list of objects on a prefixe"
+              (List <$> address' <*> recursive')
 
 recursive' :: Parser Recursive
 recursive' =
