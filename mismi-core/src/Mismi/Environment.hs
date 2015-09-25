@@ -10,6 +10,7 @@ module Mismi.Environment (
   , getDebugging
   , regionErrorRender
   , discoverAWSEnv
+  , discoverAWSEnvRetry
   , envErrorRender
   ) where
 
@@ -19,10 +20,12 @@ import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
+import           Control.Retry
 
 import           Data.Text as T
 import           Data.Typeable
 
+import           Network.AWS.Auth
 import           Network.AWS.Data
 
 import           P
@@ -75,16 +78,31 @@ getDebugging = do
     d
 
 discoverAWSEnv :: IO (Either EnvError Env)
-discoverAWSEnv = runEitherT $ do
+discoverAWSEnv = discoverAWSEnvRetry $ limitRetries 1 <> constantDelay 200000
+
+discoverAWSEnvRetry :: RetryPolicy -> IO (Either EnvError Env)
+discoverAWSEnvRetry rpol = runEitherT $ do
   r <- EitherT . fmap (maybeToRight MissingRegion) $ getRegionFromEnv
   d <- getDebugging
-  e <- lift $ newEnv r Discover
+  e <- lift $ recovering rpol [(\_ -> Handler catchAuthError)] $ newEnv r Discover
   case d of
     DebugEnabled -> do
       lgr <- lift $ newLogger Trace stdout
       pure $ e & envLogger .~ lgr
     DebugDisabled ->
       pure e
+  where
+    catchAuthError :: AuthError -> IO Bool
+    -- MDS sometimes has transient failures.
+    catchAuthError (RetrievalError _)   = pure True
+    -- 'MissingFileError' is rethrown from 'getAuth' in
+    -- 'Discover' mode if 'isEC2' (which queries the MDS) returns
+    -- 'False'.
+    -- FIXME(sio): fix this upstream so we can distinguish between
+    -- legit 'MissingFileError's and MDS failures.
+    catchAuthError (MissingFileError _) = pure True
+    -- Everything else is unlikely to be transient.
+    catchAuthError _                    = pure False
 
 regionErrorRender :: RegionError -> Text
 regionErrorRender (RegionUnknown r) = "Unknown region: " <> r
