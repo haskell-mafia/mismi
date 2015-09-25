@@ -29,24 +29,19 @@ runAWSWithCreds :: Region -> AccessKey -> SecretKey -> Maybe SecurityToken -> Ma
 
 ### Debugging
 
-#### Amazonka
-See `Mismi.Control.Amazonka` to add a logger to the runner
+#### Amazonka - environment variable
+
+Set `MISMI_DEBUG` to `True` to enable amazonka debugging
+
+#### Amazonka - manually
+
+See `Mismi.Control` to add a logger to the runner
 ```
 runAWS :: Region -> AWS a -> EitherT AWSError IO a
 runAWS r a = do
   lgr <- newLogger Trace stdout
   e <- liftIO $ AWS.getEnv r Discover <&> envLogger .~ lgr
   runAWSWithEnv e a
-```
-
-#### Aws
-Add the `Debug` logger to the aws `Configuration`
-```
-runS3WithDefaults :: S3Action a -> IO a
-runS3WithDefaults action =
-  baseConfiguration' >>= \cfg -> do
-    let c = cfg { logger = defaultLog Aws.Aws.Debug }
-    runS3WithCfg c Sydney action
 ```
 
 ### Command line
