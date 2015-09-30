@@ -233,13 +233,15 @@ writeWithModeOrFail m a t =
 
 liftWriteResult :: WriteResult -> AWS ()
 liftWriteResult = \case
-  WriteOk   -> pure ()
-  WriteKo e -> throwM e
+  WriteOk ->
+    pure ()
+  WriteDestinationExists a ->
+    throwM $ DestinationAlreadyExists a
 
 writeWithMode :: WriteMode -> Address -> Text -> AWS WriteResult
 writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
   case w of
-    Fail -> whenM (lift $ exists a) . left $ WriteKo (DestinationAlreadyExists a)
+    Fail -> whenM (lift $ exists a) . left $ WriteDestinationExists a
     Overwrite -> return ()
   void . lift . send $ fencode' putObject a (toBody . T.encodeUtf8 $ t) & poServerSideEncryption .~ Just sse
 

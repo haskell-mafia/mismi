@@ -92,7 +92,7 @@ renderErrorType e = case e of
 
 data WriteResult =
     WriteOk
-  | WriteKo S3Error
+  | WriteDestinationExists Address
   deriving (Eq, Show)
 
 data UploadResult =
