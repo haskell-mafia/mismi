@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Mismi.Control (
     A.AWS
+  , A.Error
   , runAWS
   , rawRunAWS
   , runAWST
