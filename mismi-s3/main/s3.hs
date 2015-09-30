@@ -9,6 +9,7 @@ import qualified Data.Conduit.List as DC
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString as BS
 import           Data.Text.IO (putStrLn)
@@ -95,7 +96,7 @@ run c = do
     Sync s d m f ->
       syncWithMode m s d f
     List a rq ->
-      rec (list' a) (listRecursively' a) rq >>= ($$ DC.mapM_ (liftIO . putStrLn . addressToText))
+      rec (list' a) (listRecursively' a) rq $$ DC.mapM_ (liftIO . putStrLn . addressToText)
 
 
 mismi :: Parser (SafeCommand Command)

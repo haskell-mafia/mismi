@@ -13,6 +13,7 @@ module Test.Mismi.SQS (
 import           Data.Text
 
 import           Mismi.SQS as M
+import qualified Mismi.Amazonka as M
 
 import           Test.Mismi as X
 import           Test.Mismi.SQS.Arbitrary ()

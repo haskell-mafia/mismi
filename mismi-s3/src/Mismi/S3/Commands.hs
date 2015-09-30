@@ -4,8 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PackageImports #-}
 module Mismi.S3.Commands (
-    module AWS
-  , module A
+    module A
   , headObject
   , exists
   , getSize
@@ -14,12 +13,6 @@ module Mismi.S3.Commands (
   , read'
   , copy
   , copyWithMode
-  , handle403
-  , handle404
-  , handle301
-  , handleStatus
-  , onStatus
-  , onStatus_
   , move
   , upload
   , uploadOrFail
@@ -53,9 +46,6 @@ module Mismi.S3.Commands (
   , listRecursively'
   , sync
   , syncWithMode
-  , retryAWSAction
-  , retryAWSAction'
-  , retryAWS
   , sse
   ) where
 
@@ -67,15 +57,13 @@ import           Control.Concurrent.MSem
 
 import           Control.Concurrent.Async.Lifted
 
-import           Control.Exception.Lens
 import           Control.Lens
 import           Control.Retry
 import           Control.Monad.Catch
-import           Control.Monad.Morph (hoist)
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Resource
-import           Control.Monad.Reader (ask, local)
+import           Control.Monad.Reader (ask)
 import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
@@ -93,17 +81,14 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Time.Clock
 
-import           Mismi.Control (runAWS)
+import           Mismi.Control
 import qualified Mismi.Control as A
+import           Mismi.S3.Amazonka (send, paginate, Env )
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 
-import           Network.AWS.Error
-import           Network.AWS hiding (runAWS)
 import           Network.AWS.S3 hiding (headObject, Bucket, bucket, listObjects)
 import qualified Network.AWS.S3 as AWS
-import           Network.HTTP.Client (HttpException (..))
-import           Network.HTTP.Types.Status -- (status500, status404)
 import           Network.AWS.Data.Body
 import           Network.AWS.Data.Text
 
@@ -301,12 +286,11 @@ listObjects a =
 
 list :: Address -> AWS [Address]
 list a =
-  list' a >>= ($$ DC.consume)
+  list' a $$ DC.consume
 
-list' :: Address -> AWS (Source AWS Address)
-list' a@(Address (Bucket b) (Key k)) = do
-  e <- ask
-  pure . hoist (retryConduit e) $ paginate (AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
+list' :: Address -> Source AWS Address
+list' a@(Address (Bucket b) (Key k)) =
+  paginate (AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
 
 liftAddressAndPrefix :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddressAndPrefix a =
@@ -424,22 +408,16 @@ abortMultipart' a i =
   void . send $ fencode' abortMultipartUpload a i
 
 listRecursively :: Address -> AWS [Address]
-listRecursively a = do
-  a' <- listRecursively' a
-  a' $$ DC.consume
+listRecursively a =
+  listRecursively' a $$ DC.consume
 
-listRecursively' :: Address -> AWS (Source AWS Address)
-listRecursively' a@(Address (Bucket bn) (Key k)) = do
-  e <- ask
-  pure . hoist (retryConduit e) $ paginate (AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
+listRecursively' :: Address -> Source AWS Address
+listRecursively' a@(Address (Bucket bn) (Key k)) =
+  paginate (AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
   DC.mapFoldable (\r -> (\o -> a { key = Key (let ObjectKey t = o ^. oKey in t) }) <$> (r ^. lorsContents) )
-
-retryConduit :: Env -> AWS a -> AWS a
-retryConduit =
-  local . const
 
 sync :: Address -> Address -> Int -> AWS ()
 sync =
@@ -454,7 +432,7 @@ syncWithMode mode source dest fork = do
   tid <- liftIO $ forM [1..fork] (const . forkIO $ worker source dest mode e c r)
 
   -- sink list to channel
-  l <- listRecursively' source
+  let l = listRecursively' source
   i <- sinkChanWithDelay 50000 l c
 
   -- wait for threads and lift errors
@@ -499,55 +477,6 @@ foldWR :: (S3Error -> m a) -> m a -> WorkerResult -> m a
 foldWR e a = \case
   WorkerOk -> a
   WorkerErr err -> e err
-
-
-retryAWSAction' :: Retry -> AWS a -> AWS a
-retryAWSAction' r =
-  local (override (serviceRetry .~ r))
-
-retryAWSAction :: Int -> AWS a -> AWS a
-retryAWSAction =
-  local . retryAWS
-
-retryAWS :: Int -> Env -> Env
-retryAWS i e = e & envRetryCheck .~ err
-  where
-    err c _ | c >= i = False
-    err c v = case v of
-      NoResponseDataReceived -> True
-      StatusCodeException s _ _ -> s == status500
-      FailedConnectionException _ _ -> True
-      FailedConnectionException2 _ _ _ _ -> True
-      TlsException _ -> True
-      _ -> (e ^. envRetryCheck) c v
-
-handle404 :: AWS a -> AWS (Maybe a)
-handle404 = handleStatus status404
-
-handle403 :: AWS a -> AWS (Maybe a)
-handle403 = handleStatus status403
-
-handle301 :: AWS a -> AWS (Maybe a)
-handle301 = handleStatus status301
-
-handleStatus :: Status -> AWS a -> AWS (Maybe a)
-handleStatus s m = fmap Just m `catch` \ (e :: Error) ->
-  if e ^? httpStatus == Just s then return Nothing else throwM e
-
--- | return a result code depending on the HTTP status
-onStatus :: (Status -> Maybe r) -> AWS a -> AWS (Either r a)
-onStatus f m = (Right <$> m) `catch` \ (e :: Error) ->
-  case (e ^? httpStatus) >>= f of
-    Just r1 -> return (Left r1)
-    Nothing -> throwM e
-
--- | return a result code depending on the HTTP status
---   for an AWS action returning no value
-onStatus_ :: r -> (Status -> Maybe r) -> AWS () -> AWS r
-onStatus_ r f m = (const r <$> m) `catch` \ (e :: Error) ->
-  case (e ^? httpStatus) >>= f of
-    Just r1 -> return r1
-    Nothing -> throwM e
 
 sse :: ServerSideEncryption
 sse =

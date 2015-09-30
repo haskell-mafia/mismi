@@ -25,8 +25,7 @@ import           Disorder.Corpus
 import           Control.Lens hiding (elements)
 
 import           Mismi.S3
-import qualified Mismi.S3 as A
-import qualified Mismi.S3.Commands as C
+import qualified Mismi.S3.Amazonka as A
 
 import           P
 
@@ -53,7 +52,7 @@ prop_exists_failure = withAWS $ \a -> do
   pure $ e === False
 
 prop_headObject = withAWS $ \a -> do
-  h <- C.headObject a
+  h <- headObject a
   pure $ h === Nothing
 
 
@@ -66,9 +65,9 @@ prop_getObjectsR t p1 p2 = p1 /= p2 ==> withAWS $ \root -> do
   let keys = [p1, p2 </> p1, p2 </> p2]
   forM_ keys $ \k -> writeOrFail (withKey (</> k) root) t
   objs <- getObjectsRecursively root
-  pure $ on (===) L.sort ((^. C.oKey . to toText) <$> objs) (unKey . (</>) (key root) <$> keys)
+  pure $ on (===) L.sort ((^. A.oKey . to A.toText) <$> objs) (unKey . (</>) (key root) <$> keys)
 
-prop_getObjs = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> withAWS $ \a -> A.once $ do
+prop_getObjs = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> withAWS $ \a -> do
   forM_ [1..n] $ \n' -> writeOrFail (withKey(</> Key (m <> pack (show n'))) a) ""
   r' <- list a
   pure $ length r' === n
@@ -168,7 +167,7 @@ prop_abort_multipart = withMultipart $ \a i -> do
   forM_ (findMultiparts i l) $ abortCheck i (bucket a) 3
   r <- listMultiparts (bucket a)
   pure $
-     (P.filter (== Just i) . fmap (^. muUploadId) $ l) === [Just i] .&&.
+     (P.filter (== Just i) . fmap (^. A.muUploadId) $ l) === [Just i] .&&.
       findMultiparts i r === []
   where
     abortCheck i b n u = do
@@ -187,20 +186,20 @@ prop_list_multipart = withMultipart $ \a i -> do
 prop_list_parts :: Property
 prop_list_parts = withMultipart $ \a i -> do
   sendMultipart "" a 1 i
-  l2 <- retryAction $ C.listMultipartParts a i
+  l2 <- listMultipartParts a i
   pure (length l2 === 1)
 
-multipartExists :: Text -> [MultipartUpload] -> Property
+multipartExists :: Text -> [A.MultipartUpload] -> Property
 multipartExists uploadId multiparts =
   P.count (findMultipart uploadId) multiparts === 1
 
-findMultiparts :: Text -> [MultipartUpload] -> [MultipartUpload]
+findMultiparts :: Text -> [A.MultipartUpload] -> [A.MultipartUpload]
 findMultiparts uploadId =
   P.filter (findMultipart uploadId)
 
-findMultipart :: Text -> MultipartUpload -> Bool
+findMultipart :: Text -> A.MultipartUpload -> Bool
 findMultipart uploadId m =
-  m ^. muUploadId == Just uploadId
+  m ^. A.muUploadId == Just uploadId
 
 
 prop_list :: Property
@@ -315,12 +314,12 @@ prop_write_nonexisting w t = withAWS $ \a -> do
   pure $ r === pure t
 
 prop_on_status_ok = testAWS $
-  do r <- C.onStatus_ (1 :: Int) handler (void (exists (Address (Bucket "ambiata-dev-view") (Key ""))))
+  do r <- onStatus_ (1 :: Int) handler (void (exists (Address (Bucket "ambiata-dev-view") (Key ""))))
      return (r === 1)
   where handler _ = Just 2
 
 prop_on_status_ko = testAWS $
-  do r <- C.onStatus_ (1 :: Int) handler (void (write missingAddress "text"))
+  do r <- onStatus_ (1 :: Int) handler (void (write missingAddress "text"))
      return (r === 2)
   where handler _ = Just 2
 
