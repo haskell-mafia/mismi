@@ -63,7 +63,6 @@ library
                        Mismi.S3
                        Mismi.S3.Commands
                        Mismi.S3.Data
-                       Mismi.S3.Default
                        Mismi.S3.Internal
 
 executable s3

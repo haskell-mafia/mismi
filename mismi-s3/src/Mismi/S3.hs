@@ -5,4 +5,4 @@ module Mismi.S3 (
 
 import           Mismi.Control as X
 import           Mismi.S3.Data as X
-import           Mismi.S3.Default as X
+import           Mismi.S3.Commands as X

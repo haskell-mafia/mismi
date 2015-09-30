@@ -14,12 +14,7 @@ module Mismi.S3.Commands (
   , read'
   , copy
   , copyWithMode
-  , handle403
-  , handle404
-  , handle301
   , handleStatus
-  , onStatus
-  , onStatus_
   , move
   , upload
   , uploadOrFail
@@ -53,9 +48,6 @@ module Mismi.S3.Commands (
   , listRecursively'
   , sync
   , syncWithMode
-  , retryAWSAction
-  , retryAWSAction'
-  , retryAWS
   , sse
   ) where
 
@@ -93,7 +85,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Time.Clock
 
-import           Mismi.Control (runAWS)
+import           Mismi.Control
 import qualified Mismi.Control as A
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
@@ -108,6 +100,7 @@ import           Network.AWS.Data.Body
 import           Network.AWS.Data.Text
 
 import           P
+import qualified Debug.Trace as D
 
 import           System.IO
 import           System.Directory
@@ -499,55 +492,6 @@ foldWR :: (S3Error -> m a) -> m a -> WorkerResult -> m a
 foldWR e a = \case
   WorkerOk -> a
   WorkerErr err -> e err
-
-
-retryAWSAction' :: Retry -> AWS a -> AWS a
-retryAWSAction' r =
-  local (override (serviceRetry .~ r))
-
-retryAWSAction :: Int -> AWS a -> AWS a
-retryAWSAction =
-  local . retryAWS
-
-retryAWS :: Int -> Env -> Env
-retryAWS i e = e & envRetryCheck .~ err
-  where
-    err c _ | c >= i = False
-    err c v = case v of
-      NoResponseDataReceived -> True
-      StatusCodeException s _ _ -> s == status500
-      FailedConnectionException _ _ -> True
-      FailedConnectionException2 _ _ _ _ -> True
-      TlsException _ -> True
-      _ -> (e ^. envRetryCheck) c v
-
-handle404 :: AWS a -> AWS (Maybe a)
-handle404 = handleStatus status404
-
-handle403 :: AWS a -> AWS (Maybe a)
-handle403 = handleStatus status403
-
-handle301 :: AWS a -> AWS (Maybe a)
-handle301 = handleStatus status301
-
-handleStatus :: Status -> AWS a -> AWS (Maybe a)
-handleStatus s m = fmap Just m `catch` \ (e :: Error) ->
-  if e ^? httpStatus == Just s then return Nothing else throwM e
-
--- | return a result code depending on the HTTP status
-onStatus :: (Status -> Maybe r) -> AWS a -> AWS (Either r a)
-onStatus f m = (Right <$> m) `catch` \ (e :: Error) ->
-  case (e ^? httpStatus) >>= f of
-    Just r1 -> return (Left r1)
-    Nothing -> throwM e
-
--- | return a result code depending on the HTTP status
---   for an AWS action returning no value
-onStatus_ :: r -> (Status -> Maybe r) -> AWS () -> AWS r
-onStatus_ r f m = (const r <$> m) `catch` \ (e :: Error) ->
-  case (e ^? httpStatus) >>= f of
-    Just r1 -> return r1
-    Nothing -> throwM e
 
 sse :: ServerSideEncryption
 sse =
