@@ -40,7 +40,7 @@ import           Network.AWS.Error as A
 import           Network.AWS.Waiter as A
 
 import           Network.HTTP.Client (HttpException (..))
-import           Network.HTTP.Types.Status -- (status500, status404)
+import           Network.HTTP.Types.Status
 
 import           Network.HTTP.Client.Internal (mResponseTimeout)
 

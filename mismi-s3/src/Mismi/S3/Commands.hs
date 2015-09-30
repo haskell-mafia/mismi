@@ -14,7 +14,6 @@ module Mismi.S3.Commands (
   , read'
   , copy
   , copyWithMode
-  , handleStatus
   , move
   , upload
   , uploadOrFail
@@ -90,17 +89,12 @@ import qualified Mismi.Control as A
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 
-import           Network.AWS.Error
-import           Network.AWS hiding (runAWS)
 import           Network.AWS.S3 hiding (headObject, Bucket, bucket, listObjects)
 import qualified Network.AWS.S3 as AWS
-import           Network.HTTP.Client (HttpException (..))
-import           Network.HTTP.Types.Status -- (status500, status404)
 import           Network.AWS.Data.Body
 import           Network.AWS.Data.Text
 
 import           P
-import qualified Debug.Trace as D
 
 import           System.IO
 import           System.Directory
