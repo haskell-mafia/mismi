@@ -8,6 +8,7 @@ module Test.Mismi (
 import           Disorder.Core.IO
 
 import           Mismi
+import           Mismi.Amazonka (newEnv, Credentials (..))
 
 import           P
 
@@ -18,7 +19,8 @@ import           Test.QuickCheck
 
 
 testAWS :: Testable a => AWS a -> Property
-testAWS = testIO . runAWSDefaultRegion
+testAWS =
+  testIO . runAWSDefaultRegion
 
 -- Default to Sydney for tests only, production should fail without the environment variable
 runAWSDefaultRegion :: AWS a -> IO a

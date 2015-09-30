@@ -61,6 +61,7 @@ library
 
   exposed-modules:
                        Mismi.S3
+                       Mismi.S3.Amazonka
                        Mismi.S3.Commands
                        Mismi.S3.Data
                        Mismi.S3.Internal
@@ -81,6 +82,7 @@ executable s3
                      , conduit
                      , unix
                      , text
+                     , resourcet
                      , bytestring                      == 0.10.*
 
 test-suite test
@@ -123,6 +125,7 @@ test-suite test-io
   build-depends:       base
                      , amazonka
                      , amazonka-core
+                     , amazonka-s3
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-mismi-core
@@ -154,6 +157,7 @@ test-suite test-reliability
   build-depends:       base
                      , amazonka
                      , amazonka-core
+                     , amazonka-s3
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-mismi-core

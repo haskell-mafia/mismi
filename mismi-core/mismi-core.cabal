@@ -45,6 +45,7 @@ library
 
   exposed-modules:
                        Mismi
+                       Mismi.Amazonka
                        Mismi.Control
                        Mismi.Environment
 

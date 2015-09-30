@@ -20,6 +20,7 @@ import           Data.Text as T
 import qualified Data.HashMap.Strict as M
 
 import           Mismi
+import           Mismi.Amazonka
 import           Mismi.SQS.Data
 
 import           Network.AWS.SQS as A hiding (createQueue, deleteQueue, deleteMessage)
@@ -78,4 +79,3 @@ deleteMessage :: QueueUrl -> A.Message -> AWS ()
 deleteMessage q m = do
    i <- maybe (throwM . Invariant $ "MessageId cannot be Nothing") pure (m ^. mReceiptHandle)
    void . send $ A.deleteMessage (unQueueUrl q) i
-

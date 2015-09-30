@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Mismi.Control (
-    module A
+    A.AWS
   , runAWS
   , rawRunAWS
   , runAWST
@@ -19,6 +19,7 @@ module Mismi.Control (
   , handle301
   , setServiceRetry
   , setRetry
+  , configureRetries
   ) where
 
 import           Control.Lens
@@ -35,9 +36,8 @@ import           Data.Text.Encoding as T
 
 import           Network.AWS hiding (runAWS)
 import qualified Network.AWS as A
-import           Network.AWS.Data as A
-import           Network.AWS.Error as A
-import           Network.AWS.Waiter as A
+import           Network.AWS.Data
+import           Network.AWS.Error
 
 import           Network.HTTP.Client (HttpException (..))
 import           Network.HTTP.Types.Status
@@ -47,7 +47,6 @@ import           Network.HTTP.Client.Internal (mResponseTimeout)
 import           P
 
 import           System.IO
-
 
 runAWS :: Env -> AWS a -> IO a
 runAWS e'' =

@@ -8,7 +8,6 @@ module Test.Mismi.Amazonka (
   , withAWS'
   , withLocalAWS
   , withAWSToken
-  , retryAction
   ) where
 
 import           Data.Text as T
@@ -21,7 +20,7 @@ import           Control.Monad.Catch
 import           Control.Monad.IO.Class (liftIO)
 
 import           Mismi.S3
-import           Mismi.S3.Commands hiding (listRecursively, listRecursively', delete)
+import           Mismi.S3.Amazonka
 import           Mismi.S3.Internal
 
 import           Test.Mismi.S3
@@ -37,12 +36,12 @@ import           System.IO.Temp
 import           Test.QuickCheck
 
 createMultipart :: Address -> AWS Text
-createMultipart a = retryAction $ do
+createMultipart a = do
   r <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ Just sse
   maybe (throwM . Invariant $ "Failed to create multipart upload") pure (r ^. cmursUploadId)
 
 sendMultipart :: Text -> Address -> Int -> Text -> AWS ()
-sendMultipart t a i ui = retryAction $ do
+sendMultipart t a i ui = do
   let req = fencode' uploadPart a i ui (toBody $ encodeUtf8 t)
   void $ send req
 
@@ -76,7 +75,4 @@ withAWSToken t f = do
   b <- liftIO testBucket
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom
   let a = Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
-  awsBracket_ (pure ()) ((retryAction . listRecursively) a >>= mapM_ delete >> delete a) (retryAction $ f a)
-
-retryAction :: AWS a -> AWS a
-retryAction = retryAWSAction 5
+  awsBracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)

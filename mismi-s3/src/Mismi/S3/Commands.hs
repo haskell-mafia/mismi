@@ -4,8 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PackageImports #-}
 module Mismi.S3.Commands (
-    module AWS
-  , module A
+    module A
   , headObject
   , exists
   , getSize
@@ -58,7 +57,6 @@ import           Control.Concurrent.MSem
 
 import           Control.Concurrent.Async.Lifted
 
-import           Control.Exception.Lens
 import           Control.Lens
 import           Control.Retry
 import           Control.Monad.Catch
@@ -86,6 +84,7 @@ import           Data.Time.Clock
 
 import           Mismi.Control
 import qualified Mismi.Control as A
+import           Mismi.S3.Amazonka (send, paginate, Env )
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 

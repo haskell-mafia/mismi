@@ -9,6 +9,7 @@ import qualified Data.Conduit.List as DC
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString as BS
 import           Data.Text.IO (putStrLn)
