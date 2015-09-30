@@ -3,8 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 module Mismi.SQS.Commands (
-    module A
-  , onQueue
+    onQueue
   , createQueue
   , deleteQueue
   , readMessages
@@ -21,10 +20,9 @@ import qualified Data.HashMap.Strict as M
 
 import           Mismi
 import           Mismi.Amazonka
+import           Mismi.SQS.Amazonka as A hiding (createQueue, deleteQueue, deleteMessage)
+import qualified Mismi.SQS.Amazonka as A
 import           Mismi.SQS.Data
-
-import           Network.AWS.SQS as A hiding (createQueue, deleteQueue, deleteMessage)
-import qualified Network.AWS.SQS as A
 
 import           P
 

@@ -2,7 +2,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Test.IO.Mismi.SQS.Control where
 
-import           Mismi.SQS as M
+import           Mismi.Amazonka as M
+import           Mismi.SQS
 
 import           P
 

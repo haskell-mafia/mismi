@@ -42,6 +42,7 @@ library
 
   exposed-modules:
                        Mismi.SQS
+                       Mismi.SQS.Amazonka
                        Mismi.SQS.Commands
                        Mismi.SQS.Data
 
