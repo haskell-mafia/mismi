@@ -60,11 +60,10 @@ import           Control.Concurrent.Async.Lifted
 import           Control.Lens
 import           Control.Retry
 import           Control.Monad.Catch
-import           Control.Monad.Morph (hoist)
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Resource
-import           Control.Monad.Reader (ask, local)
+import           Control.Monad.Reader (ask)
 import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
@@ -287,12 +286,11 @@ listObjects a =
 
 list :: Address -> AWS [Address]
 list a =
-  list' a >>= ($$ DC.consume)
+  list' a $$ DC.consume
 
-list' :: Address -> AWS (Source AWS Address)
-list' a@(Address (Bucket b) (Key k)) = do
-  e <- ask
-  pure . hoist (retryConduit e) $ paginate (AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
+list' :: Address -> Source AWS Address
+list' a@(Address (Bucket b) (Key k)) =
+  paginate (AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
 
 liftAddressAndPrefix :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddressAndPrefix a =
@@ -410,22 +408,16 @@ abortMultipart' a i =
   void . send $ fencode' abortMultipartUpload a i
 
 listRecursively :: Address -> AWS [Address]
-listRecursively a = do
-  a' <- listRecursively' a
-  a' $$ DC.consume
+listRecursively a =
+  listRecursively' a $$ DC.consume
 
-listRecursively' :: Address -> AWS (Source AWS Address)
-listRecursively' a@(Address (Bucket bn) (Key k)) = do
-  e <- ask
-  pure . hoist (retryConduit e) $ paginate (AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
+listRecursively' :: Address -> Source AWS Address
+listRecursively' a@(Address (Bucket bn) (Key k)) =
+  paginate (AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
   DC.mapFoldable (\r -> (\o -> a { key = Key (let ObjectKey t = o ^. oKey in t) }) <$> (r ^. lorsContents) )
-
-retryConduit :: Env -> AWS a -> AWS a
-retryConduit =
-  local . const
 
 sync :: Address -> Address -> Int -> AWS ()
 sync =
@@ -440,7 +432,7 @@ syncWithMode mode source dest fork = do
   tid <- liftIO $ forM [1..fork] (const . forkIO $ worker source dest mode e c r)
 
   -- sink list to channel
-  l <- listRecursively' source
+  let l = listRecursively' source
   i <- sinkChanWithDelay 50000 l c
 
   -- wait for threads and lift errors

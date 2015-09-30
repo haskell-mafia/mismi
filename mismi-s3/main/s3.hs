@@ -96,7 +96,7 @@ run c = do
     Sync s d m f ->
       syncWithMode m s d f
     List a rq ->
-      rec (list' a) (listRecursively' a) rq >>= ($$ DC.mapM_ (liftIO . putStrLn . addressToText))
+      rec (list' a) (listRecursively' a) rq $$ DC.mapM_ (liftIO . putStrLn . addressToText)
 
 
 mismi :: Parser (SafeCommand Command)
