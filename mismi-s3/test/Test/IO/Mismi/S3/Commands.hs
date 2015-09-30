@@ -297,7 +297,7 @@ prop_write_failure :: Text -> Property
 prop_write_failure d = withAWS $ \a -> do
   writeOrFail a d
   r <- write a d
-  pure $ r === WriteKo (DestinationAlreadyExists a)
+  pure $ r === WriteDestinationExists a
 
 prop_write_overwrite :: UniquePair Text -> Property
 prop_write_overwrite (UniquePair x y) = withAWS $ \a -> do
