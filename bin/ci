@@ -6,7 +6,7 @@ $(dirname $0)/ci.common $PROJECT
 cd $PROJECT
 cabal haddock --hoogle
 
-aws s3 --region=ap-southeast-2 cp --recursive dist/doc/html/ambiata-$SUBMODULE/ s3://ambiata-doc/ambiata-$SUBMODULE-haddock/$VERSION
+aws s3 --region=ap-southeast-2 cp --recursive dist/doc/html/ambiata-$PROJECT/ s3://ambiata-doc/ambiata-$PROJECT-haddock/$VERSION
 
 if [ $PROJECT = "mismi-s3" ] ; then
     VERSION=$(cat $(dirname $0)/../mismi-s3/dist/build/autogen/version.txt)
