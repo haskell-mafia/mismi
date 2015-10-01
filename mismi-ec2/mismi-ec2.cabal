@@ -36,6 +36,7 @@ library
 
   exposed-modules:
                        Mismi.EC2
+                       Mismi.EC2.Amazonka
                        Mismi.EC2.Data
                        Mismi.EC2.Metadata
 
