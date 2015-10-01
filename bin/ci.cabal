@@ -1,5 +1,7 @@
 #!/bin/sh -exu
 
+PROJECT=${1:?"'ci.cabal' requires a single argument, specifying the mismi sub-project."}
+
 export LC_COLLATE=en_US.UTF-8
 export LANG=en_US.UTF-8
 
@@ -7,23 +9,17 @@ git submodule init
 git submodule sync
 git submodule update
 
-MODULES=$(ls mismi-*/*.cabal)
+cd $PROJECT
 
-for x in $MODULES; do
-    (
-        cd $(dirname $x)
+cabal sandbox delete
 
-        cabal sandbox delete
+./cabal update
+./cabal build
+cabal install
 
-        ./cabal update
-        ./cabal build
-        cabal install
-
-        (
-            cd test && \
-                cabal sandbox init --sandbox ../.cabal-sandbox && \
-                cabal configure && \
-                cabal install
-        ) || exit $?
-    )
-done
+(
+    cd test && \
+    cabal sandbox init --sandbox ../.cabal-sandbox && \
+    cabal configure && \
+    cabal install
+) || exit $?

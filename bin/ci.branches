@@ -1,6 +1,9 @@
 #!/bin/sh -exu
 
-$(dirname $0)/ci.common
+PROJECT=${1:?"'ci.branches' requires a single argument, specifying the mismi sub-project."}
+$(dirname $0)/ci.common $PROJECT
 
-VERSION=$(cat $(dirname $0)/../mismi-s3/dist/build/autogen/version.txt)
-aws s3 --region=ap-southeast-2 cp mismi-s3/dist/build/s3/s3 s3://ambiata-dist-branches/s3/linux/x86_64/$VERSION/s3-$VERSION
+if [ $PROJECT = "mismi-s3" ] ; then
+    VERSION=$(cat $(dirname $0)/../mismi-s3/dist/build/autogen/version.txt)
+    aws s3 --region=ap-southeast-2 cp mismi-s3/dist/build/s3/s3 s3://ambiata-dist-branches/s3/linux/x86_64/$VERSION/s3-$VERSION
+fi
