@@ -4,6 +4,10 @@
 module Mismi.Control (
     A.AWS
   , A.Error
+  , A.AccessKey
+  , A.SecretKey
+  , A.SessionToken
+  , A.Region (..)
   , runAWS
   , rawRunAWS
   , runAWST
