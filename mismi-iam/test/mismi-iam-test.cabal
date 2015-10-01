@@ -1,0 +1,11 @@
+name:                  ambiata-mismi-iam-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base
+                     , ambiata-mismi-iam
+
+  exposed-modules:
