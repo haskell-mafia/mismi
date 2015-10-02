@@ -18,6 +18,7 @@ module Mismi.S3.Commands (
   , uploadOrFail
   , uploadWithMode
   , uploadWithModeOrFail
+  , s3Sink
   , multipartUpload'
   , uploadSingle
   , write
@@ -49,10 +50,9 @@ module Mismi.S3.Commands (
   , sse
   ) where
 
-
 import           Control.Arrow ((***))
 
-import           Control.Concurrent
+import           Control.Concurrent hiding (yield)
 import           Control.Concurrent.MSem
 
 import           Control.Concurrent.Async.Lifted
@@ -69,9 +69,10 @@ import           Control.Monad.IO.Class
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 
-import           Data.Conduit
+import           Data.Conduit as C
+import           Data.Conduit.Combinators as C hiding (print, filter)
 import qualified Data.Conduit.List as DC
-import           Data.Conduit.Binary
+import           Data.Conduit.Binary hiding (sinkFile)
 
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Text as T
@@ -191,6 +192,13 @@ uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
   x <- liftIO $ LBS.readFile file
   void . send $ fencode' putObject a (toBody x) & poServerSideEncryption .~ pure sse
+
+-- | Create a conduit sink for a given S3 Address
+s3Sink :: Address -> Sink BS.ByteString AWS ()
+s3Sink a =
+  do bs <- C.await
+     lift $ maybe (pure ()) sendRequest bs
+     where sendRequest bs = void . send $ fencode' putObject a (toBody bs) & poServerSideEncryption .~ pure sse
 
 data PartResponse =
   PartResponse !Int !ETag

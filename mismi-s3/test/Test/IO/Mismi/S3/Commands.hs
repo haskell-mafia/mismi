@@ -9,20 +9,20 @@ module Test.IO.Mismi.S3.Commands where
 import           Control.Concurrent
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
+import           Control.Lens hiding (elements)
 
 import "cryptohash" Crypto.Hash
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List as L
-import           Data.Text hiding (copy, length)
+import           Data.Maybe
+import           Data.Text as T hiding (copy, length)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 
 import           Disorder.Core
 import           Disorder.Corpus
-
-import           Control.Lens hiding (elements)
 
 import           Mismi.S3
 import qualified Mismi.S3.Amazonka as A
@@ -57,7 +57,7 @@ prop_headObject = withAWS $ \a -> do
 
 
 prop_getObjects_empty = withAWS $ \a -> do
-  objs <- getObjectsRecursively $ a
+  objs <- getObjectsRecursively a
   pure $ objs === []
 
 prop_getObjectsR :: Text -> Key -> Key -> Property
@@ -151,6 +151,17 @@ prop_upload d l = withLocalAWS $ \p a -> do
   r <- read a
   pure $ r === Just d
 
+prop_s3Sink :: T.Text -> Property
+prop_s3Sink t = withAWS $ \a -> do
+  let source = a { key = key a </> Key "source" }
+  let target = a { key = key a </> Key "target" }
+  let someText = "t"<>t -- make sure the text is not empty otherwise there is nothing to stream
+  _ <- write source someText
+  s <- maybe (throwM (Invariant "read after write should not fail")) pure =<< read' source
+  _ <- A.sinkBody (A.RsBody s) (s3Sink target)
+  r <- read target
+  pure (r === Just someText)
+
 prop_upload_multipart :: LocalPath -> Property
 prop_upload_multipart l = forAll arbitrary $ \bs -> withLocalAWS $ \p a -> do
   let t = p F.</> localPath l
@@ -224,7 +235,7 @@ prop_list_recursively = withAWS $ \a -> do
 
 prop_list_forbidden_bucket = withAWS $ \_ -> do
   _ <- write (Address (Bucket "ambiata-dev-view") (Key "")) ""
-  pure $ True
+  pure True
 
 prop_download :: Text -> LocalPath -> Property
 prop_download d l = withLocalAWS $ \p a -> do

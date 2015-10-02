@@ -15,17 +15,17 @@ module Mismi.S3.Data (
   , UploadError (..)
   , WriteResult (..)
   , (</>)
+  , addressFromText
+  , addressToText
+  , basename
   , combineKey
   , dirname
   , foldWriteMode
   , foldSyncMode
-  , basename
-  , addressFromText
-  , addressToText
   , removeCommonPrefix
-  , withKey
   , s3Parser
   , s3ErrorRender
+  , withKey
   ) where
 
 import           Control.Exception.Base
