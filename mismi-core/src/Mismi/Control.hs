@@ -63,6 +63,16 @@ runAWST :: (MonadIO m, MonadCatch m) => Env -> AWS a -> EitherT Error m a
 runAWST e =
   catchError . runAWS e
 
+runAWSTWithRegion :: (MonadIO m, MonadCatch m) => Region -> AWS a -> EitherT Error m a
+runAWSTWithRegion r = do
+  e' <- liftIO $ discoverAWSEnv
+  let e = case e' of
+    Right env ->
+      env & envRegion .~ r
+    Left _ ->
+
+  catchError . runAWS e
+
 rawRunAWS :: Env -> AWS a -> IO a
 rawRunAWS e =
  runResourceT . A.runAWS e
