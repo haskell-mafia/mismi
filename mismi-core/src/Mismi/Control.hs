@@ -11,6 +11,7 @@ module Mismi.Control (
   , runAWS
   , rawRunAWS
   , runAWST
+  , runAWSTWithRegion
   , catchError
   , runAWSWithCreds
   , runAWSWithCredsT
@@ -38,6 +39,7 @@ import           Data.ByteString.Builder
 import           Data.Text as T
 import           Data.Text.Encoding as T
 
+import           Mismi.Environment
 
 import           Network.AWS hiding (runAWS)
 import qualified Network.AWS as A
@@ -64,14 +66,9 @@ runAWST e =
   catchError . runAWS e
 
 runAWSTWithRegion :: (MonadIO m, MonadCatch m) => Region -> AWS a -> EitherT Error m a
-runAWSTWithRegion r = do
-  e' <- liftIO $ discoverAWSEnv
-  let e = case e' of
-    Right env ->
-      env & envRegion .~ r
-    Left _ ->
-
-  catchError . runAWS e
+runAWSTWithRegion r a = do
+  e <- liftIO $ discoverAWSEnvWithRegion r
+  catchError $ runAWS e a
 
 rawRunAWS :: Env -> AWS a -> IO a
 rawRunAWS e =
