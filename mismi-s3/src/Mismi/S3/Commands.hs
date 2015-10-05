@@ -73,7 +73,6 @@ import           Data.Conduit
 import qualified Data.Conduit.List as DC
 import           Data.Conduit.Binary
 
-import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -185,39 +184,47 @@ uploadWithMode m f a = eitherT (pure . UploadError) (const $ pure UploadOk) $ do
       uploadSingle f a
     else
       if s > 1024 * 1024 * 1024
-         then multipartUpload' f a s (10 * chunk)
-         else multipartUpload' f a s chunk
+         then multipartUpload' f a s (10 * chunk) 100
+         else multipartUpload' f a s chunk 100
 
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
   x <- liftIO $ LBS.readFile file
   void . send $ fencode' putObject a (toBody x) & poServerSideEncryption .~ pure sse
 
-multipartUpload' :: FilePath -> Address -> Integer -> Integer -> AWS ()
-multipartUpload' file a fileSize chunk = do
+data PartResponse =
+  PartResponse !Int !ETag
+
+multipartUpload' :: FilePath -> Address -> Integer -> Integer -> Int -> AWS ()
+multipartUpload' file a fileSize chunk fork = do
   e <- ask
   mpu' <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ pure sse
   mpu <- maybe (throwM . Invariant $ "MultipartUpload: missing 'UploadId'") pure (mpu' ^. cmursUploadId)
 
-  let chunks = calculateChunks (fromInteger fileSize) (fromInteger chunk)
-  let uploader :: (Int, Int, Int) -> IO UploadPartResponse
+  let chunks = calculateChunksCapped (fromInteger fileSize) (fromInteger chunk) 4096 -- max 4096 prts returned
+  let uploader :: (Int, Int, Int) -> IO PartResponse
       uploader (o, c, i) = withFile file ReadMode $ \h -> do
          req' <- liftIO $ do
            hSeek h AbsoluteSeek (toInteger o)
            cont <- LBS.hGetContents h
            let bod = toBody (LBS.take (fromIntegral c) cont)
            return $ fencode' uploadPart a i mpu bod
-         runAWS e $ send req'
+         r <- runAWS e $ send req'
+         m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ r ^. uprsETag
+         pure $ PartResponse i m
 
   handle' mpu $ do
-    prts <- liftIO $ mapConcurrently uploader chunks
-    ets <- mapM (\p -> maybe (throwM . Invariant $ "uprsETag") return (p ^. uprsETag)) prts
-    let cps = L.zipWith (\(_, _, i) et -> completedPart i et) chunks ets
-    ncps <- if null cps then throwM . Invariant $ "completedPart" else return . NEL.nonEmpty $ cps
+    sem <- liftIO $ new fork
+    prts <- liftIO $ mapConcurrently (with sem . uploader) chunks
+
+    let l = (\(PartResponse i etag) -> completedPart i etag) <$> prts
+    let ncps = NEL.nonEmpty l
+
     void . send $ fencode' completeMultipartUpload a mpu &
       cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
   where
-    handle' mpu = flip catchAll $ const . void . send . fencode' abortMultipartUpload a $ mpu
+    handle' :: Text -> AWS () -> AWS ()
+    handle' mpu x = x `catchAll` (const . void . send . fencode' abortMultipartUpload a $ mpu)
 
 write :: Address -> Text -> AWS WriteResult
 write =
@@ -309,22 +316,25 @@ liftAddressAndPrefix a =
   | otherwise          = k <> "/"
 
 download :: Address -> FilePath -> AWS ()
-download = downloadWithMode Fail
+download =
+  downloadWithMode Fail
 
 downloadWithMode :: WriteMode -> Address -> FilePath -> AWS ()
 downloadWithMode mode a f = do
   when (mode == Fail) . whenM (liftIO $ doesFileExist f) . throwM $ DestinationFileExists f
   liftIO $ createDirectoryIfMissing True (dropFileName f)
-  r <- getObject' a
-  r' <- maybe (throwM $ SourceMissing DownloadError a) pure r
-  liftIO . runResourceT . ($$+- sinkFile f) $ r' ^. gorsBody ^. to _streamBody
+  s' <- getSize a
+  size <- maybe (throwM $ SourceMissing DownloadError a) pure s'
+  if (size > 200 * 1024 * 1024)
+    then multipartDownload a f size 100 100
+    else downloadSingle a f
 
 downloadSingle :: Address -> FilePath -> AWS ()
 downloadSingle a p = do
-  r <- send $ fencode' getObject a
+  r' <- getObject' a
+  r <- maybe (throwM $ SourceMissing DownloadError a) pure r'
   liftIO . withFileSafe p $ \p' ->
     runResourceT . ($$+- sinkFile p') $ r ^. gorsBody ^. to _streamBody
-
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> AWS ()
 multipartDownload source destination' size chunk' fork = do
@@ -333,18 +343,19 @@ multipartDownload source destination' size chunk' fork = do
   let chunk = chunk' * 1024 * 1024
   let chunks = calculateChunks size (fromInteger chunk)
 
-  let writer :: (Int, Int, Int) -> IO ()
-      writer (o, c, _) =
+  let writer :: FilePath -> (Int, Int, Int) -> IO ()
+      writer out (o, c, _) =
         let req :: AWS ()
-            req = downloadWithRange source o (o + c) destination'
+            req = downloadWithRange source o (o + c) out
         in runAWS e req
 
-  -- create sparse file
-  liftIO $ withFile destination' WriteMode $ \h ->
-    hSetFileSize h (toInteger size)
+  withFileSafe destination' $ \f -> liftIO $ do
+    -- create sparse file
+    withFile f WriteMode $ \h ->
+      hSetFileSize h (toInteger size)
 
-  sem <- liftIO $ new fork
-  void . liftIO $ mapConcurrently (with sem . writer) chunks
+    sem <- new fork
+    void $ mapConcurrently (with sem . writer f) chunks
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do

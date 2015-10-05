@@ -10,7 +10,6 @@ import           Data.Time.Clock
 
 import           Disorder.Core.IO
 
-import           Mismi.S3.Internal
 import           Mismi.S3.Commands
 import           Mismi.S3.Amazonka
 
@@ -33,15 +32,6 @@ prop_filter_failure = testIO $ do
   n <- getCurrentTime
   let r = filterOld n $ multipartUpload & muInitiated .~ Just n
   pure $ r === False
-
-prop_chunks :: Property
-prop_chunks =
-  forAll (choose (1, 10000)) $ \size ->
-    forAll (choose (1, size)) $ \chunk ->
-      foldl' (+) 0 (snd' <$> calculateChunks size chunk) === size
-
-snd' :: (Int, Int, Int) -> Int
-snd' (_, b, _) = b
 
 return []
 tests :: IO Bool
