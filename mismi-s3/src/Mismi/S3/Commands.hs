@@ -209,7 +209,7 @@ multipartUpload' file a fileSize chunk fork = do
            cont <- LBS.hGetContents h
            let bod = toBody (LBS.take (fromIntegral c) cont)
            return $ fencode' uploadPart a i mpu bod
-         r <- runAWS e $ send req'
+         r <- eitherT throwM pure . runAWS e $ send req'
          m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ r ^. uprsETag
          pure $ PartResponse i m
 
@@ -347,7 +347,7 @@ multipartDownload source destination' size chunk' fork = do
       writer out (o, c, _) =
         let req :: AWS ()
             req = downloadWithRange source o (o + c) out
-        in runAWS e req
+        in eitherT throwM pure $ runAWS e req
 
   withFileSafe destination' $ \f -> liftIO $ do
     -- create sparse file
@@ -476,7 +476,7 @@ worker source dest mode e c errs = forever $ do
                 cp
                 (ifM ex (return ()) cp)
                 mode
-        runAWS e action
+        eitherT throwM pure $ runAWS e action
 
   a <- readChan c
   wr <- maybe invariant (keep a) $ removeCommonPrefix source a

@@ -5,6 +5,9 @@ module Test.Mismi (
   , runAWSDefaultRegion
   ) where
 
+import           Control.Monad.Catch
+import           Control.Monad.Trans.Either
+
 import           Disorder.Core.IO
 
 import           Mismi
@@ -27,4 +30,4 @@ runAWSDefaultRegion :: AWS a -> IO a
 runAWSDefaultRegion a = do
   mr <- getRegionFromEnv
   e <- newEnv (fromMaybe Sydney mr) Discover
-  runAWS e a
+  eitherT throwM pure $ runAWS e a

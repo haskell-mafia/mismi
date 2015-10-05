@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
 module Mismi.Control (
     A.AWS
   , A.Error
@@ -9,12 +10,12 @@ module Mismi.Control (
   , A.SessionToken
   , A.Region (..)
   , runAWS
-  , rawRunAWS
   , runAWST
+  , runAWSTWith
   , runAWSTWithRegion
-  , catchError
+  , rawRunAWS
+  , runAWSWithRegion
   , runAWSWithCreds
-  , runAWSWithCredsT
   , awsBracket
   , awsBracket_
   , errorRender
@@ -29,7 +30,6 @@ module Mismi.Control (
   ) where
 
 import           Control.Lens
-import           Control.Monad.Trans.Either
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
@@ -55,30 +55,36 @@ import           P
 
 import           System.IO
 
-runAWS :: Env -> AWS a -> IO a
+import           X.Control.Monad.Trans.Either
+
+runAWST :: Env -> (Error -> e) -> EitherT e AWS a -> EitherT e IO a
+runAWST e err action =
+  runAWSTWith (runAWS e) err action
+
+runAWSTWithRegion :: Region -> (Error -> e) -> EitherT e AWS a -> EitherT e IO a
+runAWSTWithRegion r err action =
+  runAWSTWith (runAWSWithRegion r) err action
+
+runAWSTWith :: (forall b. AWS b -> EitherT Error IO b) -> (Error -> e) -> EitherT e AWS a -> EitherT e IO a
+runAWSTWith run err action =
+  joinErrors id err $ mapEitherT run action
+
+runAWS :: (MonadIO m, MonadCatch m) => Env -> AWS a -> EitherT Error m a
 runAWS e'' =
   let e' = over envManager (\m -> m { mResponseTimeout = Just 60000000 }) e''
       e = configureRetries 5 e'
-  in rawRunAWS e
+  in EitherT . try . liftIO . rawRunAWS e
 
-runAWST :: (MonadIO m, MonadCatch m) => Env -> AWS a -> EitherT Error m a
-runAWST e =
-  catchError . runAWS e
-
-runAWSTWithRegion :: (MonadIO m, MonadCatch m) => Region -> AWS a -> EitherT Error m a
-runAWSTWithRegion r a = do
+runAWSWithRegion :: (MonadIO m, MonadCatch m) => Region -> AWS a -> EitherT Error m a
+runAWSWithRegion r a = do
   e <- liftIO $ discoverAWSEnvWithRegion r
-  catchError $ runAWS e a
+  runAWS e a
 
 rawRunAWS :: Env -> AWS a -> IO a
 rawRunAWS e =
- runResourceT . A.runAWS e
+  runResourceT . A.runAWS e
 
-catchError :: (MonadIO m, MonadCatch m) => IO a -> EitherT Error m a
-catchError =
-  EitherT . try . liftIO
-
-runAWSWithCreds :: Region -> AccessKey -> SecretKey -> Maybe SessionToken -> AWS a -> IO a
+runAWSWithCreds :: (MonadIO m, MonadCatch m) => Region -> AccessKey -> SecretKey -> Maybe SessionToken -> AWS a -> EitherT Error m a
 runAWSWithCreds r ak sk st a = do
   e <- liftIO . newEnv r $ case st of
     Nothing ->
@@ -87,21 +93,22 @@ runAWSWithCreds r ak sk st a = do
       FromSession ak sk st'
   runAWS e a
 
-runAWSWithCredsT :: (MonadIO m, MonadCatch m) => Region -> AccessKey -> SecretKey -> Maybe SessionToken -> AWS a -> EitherT Error m a
-runAWSWithCredsT r ak sk st =
-  catchError . runAWSWithCreds r ak sk st
-
 awsBracket :: AWS a -> (a -> AWS c) -> (a -> AWS b) -> AWS b
 awsBracket r f a = do
   e <- ask
-  liftIO $ bracket (runAWS e r) (runAWS e . f) (runAWS e . a)
+  liftIO $ bracket (unsafeRunAWS e r) (unsafeRunAWS e . f) (unsafeRunAWS e . a)
 
 awsBracket_ :: AWS a -> AWS c -> AWS b -> AWS b
 awsBracket_ r f a =
   awsBracket r (const f) (const a)
 
+unsafeRunAWS :: Env -> AWS a -> IO a
+unsafeRunAWS e a =
+  eitherT throwM pure $ runAWS e a
+
 errorRender :: Error -> Text
-errorRender = decodeUtf8 . BL.toStrict . toLazyByteString . build
+errorRender =
+  decodeUtf8 . BL.toStrict . toLazyByteString . build
 
 setServiceRetry :: Retry -> AWS a -> AWS a
 setServiceRetry r =

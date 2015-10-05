@@ -72,7 +72,7 @@ main = do
 run :: Command -> IO ()
 run c = do
   e <- orDie envErrorRender . EitherT $ discoverAWSEnv
-  orDie errorRender . runAWST e $ case c of
+  orDie errorRender . runAWS e $ case c of
     Upload s d ->
       uploadOrFail s d
     Download s d ->
