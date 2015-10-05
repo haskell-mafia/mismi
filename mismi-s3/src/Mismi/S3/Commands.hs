@@ -73,7 +73,6 @@ import           Data.Conduit
 import qualified Data.Conduit.List as DC
 import           Data.Conduit.Binary
 
-import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -185,39 +184,47 @@ uploadWithMode m f a = eitherT (pure . UploadError) (const $ pure UploadOk) $ do
       uploadSingle f a
     else
       if s > 1024 * 1024 * 1024
-         then multipartUpload' f a s (10 * chunk)
-         else multipartUpload' f a s chunk
+         then multipartUpload' f a s (10 * chunk) 100
+         else multipartUpload' f a s chunk 100
 
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
   x <- liftIO $ LBS.readFile file
   void . send $ fencode' putObject a (toBody x) & poServerSideEncryption .~ pure sse
 
-multipartUpload' :: FilePath -> Address -> Integer -> Integer -> AWS ()
-multipartUpload' file a fileSize chunk = do
+data PartResponse =
+  PartResponse !Int !ETag
+
+multipartUpload' :: FilePath -> Address -> Integer -> Integer -> Int -> AWS ()
+multipartUpload' file a fileSize chunk fork = do
   e <- ask
   mpu' <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ pure sse
   mpu <- maybe (throwM . Invariant $ "MultipartUpload: missing 'UploadId'") pure (mpu' ^. cmursUploadId)
 
-  let chunks = calculateChunks (fromInteger fileSize) (fromInteger chunk)
-  let uploader :: (Int, Int, Int) -> IO UploadPartResponse
+  let chunks = calculateChunksCapped (fromInteger fileSize) (fromInteger chunk) 4096 -- max 4096 prts returned
+  let uploader :: (Int, Int, Int) -> IO PartResponse
       uploader (o, c, i) = withFile file ReadMode $ \h -> do
          req' <- liftIO $ do
            hSeek h AbsoluteSeek (toInteger o)
            cont <- LBS.hGetContents h
            let bod = toBody (LBS.take (fromIntegral c) cont)
            return $ fencode' uploadPart a i mpu bod
-         runAWS e $ send req'
+         r <- runAWS e $ send req'
+         m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ r ^. uprsETag
+         pure $ PartResponse i m
 
   handle' mpu $ do
-    prts <- liftIO $ mapConcurrently uploader chunks
-    ets <- mapM (\p -> maybe (throwM . Invariant $ "uprsETag") return (p ^. uprsETag)) prts
-    let cps = L.zipWith (\(_, _, i) et -> completedPart i et) chunks ets
-    ncps <- if null cps then throwM . Invariant $ "completedPart" else return . NEL.nonEmpty $ cps
+    sem <- liftIO $ new fork
+    prts <- liftIO $ mapConcurrently (with sem . uploader) chunks
+
+    let l = (\(PartResponse i etag) -> completedPart i etag) <$> prts
+    let ncps = NEL.nonEmpty l
+
     void . send $ fencode' completeMultipartUpload a mpu &
       cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
   where
-    handle' mpu = flip catchAll $ const . void . send . fencode' abortMultipartUpload a $ mpu
+    handle' :: Text -> AWS () -> AWS ()
+    handle' mpu x = x `catchAll` (const . void . send . fencode' abortMultipartUpload a $ mpu)
 
 write :: Address -> Text -> AWS WriteResult
 write =

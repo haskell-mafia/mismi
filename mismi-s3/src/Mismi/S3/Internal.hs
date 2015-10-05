@@ -4,6 +4,7 @@
 module Mismi.S3.Internal (
     fencode'
   , calculateChunks
+  , calculateChunksCapped
   , downRange
   , sinkChan
   , sinkChanWithDelay
@@ -37,6 +38,14 @@ import           System.FilePath
 fencode' :: (BucketName -> ObjectKey -> a) -> Address -> a
 fencode' f (Address (Bucket b) k) =
   BucketName b `f` ObjectKey (unKey k)
+
+
+calculateChunksCapped :: Int -> Int -> Int -> [(Int, Int, Int)]
+calculateChunksCapped size chunk' capped =
+  let s = calculateChunks size chunk' in
+  if length s > capped
+    then calculateChunksCapped size (chunk' * 2) capped
+    else s
 
 -- filesize -> Chunk -> [(offset, chunk, index)]
 calculateChunks :: Int -> Int -> [(Int, Int, Int)]
