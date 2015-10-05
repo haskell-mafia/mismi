@@ -316,22 +316,25 @@ liftAddressAndPrefix a =
   | otherwise          = k <> "/"
 
 download :: Address -> FilePath -> AWS ()
-download = downloadWithMode Fail
+download =
+  downloadWithMode Fail
 
 downloadWithMode :: WriteMode -> Address -> FilePath -> AWS ()
 downloadWithMode mode a f = do
   when (mode == Fail) . whenM (liftIO $ doesFileExist f) . throwM $ DestinationFileExists f
   liftIO $ createDirectoryIfMissing True (dropFileName f)
-  r <- getObject' a
-  r' <- maybe (throwM $ SourceMissing DownloadError a) pure r
-  liftIO . runResourceT . ($$+- sinkFile f) $ r' ^. gorsBody ^. to _streamBody
+  s' <- getSize a
+  size <- maybe (throwM $ SourceMissing DownloadError a) pure s'
+  if (size > 200 * 1024 * 1024)
+    then multipartDownload a f size 100 100
+    else downloadSingle a f
 
 downloadSingle :: Address -> FilePath -> AWS ()
 downloadSingle a p = do
-  r <- send $ fencode' getObject a
+  r' <- getObject' a
+  r <- maybe (throwM $ SourceMissing DownloadError a) pure r'
   liftIO . withFileSafe p $ \p' ->
     runResourceT . ($$+- sinkFile p') $ r ^. gorsBody ^. to _streamBody
-
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> AWS ()
 multipartDownload source destination' size chunk' fork = do
@@ -340,18 +343,19 @@ multipartDownload source destination' size chunk' fork = do
   let chunk = chunk' * 1024 * 1024
   let chunks = calculateChunks size (fromInteger chunk)
 
-  let writer :: (Int, Int, Int) -> IO ()
-      writer (o, c, _) =
+  let writer :: FilePath -> (Int, Int, Int) -> IO ()
+      writer out (o, c, _) =
         let req :: AWS ()
-            req = downloadWithRange source o (o + c) destination'
+            req = downloadWithRange source o (o + c) out
         in runAWS e req
 
-  -- create sparse file
-  liftIO $ withFile destination' WriteMode $ \h ->
-    hSetFileSize h (toInteger size)
+  withFileSafe destination' $ \f -> liftIO $ do
+    -- create sparse file
+    withFile f WriteMode $ \h ->
+      hSetFileSize h (toInteger size)
 
-  sem <- liftIO $ new fork
-  void . liftIO $ mapConcurrently (with sem . writer) chunks
+    sem <- new fork
+    void $ mapConcurrently (with sem . writer f) chunks
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do
