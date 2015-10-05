@@ -10,7 +10,9 @@ module Mismi.Environment (
   , getDebugging
   , regionErrorRender
   , discoverAWSEnv
+  , discoverAWSEnvWithRegion
   , discoverAWSEnvRetry
+  , discoverAWSEnvWithRegionRetry
   , envErrorRender
   ) where
 
@@ -34,8 +36,7 @@ import           System.Environment
 import           System.IO
 
 data RegionError =
-    RegionUnknown Text
-  deriving (Eq, Typeable)
+  RegionUnknown Text deriving (Eq, Typeable)
 
 instance Exception RegionError
 
@@ -43,8 +44,7 @@ instance Show RegionError where
   show = T.unpack . regionErrorRender
 
 data EnvError =
-    MissingRegion
-  deriving (Eq, Typeable)
+  MissingRegion deriving (Eq, Typeable)
 
 instance Show EnvError where
   show = T.unpack . envErrorRender
@@ -78,16 +78,25 @@ getDebugging = do
     d
 
 discoverAWSEnv :: IO (Either EnvError Env)
-discoverAWSEnv = discoverAWSEnvRetry $ limitRetries 1 <> constantDelay 200000
+discoverAWSEnv =
+  discoverAWSEnvRetry $ limitRetries 1 <> constantDelay 200000
+
+discoverAWSEnvWithRegion :: Region -> IO Env
+discoverAWSEnvWithRegion r =
+  flip discoverAWSEnvWithRegionRetry r $ limitRetries 1 <> constantDelay 200000
 
 discoverAWSEnvRetry :: RetryPolicy -> IO (Either EnvError Env)
-discoverAWSEnvRetry rpol = runEitherT $ do
+discoverAWSEnvRetry retry = runEitherT $ do
   r <- EitherT . fmap (maybeToRight MissingRegion) $ getRegionFromEnv
+  lift $ discoverAWSEnvWithRegionRetry retry r
+
+discoverAWSEnvWithRegionRetry :: RetryPolicy -> Region -> IO Env
+discoverAWSEnvWithRegionRetry rpol r = do
   d <- getDebugging
-  e <- lift $ recovering rpol [(\_ -> Handler catchAuthError)] $ newEnv r Discover
+  e <- recovering rpol [(\_ -> Handler catchAuthError)] $ newEnv r Discover
   case d of
     DebugEnabled -> do
-      lgr <- lift $ newLogger Trace stdout
+      lgr <- newLogger Trace stdout
       pure $ e & envLogger .~ lgr
     DebugDisabled ->
       pure e
@@ -105,7 +114,9 @@ discoverAWSEnvRetry rpol = runEitherT $ do
     catchAuthError _                    = pure False
 
 regionErrorRender :: RegionError -> Text
-regionErrorRender (RegionUnknown r) = "Unknown region: " <> r
+regionErrorRender (RegionUnknown r) =
+  "Unknown region: " <> r
 
 envErrorRender :: EnvError -> Text
-envErrorRender MissingRegion = "Environment variable AWS_DEFAULT_REGION was not found"
+envErrorRender MissingRegion =
+  "Environment variable AWS_DEFAULT_REGION was not found"
