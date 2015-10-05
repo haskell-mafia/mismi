@@ -4,5 +4,6 @@ lib/p
 lib/x/x-conduit
 lib/x/x-exception
 lib/x/x-optparse
+lib/x/x-either
 mismi-core
 mismi-core/test
