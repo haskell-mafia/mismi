@@ -6,6 +6,7 @@ module Test.Mismi.Amazonka (
   , withMultipart
   , withAWS
   , withAWS'
+  , withAWSDebug
   , withLocalAWS
   , withAWSToken
   ) where
@@ -18,8 +19,10 @@ import           Data.UUID.V4 as U
 import           Control.Lens
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Trans.Either
 
-import           Mismi.S3
+import           Mismi
+import           Mismi.S3 as S3
 import           Mismi.S3.Amazonka
 import           Mismi.S3.Internal
 
@@ -31,6 +34,7 @@ import           Disorder.Core.IO
 import           P
 
 import           System.FilePath
+import           System.IO
 import           System.IO.Temp
 
 import           Test.QuickCheck
@@ -50,6 +54,24 @@ withAWS f =
   property $ \t ->
     testAWS . withAWSToken t $ \a ->
       f a
+
+withAWSDebug :: Testable a => (Address -> AWS a) -> Property
+withAWSDebug f =
+  property $ \t ->
+    testAWSDebug . withAWSToken t $ \a ->
+      f a
+
+testAWSDebug :: Testable a => AWS a -> Property
+testAWSDebug =
+  testIO . runAWSDefaultRegionDebug
+
+-- Default to Sydney for tests only, production should fail without the environment variable
+runAWSDefaultRegionDebug :: AWS a -> IO a
+runAWSDefaultRegionDebug a = do
+  mr  <- getRegionFromEnv
+  lgr <- newLogger Trace stdout
+  e   <- newEnv (fromMaybe Sydney mr) Discover <&> envLogger .~ lgr
+  eitherT throwM pure $ S3.runAWS e a
 
 withAWS' :: Testable a => (Address -> Address -> AWS a) -> Property
 withAWS' f =
