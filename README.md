@@ -31,7 +31,7 @@ runAWSWithCreds :: Region -> AccessKey -> SecretKey -> Maybe SecurityToken -> Ma
 
 #### Amazonka - environment variable
 
-Set `MISMI_DEBUG` to `True` to enable amazonka debugging
+Set `AWS_DEBUG` to `true` to enable amazonka debugging
 
 #### Amazonka - manually
 
