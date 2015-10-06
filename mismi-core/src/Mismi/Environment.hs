@@ -4,16 +4,14 @@
 module Mismi.Environment (
     Region (..)
   , RegionError (..)
-  , EnvError (..)
   , Debugging (..)
   , getRegionFromEnv
   , getDebugging
-  , regionErrorRender
+  , renderRegionError
   , discoverAWSEnv
   , discoverAWSEnvWithRegion
   , discoverAWSEnvRetry
   , discoverAWSEnvWithRegionRetry
-  , envErrorRender
   ) where
 
 import           Control.Lens
@@ -36,31 +34,28 @@ import           System.Environment
 import           System.IO
 
 data RegionError =
-  RegionUnknown Text deriving (Eq, Typeable)
-
-instance Exception RegionError
-
-instance Show RegionError where
-  show = T.unpack . regionErrorRender
-
-data EnvError =
-  MissingRegion deriving (Eq, Typeable)
-
-instance Show EnvError where
-  show = T.unpack . envErrorRender
+    MissingRegion
+  | UnknownRegion Text
+  deriving (Eq, Typeable)
 
 data Debugging =
     DebugEnabled
   | DebugDisabled
   deriving (Eq, Show)
 
-getRegionFromEnv :: (MonadIO m, MonadThrow m) => m (Maybe Region)
+
+getRegionFromEnv :: (MonadIO m, MonadThrow m) => EitherT RegionError m Region
 getRegionFromEnv = do
   mr <- liftIO $ lookupEnv "AWS_DEFAULT_REGION"
-  return $ maybe
-    Nothing
-    (either (throwM . RegionUnknown . T.pack) return . fromText . T.pack)
-    mr
+  case mr of
+    Nothing ->
+      left MissingRegion
+    Just a ->
+      case fromText $ T.pack a of
+        Left e ->
+          left $ UnknownRegion (T.pack e)
+        Right r ->
+          right r
 
 getDebugging :: MonadIO m => m Debugging
 getDebugging = do
@@ -77,7 +72,7 @@ getDebugging = do
           DebugDisabled)
     d
 
-discoverAWSEnv :: IO (Either EnvError Env)
+discoverAWSEnv :: EitherT RegionError IO Env
 discoverAWSEnv =
   discoverAWSEnvRetry $ limitRetries 1 <> constantDelay 200000
 
@@ -85,9 +80,9 @@ discoverAWSEnvWithRegion :: Region -> IO Env
 discoverAWSEnvWithRegion r =
   flip discoverAWSEnvWithRegionRetry r $ limitRetries 1 <> constantDelay 200000
 
-discoverAWSEnvRetry :: RetryPolicy -> IO (Either EnvError Env)
-discoverAWSEnvRetry retry = runEitherT $ do
-  r <- EitherT . fmap (maybeToRight MissingRegion) $ getRegionFromEnv
+discoverAWSEnvRetry :: RetryPolicy -> EitherT RegionError IO Env
+discoverAWSEnvRetry retry = do
+  r <- getRegionFromEnv
   lift $ discoverAWSEnvWithRegionRetry retry r
 
 discoverAWSEnvWithRegionRetry :: RetryPolicy -> Region -> IO Env
@@ -113,10 +108,10 @@ discoverAWSEnvWithRegionRetry rpol r = do
     -- Everything else is unlikely to be transient.
     catchAuthError _                    = pure False
 
-regionErrorRender :: RegionError -> Text
-regionErrorRender (RegionUnknown r) =
-  "Unknown region: " <> r
-
-envErrorRender :: EnvError -> Text
-envErrorRender MissingRegion =
-  "Environment variable AWS_DEFAULT_REGION was not found"
+renderRegionError :: RegionError -> Text
+renderRegionError e =
+  case e of
+    UnknownRegion r ->
+      "Unknown region: " <> r
+    MissingRegion ->
+      "Environment variable AWS_DEFAULT_REGION was not found"

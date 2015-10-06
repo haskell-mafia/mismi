@@ -28,6 +28,6 @@ testAWS =
 -- Default to Sydney for tests only, production should fail without the environment variable
 runAWSDefaultRegion :: AWS a -> IO a
 runAWSDefaultRegion a = do
-  mr <- getRegionFromEnv
-  e <- newEnv (fromMaybe Sydney mr) Discover
+  r <- eitherT (const $ pure Sydney) pure getRegionFromEnv
+  e <- newEnv r Discover
   eitherT throwM pure $ runAWS e a
