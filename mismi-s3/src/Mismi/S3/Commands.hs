@@ -67,7 +67,6 @@ import           Control.Monad.Reader (ask)
 import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
 
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
@@ -80,6 +79,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Time.Clock
 
+import           Mismi.Amazonka (chunkedFile)
 import           Mismi.Control
 import qualified Mismi.Control as A
 import           Mismi.S3.Amazonka (send, paginate, Env )
@@ -92,6 +92,7 @@ import           Network.AWS.Data.Body
 import           Network.AWS.Data.Text
 
 import           P
+import           Prelude (($!))
 
 import           System.IO
 import           System.Directory
@@ -99,6 +100,8 @@ import           System.FilePath hiding ((</>))
 import           System.Posix.IO
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
+
+import qualified X.Data.Conduit.Binary as XB
 
 headObject :: Address -> AWS (Maybe HeadObjectResponse)
 headObject a =
@@ -184,13 +187,14 @@ uploadWithMode m f a = eitherT (pure . UploadError) (const $ pure UploadOk) $ do
       uploadSingle f a
     else
       if s > 1024 * 1024 * 1024
-         then multipartUpload' f a s (10 * chunk) 100
+         then multipartUpload' f a s (2 * chunk) 100
          else multipartUpload' f a s chunk 100
+
 
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
-  x <- liftIO $ LBS.readFile file
-  void . send $ fencode' putObject a (toBody x) & poServerSideEncryption .~ pure sse
+  rq <- chunkedFile (ChunkSize $ 1024 * 1024) file
+  void . send $ fencode' putObject a rq & poServerSideEncryption .~ pure sse
 
 data PartResponse =
   PartResponse !Int !ETag
@@ -204,14 +208,16 @@ multipartUpload' file a fileSize chunk fork = do
   let chunks = calculateChunksCapped (fromInteger fileSize) (fromInteger chunk) 4096 -- max 4096 prts returned
   let uploader :: (Int, Int, Int) -> IO PartResponse
       uploader (o, c, i) = withFile file ReadMode $ \h -> do
-         req' <- liftIO $ do
-           hSeek h AbsoluteSeek (toInteger o)
-           cont <- LBS.hGetContents h
-           let bod = toBody (LBS.take (fromIntegral c) cont)
-           return $ fencode' uploadPart a i mpu bod
-         r <- eitherT throwM pure . runAWS e $ send req'
-         m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ r ^. uprsETag
-         pure $ PartResponse i m
+        req' <- liftIO $ do
+          let cs = (1024 * 1024) -- 1 mb
+              cl = toInteger c
+              b = XB.slurpHandle h (toInteger o) (Just $ toInteger c)
+              cb = ChunkedBody cs cl b
+          return . fencode' uploadPart a i mpu $ Chunked cb
+
+        r <- eitherT throwM pure . runAWS e $ send req'
+        m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ r ^. uprsETag
+        pure $! PartResponse i m
 
   handle' mpu $ do
     sem <- liftIO $ new fork
