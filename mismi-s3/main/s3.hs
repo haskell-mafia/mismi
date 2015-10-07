@@ -8,7 +8,6 @@ import           Data.Conduit
 import qualified Data.Conduit.List as DC
 
 import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString as BS
@@ -71,7 +70,7 @@ main = do
 
 run :: Command -> IO ()
 run c = do
-  e <- orDie envErrorRender . EitherT $ discoverAWSEnv
+  e <- orDie renderRegionError discoverAWSEnv
   orDie errorRender . runAWS e $ case c of
     Upload s d ->
       uploadOrFail s d
