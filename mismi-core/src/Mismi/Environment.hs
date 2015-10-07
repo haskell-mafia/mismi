@@ -36,7 +36,7 @@ import           System.IO
 data RegionError =
     MissingRegion
   | UnknownRegion Text
-  deriving (Eq, Typeable)
+  deriving (Eq, Show, Typeable)
 
 data Debugging =
     DebugEnabled
