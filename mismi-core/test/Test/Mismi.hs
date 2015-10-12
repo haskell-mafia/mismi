@@ -11,7 +11,6 @@ import           Control.Monad.Trans.Either
 import           Disorder.Core.IO
 
 import           Mismi
-import           Mismi.Amazonka (newEnv, Credentials (..))
 
 import           P
 
@@ -29,5 +28,5 @@ testAWS =
 runAWSDefaultRegion :: AWS a -> IO a
 runAWSDefaultRegion a = do
   r <- eitherT (const $ pure Sydney) pure getRegionFromEnv
-  e <- newEnv r Discover
+  e <- discoverAWSEnvWithRegion r
   eitherT throwM pure $ runAWS e a
