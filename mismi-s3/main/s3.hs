@@ -71,7 +71,7 @@ main = do
 run :: Command -> IO ()
 run c = do
   e <- orDie renderRegionError discoverAWSEnv
-  orDie errorRender . runAWS e $ case c of
+  orDie renderError . runAWS e $ case c of
     Upload s d ->
       uploadOrFail s d
     Download s d ->

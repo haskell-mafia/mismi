@@ -18,7 +18,7 @@ module Mismi.Control (
   , runAWSWithCreds
   , awsBracket
   , awsBracket_
-  , errorRender
+  , renderError
   , onStatus
   , onStatus_
   , handle404
@@ -106,8 +106,8 @@ unsafeRunAWS :: Env -> AWS a -> IO a
 unsafeRunAWS e a =
   eitherT throwM pure $ runAWS e a
 
-errorRender :: Error -> Text
-errorRender =
+renderError :: Error -> Text
+renderError =
   decodeUtf8 . BL.toStrict . toLazyByteString . build
 
 setServiceRetry :: Retry -> AWS a -> AWS a
