@@ -23,6 +23,7 @@ import           P
 
 import           System.IO hiding (putStrLn)
 import           System.Exit
+import           System.FilePath
 import           System.Posix.Signals
 import           System.Posix.Process
 
@@ -75,7 +76,7 @@ run c = do
     Upload s d ->
       uploadOrFail s d
     Download s d ->
-      download s d
+      download s . optAppendFileName d $ key s
     Copy s d ->
       copy s d
     Move s d ->
@@ -97,6 +98,11 @@ run c = do
     List a rq ->
       rec (list' a) (listRecursively' a) rq $$ DC.mapM_ (liftIO . putStrLn . addressToText)
 
+optAppendFileName :: FilePath -> Key -> FilePath
+optAppendFileName f k = fromMaybe f $ do
+  fp <- valueOrEmpty (hasTrailingPathSeparator f || takeFileName f == ".") (takeDirectory f)
+  bn <- basename k
+  pure . combine fp $ unpack bn
 
 mismi :: Parser (SafeCommand Command)
 mismi = safeCommand commandP'

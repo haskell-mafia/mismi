@@ -7,6 +7,8 @@ banner Doing work
 
 
 s3=$(unique_s3_url file)
+s3_foo=$(unique_s3_url foo)
+s3_bar=$(unique_s3_url bar)
 
 echo "blah" > ${TEST}/file
 
@@ -21,7 +23,31 @@ else
     exit_cleanup
 fi
 
+$MISMI upload ${TEST}/file $s3_foo || exit_cleanup $?
+$MISMI download $s3_foo ${TEST}/. || exit_cleanup $?
+
+if [ -f ${TEST}/foo ]; then
+    echo "PASSED [downlaod to dot]"
+else
+    echo ""
+    echo "Test case [download to dot] failed."
+    exit_cleanup
+fi
+
+$MISMI upload ${TEST}/file $s3_bar || exit_cleanup $?
+$MISMI download $s3_bar ${TEST}/ || exit_cleanup $?
+
+if [ -f ${TEST}/bar ]; then
+    echo "PASSED [downlaod to dir]"
+else
+    echo ""
+    echo "Test case [download to dir] failed."
+    exit_cleanup
+fi
+
 $MISMI delete $s3 || exit_cleanup $?
+$MISMI delete $s3_foo || exit_cleanup $?
+$MISMI delete $s3_bar || exit_cleanup $?
 
 $MISMI write $s3 "foobar" || exit_cleanup $?
 
