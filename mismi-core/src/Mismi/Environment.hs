@@ -7,6 +7,7 @@ module Mismi.Environment (
   , Debugging (..)
   , getRegionFromEnv
   , getDebugging
+  , setDebugging
   , renderRegionError
   , discoverAWSEnv
   , discoverAWSEnvWithRegion
@@ -39,9 +40,8 @@ data RegionError =
   deriving (Eq, Show, Typeable)
 
 data Debugging =
-    DebugEnabled
+    DebugEnabled Logger
   | DebugDisabled
-  deriving (Eq, Show)
 
 
 getRegionFromEnv :: (MonadIO m, MonadThrow m) => EitherT RegionError m Region
@@ -60,17 +60,25 @@ getRegionFromEnv = do
 getDebugging :: MonadIO m => m Debugging
 getDebugging = do
   d <- liftIO $ lookupEnv "AWS_DEBUG"
-  return $ maybe
-    DebugDisabled
+  maybe
+    (return DebugDisabled)
     (\s ->
       case T.pack s of
         "true" ->
-          DebugEnabled
+          return . DebugEnabled =<< newLogger Trace stdout
         "1" ->
-          DebugEnabled
+          return . DebugEnabled =<< newLogger Trace stdout
         _ ->
-          DebugDisabled)
+          return DebugDisabled)
     d
+
+setDebugging :: Debugging -> Env -> Env
+setDebugging d e =
+  case d of
+    DebugEnabled lgr ->
+      e & envLogger .~ lgr
+    DebugDisabled ->
+      e
 
 discoverAWSEnv :: EitherT RegionError IO Env
 discoverAWSEnv =
@@ -89,12 +97,7 @@ discoverAWSEnvWithRegionRetry :: RetryPolicy -> Region -> IO Env
 discoverAWSEnvWithRegionRetry rpol r = do
   d <- getDebugging
   e <- recovering rpol [(\_ -> Handler catchAuthError)] $ newEnv r Discover
-  case d of
-    DebugEnabled -> do
-      lgr <- newLogger Trace stdout
-      pure $ e & envLogger .~ lgr
-    DebugDisabled ->
-      pure e
+  pure $ setDebugging d e
   where
     catchAuthError :: AuthError -> IO Bool
     -- MDS sometimes has transient failures.
