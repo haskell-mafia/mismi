@@ -15,7 +15,7 @@ module Mismi.Control (
   , runAWSTWithRegion
   , rawRunAWS
   , runAWSWithRegion
-  , runAWSWithCreds
+  , newEnvFromCreds
   , awsBracket
   , awsBracket_
   , renderError
@@ -80,18 +80,17 @@ runAWSWithRegion r a = do
   e <- liftIO $ discoverAWSEnvWithRegion r
   runAWS e a
 
-rawRunAWS :: Env -> AWS a -> IO a
-rawRunAWS e =
-  runResourceT . A.runAWS e
-
-runAWSWithCreds :: (MonadIO m, MonadCatch m) => Region -> AccessKey -> SecretKey -> Maybe SessionToken -> AWS a -> EitherT Error m a
-runAWSWithCreds r ak sk st a = do
-  e <- liftIO . newEnv r $ case st of
+newEnvFromCreds :: (Applicative m, MonadIO m, MonadCatch m) => Region -> AccessKey -> SecretKey -> Maybe SessionToken -> m Env
+newEnvFromCreds r ak sk st =
+  newEnv r $ case st of
     Nothing ->
       FromKeys ak sk
     Just st' ->
       FromSession ak sk st'
-  runAWS e a
+
+rawRunAWS :: Env -> AWS a -> IO a
+rawRunAWS e =
+  runResourceT . A.runAWS e
 
 awsBracket :: AWS a -> (a -> AWS c) -> (a -> AWS b) -> AWS b
 awsBracket r f a = do
