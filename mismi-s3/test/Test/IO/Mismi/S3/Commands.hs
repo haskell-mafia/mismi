@@ -313,6 +313,12 @@ prop_write_nonexisting w t = withAWS $ \a -> do
   r <- read a
   pure $ r === pure t
 
+prop_write_grant t = withAWS $ \a -> do
+  writeOrFail a t
+  grantReadAccess a $ ReadGrant "id=e3abd0cceaecbd471c3eaaa47bb722bf199296c5e41c9ee4222877cc91b536fc"
+  r <- read a
+  pure $ r === pure t
+
 prop_on_status_ok = testAWS $
   do r <- onStatus_ (1 :: Int) handler (void (exists (Address (Bucket "ambiata-dev-view") (Key ""))))
      return (r === 1)

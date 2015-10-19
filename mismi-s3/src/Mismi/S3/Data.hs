@@ -8,6 +8,7 @@ module Mismi.S3.Data (
   , Bucket (..)
   , Address (..)
   , Key (..)
+  , ReadGrant (..)
   , Upload (..)
   , S3Error (..)
   , ErrorType (..)
@@ -145,6 +146,10 @@ newtype Key = Key {
     unKey :: Text
   } deriving (Eq, Show, Ord)
 
+newtype ReadGrant =
+  ReadGrant {
+      readGrant :: Text
+    } deriving (Eq, Show)
 
 instance Show Address where
   show (Address b k) =

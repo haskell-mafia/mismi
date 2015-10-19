@@ -46,6 +46,7 @@ module Mismi.S3.Commands (
   , listRecursively'
   , sync
   , syncWithMode
+  , grantReadAccess
   , sse
   ) where
 
@@ -85,6 +86,7 @@ import qualified Mismi.Control as A
 import           Mismi.S3.Amazonka (send, paginate, Env )
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
+import qualified Mismi.S3.Patch.PutObjectACL as P
 
 import           Network.AWS.S3 hiding (headObject, Bucket, bucket, listObjects)
 import qualified Network.AWS.S3 as AWS
@@ -458,6 +460,10 @@ syncWithMode mode source dest fork = do
   r' <- liftIO $ waitForNResults i r
   liftIO $ forM_ tid killThread
   forM_ r' hoistWorkerResult
+
+grantReadAccess :: Address -> ReadGrant -> AWS ()
+grantReadAccess a g =
+  void . send $ (fencode' P.putObjectACL a & P.poaGrantRead .~ Just (readGrant g))
 
 hoistWorkerResult :: WorkerResult -> AWS ()
 hoistWorkerResult =
