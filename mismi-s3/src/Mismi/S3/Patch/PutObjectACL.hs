@@ -160,7 +160,7 @@ poaKey = lens _poaKey (\ s a -> s{_poaKey = a});
 
 instance AWSRequest PutObjectACL where
         type Rs PutObjectACL = PutObjectACLResponse
-        request = putXML s3
+        request = put s3
         response
           = receiveEmpty
               (\ s h x ->
