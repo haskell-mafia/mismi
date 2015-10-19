@@ -53,7 +53,7 @@ module Mismi.S3.Commands (
 
 import           Control.Arrow ((***))
 
-import           Control.Concurrent
+import           Control.Concurrent hiding (yield)
 import           Control.Concurrent.MSem
 
 import           Control.Concurrent.Async.Lifted
@@ -68,7 +68,6 @@ import           Control.Monad.Reader (ask)
 import           Control.Monad.IO.Class
 
 import qualified Data.ByteString as BS
-
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 import           Data.Conduit.Binary
@@ -80,12 +79,12 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Time.Clock
 
-import           Mismi.Amazonka (chunkedFile)
 import           Mismi.Control
 import qualified Mismi.Control as A
 import           Mismi.S3.Amazonka (send, paginate, Env )
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
+import qualified Mismi.S3.Patch.Network as N
 import qualified Mismi.S3.Patch.PutObjectACL as P
 
 import           Network.AWS.S3 hiding (headObject, Bucket, bucket, listObjects)
@@ -195,8 +194,9 @@ uploadWithMode m f a = eitherT (pure . UploadError) (const $ pure UploadOk) $ do
 
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
-  rq <- chunkedFile (ChunkSize $ 1024 * 1024) file
+  rq <- N.chunkedFile (ChunkSize $ 1024 * 1024) file
   void . send $ fencode' putObject a rq & poServerSideEncryption .~ pure sse
+
 
 data PartResponse =
   PartResponse !Int !ETag
