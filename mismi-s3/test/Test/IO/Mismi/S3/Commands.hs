@@ -313,7 +313,6 @@ prop_write_nonexisting w t = withAWS $ \a -> do
   r <- read a
   pure $ r === pure t
 
--- | If the object does not exist, then the behaviour should be invariant with the WriteMode
 prop_write_grant t = withAWS $ \a -> do
   writeOrFail a t
   grantReadAccess a $ ReadGrant "id=e3abd0cceaecbd471c3eaaa47bb722bf199296c5e41c9ee4222877cc91b536fc"
