@@ -63,6 +63,7 @@ library
                        Mismi.S3
                        Mismi.S3.Amazonka
                        Mismi.S3.Commands
+                       Mismi.S3.Patch.PutObjectACL
                        Mismi.S3.Data
                        Mismi.S3.Internal
 
