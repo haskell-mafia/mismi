@@ -1,9 +1,2 @@
-lib/disorder/disorder-core
-lib/disorder/disorder-corpus
-lib/p
-lib/x/x-conduit
-lib/x/x-either
-lib/x/x-exception
-lib/x/x-optparse
 mismi-core
 mismi-core/test
