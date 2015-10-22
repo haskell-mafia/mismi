@@ -11,6 +11,6 @@ git submodule update
 
 cd $PROJECT
 
-./cabal update || exit $?
-./cabal build || exit $?
-./cabal test  --log=/dev/stdout || exit $?
+./mafia update || exit $?
+./mafia build || exit $?
+./mafia testci || exit $?

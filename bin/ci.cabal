@@ -13,8 +13,8 @@ cd $PROJECT
 
 cabal sandbox delete
 
-./cabal update
-./cabal build
+./mafia update
+./mafia build
 cabal install
 
 (
