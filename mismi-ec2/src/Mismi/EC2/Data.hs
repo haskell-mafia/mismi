@@ -17,7 +17,7 @@ import           P
 newtype InstanceId =
   InstanceId {
       unInstanceId :: Text
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Ord)
 
 newtype UserData =
   UserData {
