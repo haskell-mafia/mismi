@@ -139,6 +139,7 @@ test-suite test-io
                      , filepath
                      , directory
                      , http-client
+                     , mtl
                      , temporary                       == 1.2.*
                      , text
                      , transformers

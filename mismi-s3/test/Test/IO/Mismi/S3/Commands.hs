@@ -7,6 +7,7 @@
 module Test.IO.Mismi.S3.Commands where
 
 import           Control.Concurrent
+import           Control.Monad.Reader (ask)
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 
@@ -15,7 +16,7 @@ import "cryptohash" Crypto.Hash
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List as L
-import           Data.Text hiding (copy, length)
+import           Data.Text as T hiding (copy, length)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 
@@ -26,6 +27,8 @@ import           Control.Lens hiding (elements)
 
 import           Mismi.S3
 import qualified Mismi.S3.Amazonka as A
+
+import qualified Network.HTTP.Client as H
 
 import           P
 
@@ -318,6 +321,24 @@ prop_write_grant t = withAWS $ \a -> do
   grantReadAccess a $ ReadGrant "id=e3abd0cceaecbd471c3eaaa47bb722bf199296c5e41c9ee4222877cc91b536fc"
   r <- read a
   pure $ r === pure t
+
+prop_sign_download t = withAWS $ \a -> do
+  mgr <- view A.envManager <$> ask
+  writeOrFail a t
+  url <- signDownload a 60
+  liftIO $ putStrLn $ T.unpack url
+  req <- H.parseUrl (T.unpack url)
+  res <- liftIO $ H.responseBody <$> H.httpLbs (req { H.requestHeaders = [("host", "s3-ap-southeast-2.amazonaws.com")] })  mgr
+  pure $ (T.decodeUtf8 . LBS.toStrict) res === t
+
+prop_sign_upload t = withAWS $ \a -> do
+  mgr <- view A.envManager <$> ask
+  writeOrFail a t
+  url <- signDownload a 60
+  liftIO $ putStrLn $ T.unpack url
+  req <- H.parseUrl (T.unpack url)
+  res <- liftIO $ H.responseBody <$> H.httpLbs (req { H.requestHeaders = [] })  mgr
+  pure $ (T.decodeUtf8 . LBS.toStrict) res === t
 
 prop_on_status_ok = testAWS $
   do r <- onStatus_ (1 :: Int) handler (void (exists (Address (Bucket "ambiata-dev-view") (Key ""))))

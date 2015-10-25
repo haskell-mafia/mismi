@@ -47,6 +47,8 @@ module Mismi.S3.Commands (
   , sync
   , syncWithMode
   , grantReadAccess
+  , signDownload
+  , signUpload
   , sse
   ) where
 
@@ -67,6 +69,7 @@ import           Control.Monad.Trans.Resource
 import           Control.Monad.Reader (ask)
 import           Control.Monad.IO.Class
 
+import           Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
@@ -81,7 +84,7 @@ import           Data.Time.Clock
 
 import           Mismi.Control
 import qualified Mismi.Control as A
-import           Mismi.S3.Amazonka (send, paginate, Env )
+import           Mismi.S3.Amazonka (presignURL, send, paginate, Env)
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 import qualified Mismi.S3.Patch.Network as N
@@ -464,6 +467,16 @@ syncWithMode mode source dest fork = do
 grantReadAccess :: Address -> ReadGrant -> AWS ()
 grantReadAccess a g =
   void . send $ (fencode' P.putObjectACL a & P.poaGrantRead .~ Just (readGrant g))
+
+signDownload :: Address -> Seconds -> AWS Text
+signDownload a duration = do
+  now <- liftIO $ getCurrentTime
+  fmap T.decodeUtf8 . presignURL now duration $ fencode' getObject a
+
+signUpload :: Address -> Seconds -> AWS Text
+signUpload a duration = do
+  now <- liftIO $ getCurrentTime
+  fmap T.decodeUtf8 . presignURL now duration $ fencode' putObject a (toBody ("" :: ByteString)) & poServerSideEncryption .~ pure sse
 
 hoistWorkerResult :: WorkerResult -> AWS ()
 hoistWorkerResult =

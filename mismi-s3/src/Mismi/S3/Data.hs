@@ -15,6 +15,7 @@ module Mismi.S3.Data (
   , UploadResult (..)
   , UploadError (..)
   , WriteResult (..)
+  , A.Seconds (..)
   , (</>)
   , combineKey
   , dirname
@@ -38,6 +39,7 @@ import           Data.Text (Text)
 import           Data.List (init, zipWith)
 import           Data.String
 import           Data.Typeable
+import qualified Network.AWS.Types as A
 
 import           P
 
