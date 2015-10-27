@@ -12,9 +12,7 @@ module Mismi.Control (
   , runAWS
   , runAWST
   , runAWSTWith
-  , runAWSTWithRegion
   , rawRunAWS
-  , runAWSWithRegion
   , newEnvFromCreds
   , awsBracket
   , awsBracket_
@@ -61,10 +59,6 @@ runAWST :: Env -> (Error -> e) -> EitherT e AWS a -> EitherT e IO a
 runAWST e err action =
   runAWSTWith (runAWS e) err action
 
-runAWSTWithRegion :: Region -> (Error -> e) -> EitherT e AWS a -> EitherT e IO a
-runAWSTWithRegion r err action =
-  runAWSTWith (runAWSWithRegion r) err action
-
 runAWSTWith :: (forall b. AWS b -> EitherT Error IO b) -> (Error -> e) -> EitherT e AWS a -> EitherT e IO a
 runAWSTWith run err action =
   joinErrors id err $ mapEitherT run action
@@ -74,11 +68,6 @@ runAWS e'' =
   let e' = over envManager (\m -> m { mResponseTimeout = Just 60000000 }) e''
       e = configureRetries 5 e'
   in EitherT . try . liftIO . rawRunAWS e
-
-runAWSWithRegion :: (MonadIO m, MonadCatch m) => Region -> AWS a -> EitherT Error m a
-runAWSWithRegion r a = do
-  e <- liftIO $ discoverAWSEnvWithRegion r
-  runAWS e a
 
 newEnvFromCreds :: (Applicative m, MonadIO m, MonadCatch m) => Region -> AccessKey -> SecretKey -> Maybe SessionToken -> m Env
 newEnvFromCreds r ak sk st =
