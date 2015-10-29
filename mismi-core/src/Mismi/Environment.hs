@@ -15,25 +15,28 @@ module Mismi.Environment (
   , discoverAWSEnvWithRegionRetry
   ) where
 
-import           Control.Lens
-import           Control.Monad.Catch
-import           Control.Monad.Trans.AWS
-import           Control.Monad.Trans.Class
-import           Control.Monad.IO.Class
-import           Control.Retry
+import           Control.Lens ((.~), (&))
+import           Control.Monad.Catch (MonadThrow(..), Handler(..))
+import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Trans.AWS (Credentials(..), Region(..))
+import           Control.Monad.Trans.AWS (Env, newEnv, envLogger)
+import           Control.Monad.Trans.AWS (Logger, LogLevel(..), newLogger)
+import           Control.Monad.Trans.Class (lift)
+import           Control.Retry (RetryPolicy, recovering, constantDelay, limitRetries)
 
-import           Data.Text as T
-import           Data.Typeable
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Typeable (Typeable)
 
-import           Network.AWS.Auth
-import           Network.AWS.Data
+import           Network.AWS.Auth (AuthError(..))
+import           Network.AWS.Data (fromText)
 
 import           P
 
-import           System.Environment
-import           System.IO
+import           System.Environment (lookupEnv)
+import           System.IO (IO, stdout)
 
-import           X.Control.Monad.Trans.Either
+import           X.Control.Monad.Trans.Either (EitherT, left, right)
 
 data RegionError =
     MissingRegion

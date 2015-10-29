@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 module Mismi.EC2.Metadata (
     MetadataError (..)
   , fetchMetadata
@@ -8,22 +9,27 @@ module Mismi.EC2.Metadata (
   , metadataErrorRender
   ) where
 
-import           Control.Monad.Catch
+import           Control.Monad.Catch (try)
 
-import           Data.ByteString.Char8      as BS
-import           Data.Text as T
-import           Data.Text.Encoding as T
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as BS
+import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
-import           Mismi.EC2.Data as M
+import           Mismi.EC2.Data
 
-import           Network.AWS.EC2.Metadata as AWS
-import           Network.HTTP.Conduit
+import qualified Network.AWS.EC2.Metadata as AWS
+import           Network.HTTP.Conduit (HttpException)
+import           Network.HTTP.Conduit (ManagerSettings (..), conduitManagerSettings)
+import           Network.HTTP.Conduit (Manager, newManager)
 
 import           P
 
-import           System.IO
+import           System.IO (IO)
 
-import           X.Control.Monad.Trans.Either
+import           X.Control.Monad.Trans.Either (EitherT, pattern EitherT)
+import           X.Control.Monad.Trans.Either (hoistEither)
 
 
 data MetadataError =
@@ -34,20 +40,20 @@ data MetadataError =
 fetchMetadata :: AWS.Metadata -> EitherT MetadataError IO ByteString
 fetchMetadata  metadata' = EitherT $ do
   m <- managerWithDefaultTimeout
-  fmap (first MetadataHttpError) . try $ metadata m metadata'
+  fmap (first MetadataHttpError) . try $ AWS.metadata m metadata'
 
-fetchUserData :: EitherT MetadataError IO (Maybe M.UserData)
+fetchUserData :: EitherT MetadataError IO (Maybe UserData)
 fetchUserData = EitherT $ do
   m <- managerWithDefaultTimeout
-  fmap (first MetadataHttpError) . try $ userdata m >>=
-     pure . fmap (M.UserData . T.decodeUtf8)
+  fmap (first MetadataHttpError) . try $ AWS.userdata m >>=
+     pure . fmap (UserData . T.decodeUtf8)
 
-fetchInstanceId :: EitherT MetadataError IO M.InstanceId
+fetchInstanceId :: EitherT MetadataError IO InstanceId
 fetchInstanceId =
   fetchMetadata AWS.InstanceId >>=
      hoistEither .
      maybeToRight (MetadataParseError "No lines returned from metadata service") .
-     fmap M.InstanceId . listToMaybe . fmap T.decodeUtf8 . BS.lines
+     fmap InstanceId . listToMaybe . fmap T.decodeUtf8 . BS.lines
 
 metadataErrorRender :: MetadataError -> Text
 metadataErrorRender (MetadataHttpError e) = T.pack $ show e

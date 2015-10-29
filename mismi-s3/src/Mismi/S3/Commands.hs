@@ -1,8 +1,9 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Mismi.S3.Commands (
     module A
   , headObject
@@ -53,56 +54,87 @@ module Mismi.S3.Commands (
 
 import           Control.Arrow ((***))
 
-import           Control.Concurrent hiding (yield)
-import           Control.Concurrent.MSem
+import           Control.Concurrent (forkIO, killThread)
+import           Control.Concurrent.Chan (Chan, newChan, readChan, writeChan)
+import qualified Control.Concurrent.MSem as MSem
 
-import           Control.Concurrent.Async.Lifted
+import           Control.Concurrent.Async.Lifted (mapConcurrently)
 
-import           Control.Lens
-import           Control.Retry
-import           Control.Monad.Catch
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Resource
+import           Control.Lens ((&), (.~), (^.), to)
+import           Control.Monad.Catch (throwM, catch, catchAll)
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
 import           Control.Monad.Reader (ask)
-import           Control.Monad.IO.Class
+import           Control.Monad.IO.Class (liftIO)
 
 import qualified Data.ByteString as BS
-import           Data.Conduit
+import           Data.Conduit (Conduit, Source, ResumableSource)
+import           Data.Conduit ((=$=), ($$), ($$+-))
+import           Data.Conduit (awaitForever)
+import           Data.Conduit.Binary (sinkFile, sinkLbs)
 import qualified Data.Conduit.List as DC
-import           Data.Conduit.Binary
 
 import qualified Data.List.NonEmpty as NEL
+import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
-import           Data.Time.Clock
+import           Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, addUTCTime)
 
 import           Mismi.Control
 import qualified Mismi.Control as A
-import           Mismi.S3.Amazonka (send, paginate, Env )
+import           Mismi.S3.Amazonka (Env, send, paginate)
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 import qualified Mismi.S3.Patch.Network as N
 import qualified Mismi.S3.Patch.PutObjectACL as P
 
-import           Network.AWS.S3 hiding (headObject, Bucket, bucket, listObjects)
+import           Network.AWS.Data.Body (RqBody (..), RsBody (..), toBody)
+import           Network.AWS.Data.Body (ChunkedBody (..), ChunkSize (..))
+import           Network.AWS.Data.Text (toText)
+import           Network.AWS.S3 (BucketName (..))
+import           Network.AWS.S3 (ETag)
+import           Network.AWS.S3 (GetObjectResponse, gorsBody)
+import           Network.AWS.S3 (HeadObjectResponse, horsContentLength)
+import           Network.AWS.S3 (ListObjects, loPrefix, loDelimiter, loMarker)
+import           Network.AWS.S3 (ListObjectsResponse, lorsContents, lorsCommonPrefixes)
+import           Network.AWS.S3 (lorsIsTruncated, lorsNextMarker)
+import           Network.AWS.S3 (MetadataDirective (..))
+import           Network.AWS.S3 (MultipartUpload, muKey, muUploadId, muInitiated)
+import           Network.AWS.S3 (Object, oKey)
+import           Network.AWS.S3 (ObjectKey (..))
+import           Network.AWS.S3 (Part)
+import           Network.AWS.S3 (ServerSideEncryption (..))
+import           Network.AWS.S3 (cMultipartUpload)
+import           Network.AWS.S3 (cmuParts, cmuServerSideEncryption)
+import           Network.AWS.S3 (cmursUploadId)
+import           Network.AWS.S3 (coMetadataDirective, coServerSideEncryption)
+import           Network.AWS.S3 (cpPrefix)
+import           Network.AWS.S3 (goRange)
+import           Network.AWS.S3 (lmursUploads)
+import           Network.AWS.S3 (lprsParts)
+import           Network.AWS.S3 (poServerSideEncryption)
+import           Network.AWS.S3 (uprsETag)
+import           Network.AWS.S3 (createMultipartUpload, abortMultipartUpload, listMultipartUploads)
+import           Network.AWS.S3 (completeMultipartUpload, completedMultipartUpload, completedPart)
+import           Network.AWS.S3 (uploadPart)
+import           Network.AWS.S3 (getObject, putObject, copyObject, deleteObject)
 import qualified Network.AWS.S3 as AWS
-import           Network.AWS.Data.Body
-import           Network.AWS.Data.Text
 
 import           P
 import           Prelude (($!))
 
-import           System.IO
-import           System.Directory
-import           System.FilePath hiding ((</>))
-import           System.Posix.IO
+import           System.IO (IO, IOMode (..), SeekMode (..))
+import           System.IO (hFileSize, hSetFileSize, withFile)
+import           System.Directory (createDirectoryIfMissing, doesFileExist)
+import           System.FilePath (FilePath, dropFileName)
+import           System.Posix.IO (OpenMode(..), openFd, closeFd, fdSeek, defaultFileFlags)
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
 import qualified X.Data.Conduit.Binary as XB
 
-import           X.Control.Monad.Trans.Either
+import           X.Control.Monad.Trans.Either (eitherT, left)
 
 headObject :: Address -> AWS (Maybe HeadObjectResponse)
 headObject a =
@@ -222,8 +254,8 @@ multipartUpload' file a fileSize chunk fork = do
         pure $! PartResponse i m
 
   handle' mpu $ do
-    sem <- liftIO $ new fork
-    prts <- liftIO $ mapConcurrently (with sem . uploader) chunks
+    sem <- liftIO $ MSem.new fork
+    prts <- liftIO $ mapConcurrently (MSem.with sem . uploader) chunks
 
     let l = (\(PartResponse i etag) -> completedPart i etag) <$> prts
     let ncps = NEL.nonEmpty l
@@ -362,8 +394,8 @@ multipartDownload source destination' size chunk' fork = do
     withFile f WriteMode $ \h ->
       hSetFileSize h (toInteger size)
 
-    sem <- new fork
-    void $ mapConcurrently (with sem . writer f) chunks
+    sem <- MSem.new fork
+    void $ mapConcurrently (MSem.with sem . writer f) chunks
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange source start end dest = do
