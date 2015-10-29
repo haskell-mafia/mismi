@@ -6,7 +6,6 @@ module Test.Mismi (
   ) where
 
 import           Control.Monad.Catch
-import           Control.Monad.Trans.Either
 
 import           Disorder.Core.IO
 
@@ -18,6 +17,8 @@ import           System.IO
 
 import           Test.Mismi.Arbitrary ()
 import           Test.QuickCheck
+
+import           X.Control.Monad.Trans.Either
 
 
 testAWS :: Testable a => AWS a -> Property

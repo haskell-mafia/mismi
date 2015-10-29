@@ -62,7 +62,6 @@ import           Control.Lens
 import           Control.Retry
 import           Control.Monad.Catch
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Resource
 import           Control.Monad.Reader (ask)
 import           Control.Monad.IO.Class
@@ -101,8 +100,9 @@ import           System.FilePath hiding ((</>))
 import           System.Posix.IO
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
-
 import qualified X.Data.Conduit.Binary as XB
+
+import           X.Control.Monad.Trans.Either
 
 headObject :: Address -> AWS (Maybe HeadObjectResponse)
 headObject a =

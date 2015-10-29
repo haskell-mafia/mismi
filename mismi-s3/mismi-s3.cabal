@@ -17,6 +17,7 @@ library
                      , ambiata-mismi-core
                      , ambiata-p
                      , ambiata-x-conduit
+                     , ambiata-x-eithert
                      , ambiata-x-exception
                      , template-haskell
                      , amazonka                        == 1.3.2.1
@@ -27,7 +28,6 @@ library
                      , conduit                         == 1.2.*
                      , conduit-extra                   == 1.1.*
                      , directory                       == 1.2.*
-                     , either                          == 4.3.*
                      , exceptions                      >= 0.6        && < 0.9
                      , filepath                        == 1.3.*
                      , http-client                     == 0.4.18.*
@@ -73,12 +73,12 @@ executable s3
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      main
   build-depends:       base
-                     , either
                      , exceptions
                      , ambiata-mismi-core
                      , ambiata-mismi-s3
                      , ambiata-p
                      , ambiata-x-optparse
+                     , ambiata-x-eithert
                      , filepath
                      , optparse-applicative            == 0.11.*
                      , transformers
@@ -100,10 +100,10 @@ test-suite test
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
                      , ambiata-p
+                     , ambiata-x-eithert
                      , amazonka
                      , amazonka-core
                      , amazonka-s3
-                     , either
                      , exceptions
                      , filepath
                      , directory                       == 1.2.*
@@ -135,6 +135,7 @@ test-suite test-io
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
                      , ambiata-p
+                     , ambiata-x-eithert
                      , exceptions
                      , filepath
                      , directory
@@ -148,7 +149,6 @@ test-suite test-io
                      , uuid
                      , bytestring
                      , lens
-                     , either
                      , cryptohash
 
 
@@ -167,6 +167,7 @@ test-suite test-reliability
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
                      , ambiata-p
+                     , ambiata-x-eithert
                      , exceptions
                      , directory
                      , filepath
@@ -177,7 +178,6 @@ test-suite test-reliability
                      , unix
                      , uuid
                      , bytestring
-                     , either
                      , temporary
                      , lens
 

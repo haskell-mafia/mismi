@@ -19,7 +19,6 @@ import           Control.Lens
 import           Control.Monad.Catch
 import           Control.Monad.Trans.AWS
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
 import           Control.Retry
 
@@ -33,6 +32,8 @@ import           P
 
 import           System.Environment
 import           System.IO
+
+import           X.Control.Monad.Trans.Either
 
 data RegionError =
     MissingRegion
