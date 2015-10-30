@@ -27,6 +27,7 @@ import           System.FilePath
 import           System.Posix.Signals
 import           System.Posix.Process
 
+import           X.Control.Monad.Trans.Either.Exit
 import           X.Options.Applicative
 
 data Recursive =

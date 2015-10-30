@@ -5,19 +5,20 @@ module Test.Mismi (
   , runAWSDefaultRegion
   ) where
 
-import           Control.Monad.Catch
-import           Control.Monad.Trans.Either
+import           Control.Monad.Catch (throwM)
 
-import           Disorder.Core.IO
+import           Disorder.Core.IO (testIO)
 
 import           Mismi
 
 import           P
 
-import           System.IO
+import           System.IO (IO)
 
 import           Test.Mismi.Arbitrary ()
-import           Test.QuickCheck
+import           Test.QuickCheck (Property, Testable)
+
+import           X.Control.Monad.Trans.Either (eitherT)
 
 
 testAWS :: Testable a => AWS a -> Property
