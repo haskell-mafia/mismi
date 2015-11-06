@@ -41,7 +41,7 @@ rec notrecursive recursive r = case r of
   Recursive -> recursive
 
 data Command =
-    Upload FilePath Address
+    Upload FilePath Address WriteMode
   | Download Address FilePath
   | Copy Address Address
   | Move Address Address
@@ -74,8 +74,8 @@ run :: Command -> IO ()
 run c = do
   e <- orDie renderRegionError discoverAWSEnv
   orDie renderError . runAWS e $ case c of
-    Upload s d ->
-      uploadOrFail s d
+    Upload s d m ->
+      uploadWithModeOrFail m s d
     Download s d ->
       download s . optAppendFileName d $ key s
     Copy s d ->
@@ -112,7 +112,7 @@ commandP' :: Parser Command
 commandP' = subparser $
      command' "upload"
               "Upload a file to s3."
-              (Upload <$> filepath' <*> address')
+              (Upload <$> filepath' <*> address' <*> writeMode')
   <> command' "download"
               "Download a file from s3."
               (Download <$> address' <*> filepath')
