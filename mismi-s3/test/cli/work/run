@@ -11,8 +11,11 @@ s3_foo=$(unique_s3_url foo)
 s3_bar=$(unique_s3_url bar)
 
 echo "blah" > ${TEST}/file
+echo "meh" > ${TEST}/file2
 
-$MISMI upload ${TEST}/file $s3 || exit_cleanup $?
+$MISMI upload ${TEST}/file2 $s3 || exit_cleanup $?
+if $MISMI upload ${TEST}/file $s3; then echo "Was allowed to upload twice"; exit_cleanup 1; fi
+$MISMI upload --overwrite ${TEST}/file $s3 || exit_cleanup $?
 $MISMI download $s3 ${TEST}/download || exit_cleanup $?
 
 if diff -q ${TEST}/file ${TEST}/download; then
