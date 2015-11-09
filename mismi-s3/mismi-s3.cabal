@@ -144,6 +144,7 @@ test-suite test-io
                      , conduit
                      , cryptohash
                      , directory                       == 1.2.*
+                     , ambiata-twine
                      , exceptions
                      , filepath
                      , http-client
@@ -222,6 +223,7 @@ benchmark bench
                      , ambiata-p
                      , ambiata-x-eithert
                      , criterion                       == 1.1.*
+                     , exceptions                      == 0.8.*
                      , QuickCheck
                      , quickcheck-instances            == 0.3.*
                      , quickcheck-properties           == 0.1.*

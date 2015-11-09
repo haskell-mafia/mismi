@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Catch
 
 import           Criterion.Main
 
@@ -12,11 +13,14 @@ import           Mismi.S3
 import           P
 
 import           System.IO
+import           System.IO.Error
 import           System.IO.Temp
 
 import           Test.Mismi
 
 import           Test.QuickCheck.Instances ()
+
+import           X.Control.Monad.Trans.Either (EitherT, eitherT, mapEitherT)
 
 createFiles :: Address -> Int -> AWS ()
 createFiles prefix n = do
@@ -37,6 +41,10 @@ run :: AWS a -> IO a
 run =
   runAWSDefaultRegion
 
+runE :: EitherT SyncError AWS a -> IO a
+runE =
+  eitherT (throwM . userError . T.unpack . renderSyncError) pure . mapEitherT runAWSDefaultRegion
+
 main :: IO ()
 main = do
   let a = Address (Bucket "ambiata-dev-view") (Key "s3-benchmarks/small-foo")
@@ -49,27 +57,27 @@ main = do
     createFiles b 1000
     createLargeFiles c 100
     createLargeFiles d 1000
-    syncWithMode OverwriteSync b o 100
+  runE $ syncWithMode OverwriteSync b o 100
   defaultMain [
       bgroup "sync-small-files" [
-          bench "sem-100-100" (nfIO . run $ syncWithMode OverwriteSync a o 100)
-        , bench "sem-100-50" (nfIO . run $ syncWithMode OverwriteSync a o 50)
-        , bench "sem-100-20" (nfIO . run $ syncWithMode OverwriteSync a o 20)
-        , bench "sem-100-10" (nfIO . run $ syncWithMode OverwriteSync a o 10)
-        , bench "sem-100-1" (nfIO . run $ syncWithMode OverwriteSync a o 1)
-        , bench "sem-1000-1000" (nfIO . run $ syncWithMode OverwriteSync b o 1000)
-        , bench "sem-1000-100" (nfIO . run $ syncWithMode OverwriteSync b o 100)
-        , bench "sem-1000-10" (nfIO . run $ syncWithMode OverwriteSync b o 10)
+          bench "sem-100-100" (nfIO . runE $ syncWithMode OverwriteSync a o 100)
+        , bench "sem-100-50" (nfIO . runE $ syncWithMode OverwriteSync a o 50)
+        , bench "sem-100-20" (nfIO . runE $ syncWithMode OverwriteSync a o 20)
+        , bench "sem-100-10" (nfIO . runE $ syncWithMode OverwriteSync a o 10)
+        , bench "sem-100-1" (nfIO . runE $ syncWithMode OverwriteSync a o 1)
+        , bench "sem-1000-1000" (nfIO . runE $ syncWithMode OverwriteSync b o 1000)
+        , bench "sem-1000-100" (nfIO . runE $ syncWithMode OverwriteSync b o 100)
+        , bench "sem-1000-10" (nfIO . runE $ syncWithMode OverwriteSync b o 10)
         ]
     , bgroup "sync-large-files" [
-          bench "sem-100-100" (nfIO . run $ syncWithMode OverwriteSync c o 100)
-        , bench "sem-100-50" (nfIO . run $ syncWithMode OverwriteSync c o 50)
-        , bench "sem-100-20" (nfIO . run $ syncWithMode OverwriteSync c o 20)
-        , bench "sem-100-10" (nfIO . run $ syncWithMode OverwriteSync c o 10)
-        , bench "sem-100-1" (nfIO . run $ syncWithMode OverwriteSync c o 1)
-        , bench "sem-1000-1000" (nfIO . run $ syncWithMode OverwriteSync d o 1000)
-        , bench "sem-1000-100" (nfIO . run $ syncWithMode OverwriteSync d o 100)
-        , bench "sem-1000-10" (nfIO . run $ syncWithMode OverwriteSync d o 10)
+          bench "sem-100-100" (nfIO . runE $ syncWithMode OverwriteSync c o 100)
+        , bench "sem-100-50" (nfIO . runE $ syncWithMode OverwriteSync c o 50)
+        , bench "sem-100-20" (nfIO . runE $ syncWithMode OverwriteSync c o 20)
+        , bench "sem-100-10" (nfIO . runE $ syncWithMode OverwriteSync c o 10)
+        , bench "sem-100-1" (nfIO . runE $ syncWithMode OverwriteSync c o 1)
+        , bench "sem-1000-1000" (nfIO . runE $ syncWithMode OverwriteSync d o 1000)
+        , bench "sem-1000-100" (nfIO . runE $ syncWithMode OverwriteSync d o 100)
+        , bench "sem-1000-10" (nfIO . runE $ syncWithMode OverwriteSync d o 10)
         ]
 
     ]

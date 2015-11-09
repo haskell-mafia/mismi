@@ -11,7 +11,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString as BS
-import           Data.Text.IO (putStrLn)
+import           Data.Text.IO (putStrLn, hPutStrLn)
 import           Data.Text hiding (copy)
 
 import           Mismi.Environment
@@ -21,13 +21,14 @@ import           Options.Applicative
 
 import           P
 
-import           System.IO hiding (putStrLn)
+import           System.IO hiding (putStrLn, hPutStrLn)
 import           System.Exit
 import           System.FilePath
 import           System.Posix.Signals
 import           System.Posix.Process
 
 import           X.Control.Monad.Trans.Either.Exit
+import           X.Control.Monad.Trans.Either (eitherT)
 import           X.Options.Applicative
 
 data Recursive =
@@ -95,7 +96,7 @@ run c = do
     Size a ->
       getSize a >>= liftIO . maybe exitFailure (putStrLn . pack . show)
     Sync s d m f ->
-      syncWithMode m s d f
+      eitherT (\se -> liftIO $ (hPutStrLn stderr $ renderSyncError se) >> exitFailure) pure (syncWithMode m s d f)
     List a rq ->
       rec (list' a) (listRecursively' a) rq $$ DC.mapM_ (liftIO . putStrLn . addressToText)
 

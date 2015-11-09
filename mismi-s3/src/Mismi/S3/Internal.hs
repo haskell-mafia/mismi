@@ -8,6 +8,7 @@ module Mismi.S3.Internal (
   , downRange
   , sinkChan
   , sinkChanWithDelay
+  , sinkQueue
   , waitForNResults
   , withFileSafe
   ) where
@@ -27,12 +28,16 @@ import           Data.UUID.V4
 
 import           P
 
+import           Mismi (AWS, rawRunAWS)
+import           Mismi.Amazonka (Env)
 import           Mismi.S3.Data
 import           Network.AWS.S3
 
 import           System.Directory
 import           System.IO
 import           System.FilePath
+
+import           Twine.Data
 
 
 fencode' :: (BucketName -> ObjectKey -> a) -> Address -> a
@@ -76,6 +81,10 @@ sinkChan source c =
 sinkChanWithDelay :: MonadIO m => Int -> Source m a -> Chan a -> m Int
 sinkChanWithDelay delay source c =
   source $$ DC.foldM (\i v -> liftIO $ threadDelay delay >> writeChan c v >> pure (i + 1)) 0
+
+sinkQueue :: Env -> Source AWS a -> Queue a -> IO ()
+sinkQueue e source q =
+  rawRunAWS e (source $$ DC.mapM_ (liftIO . writeQueue q))
 
 
 waitForNResults :: Int -> Chan a -> IO [a]

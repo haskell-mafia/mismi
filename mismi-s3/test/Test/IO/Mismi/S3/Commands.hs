@@ -39,6 +39,10 @@ import           Test.Mismi.S3
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
+import           Twine.Parallel (RunError (..))
+
+import           X.Control.Monad.Trans.Either (runEitherT)
+
 prop_exists = testAWS $ do
   a <- newAddress
   writeOrFail a ""
@@ -328,18 +332,23 @@ prop_sync_overwrite = forAll (elements muppets) $ \m -> testAWS $ do
   a <- newAddress
   b <- newAddress
   createSmallFiles a m 10
-  syncWithMode OverwriteSync a b 1
-  syncWithMode OverwriteSync a b 1
+  x <- runEitherT $ syncWithMode OverwriteSync a b 1
+  y <- runEitherT $ syncWithMode OverwriteSync a b 1
   mapM_ (\e -> exists e >>= \e' -> when (e' == False) (throwM . userError $ "Output files do not exist")) (files b m 10)
-  pure $ True === True
+  pure $ (isRight x, isRight y) === (True, True)
 
 prop_sync_fail = forAll (elements muppets) $ \m -> testAWS $ do
   a <- newAddress
   b <- newAddress
   createSmallFiles a m 1
-  syncWithMode FailSync a b 1
-  r <- (False <$ syncWithMode FailSync a b 1) `catchAll` (const . pure $ True)
-  pure $ r === True
+  x <- runEitherT $ syncWithMode FailSync a b 1
+  y <- runEitherT $ syncWithMode FailSync a b 1
+  r <- pure $ case y of
+    (Left (SyncError (WorkerError (OutputExists q)))) ->
+      q == withKey (</> Key (m <> "-1")) b
+    _ ->
+      False
+  pure $ (isRight x, r) === (True, True)
 
 -- | If the object does not exist, then the behaviour should be invariant with the WriteMode
 prop_write_nonexisting w d = testAWS $ do

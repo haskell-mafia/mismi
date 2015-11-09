@@ -28,11 +28,13 @@ import           Test.Reliability.Reliability
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
+import           X.Control.Monad.Trans.Either (runEitherT)
+
 prop_sync = forAll (elements muppets) $ \m -> testAWS' $ \a b i -> do
   createSmallFiles a m i
-  syncWithMode OverwriteSync a b 10
+  r <- runEitherT $ syncWithMode OverwriteSync a b 10
   mapM_ (\e -> exists e >>= \e' -> when (e' == False) (throwM $ userError "Output files do not exist")) (files a m i)
-  pure $ True === True
+  pure $ (isRight r) === True
 
 prop_list = forAll (elements muppets) $ \m -> testS3 $ \a i -> do
   createSmallFiles a m i
