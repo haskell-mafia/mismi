@@ -19,6 +19,7 @@ library
                      , ambiata-x-conduit
                      , ambiata-x-eithert
                      , ambiata-x-exception
+                     , ambiata-twine
                      , template-haskell
                      , amazonka                        == 1.3.2.1
                      , amazonka-core                   == 1.3.2
