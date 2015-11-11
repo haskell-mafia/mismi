@@ -6,6 +6,8 @@ module Test.Mismi.S3 (
   , LocalPath (..)
   , testBucket
   , withToken
+  , createSmallFiles
+  , files
   ) where
 
 import           Control.Monad.IO.Class (liftIO)
@@ -66,3 +68,11 @@ withToken t f = do
   u <- liftIO $ T.pack . U.toString <$> U.nextRandom
   let a = Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
   awsBracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
+
+createSmallFiles :: Address -> Text -> Int -> AWS ()
+createSmallFiles prefix name n = do
+  mapM_ (flip write "data") $ files prefix name n
+
+files :: Address -> Text -> Int -> [Address]
+files prefix name n =
+  fmap (\i -> withKey (</> Key (name <> "-" <> (T.pack $ show i))) prefix) [1..n]
