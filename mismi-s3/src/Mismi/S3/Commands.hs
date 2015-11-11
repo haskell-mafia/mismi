@@ -5,7 +5,9 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Mismi.S3.Commands (
-    module A
+    module Mismi.Control
+  , DownloadError (..)
+  , renderDownloadError
   , headObject
   , exists
   , getSize
@@ -84,7 +86,6 @@ import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, addUTCTime)
 
 import           Mismi.Control
-import qualified Mismi.Control as A
 import           Mismi.S3.Amazonka (Env, send, paginate)
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
@@ -121,7 +122,7 @@ import           Network.AWS.S3 (createMultipartUpload, abortMultipartUpload, li
 import           Network.AWS.S3 (completeMultipartUpload, completedMultipartUpload, completedPart)
 import           Network.AWS.S3 (uploadPart)
 import           Network.AWS.S3 (getObject, putObject, copyObject, deleteObject)
-import qualified Network.AWS.S3 as AWS
+import qualified Network.AWS.S3 as A
 
 import           P
 import           Prelude (($!))
@@ -129,11 +130,12 @@ import           Prelude (($!))
 import           System.IO (IO, IOMode (..), SeekMode (..))
 import           System.IO (hFileSize, hSetFileSize, withFile)
 import           System.Directory (createDirectoryIfMissing, doesFileExist)
-import           System.FilePath (FilePath, dropFileName)
+import           System.FilePath (FilePath, takeDirectory)
 import           System.Posix.IO (OpenMode(..), openFd, closeFd, fdSeek, defaultFileFlags)
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
-import           Twine.Parallel
+import           Twine.Data.Queue (writeQueue)
+import           Twine.Parallel (RunError (..), renderRunError, consume)
 
 import qualified X.Data.Conduit.Binary as XB
 
@@ -142,7 +144,7 @@ import           X.Control.Monad.Trans.Either (EitherT, eitherT, left, right, bi
 
 headObject :: Address -> AWS (Maybe HeadObjectResponse)
 headObject a =
-  handle404 . send . fencode' AWS.headObject $ a
+  handle404 . send . fencode' A.headObject $ a
 
 exists :: Address -> AWS Bool
 exists a =
@@ -299,7 +301,7 @@ writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
 -- pair of prefixs and keys
 getObjects :: Address -> AWS ([Key], [Key])
 getObjects (Address (Bucket buck) (Key ky)) =
-  ((Key <$>) *** ((\(ObjectKey t) -> Key t) <$>)) <$> ff (AWS.listObjects (BucketName buck) & loPrefix .~ Just ((+/) ky) & loDelimiter .~ Just '/' )
+  ((Key <$>) *** ((\(ObjectKey t) -> Key t) <$>)) <$> ff (A.listObjects (BucketName buck) & loPrefix .~ Just ((+/) ky) & loDelimiter .~ Just '/' )
   where
     ff :: ListObjects -> AWS ([T.Text], [ObjectKey])
     ff b = do
@@ -315,7 +317,7 @@ getObjects (Address (Bucket buck) (Key ky)) =
 
 getObjectsRecursively :: Address -> AWS [Object]
 getObjectsRecursively (Address (Bucket b) (Key ky)) =
-  getObjects' $ AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) ky)
+  getObjects' $ A.listObjects (BucketName b) & loPrefix .~ Just ((+/) ky)
   where
     -- Hoping this will have ok performance in cases where the results are large, it shouldnt
     -- affect correctness since we search through the list for it anyway
@@ -343,7 +345,7 @@ list a =
 
 list' :: Address -> Source AWS Address
 list' a@(Address (Bucket b) (Key k)) =
-  paginate (AWS.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
+  paginate (A.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
 
 liftAddressAndPrefix :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddressAndPrefix a =
@@ -359,67 +361,74 @@ liftAddressAndPrefix a =
   | T.isSuffixOf "/" k = k
   | otherwise          = k <> "/"
 
-download :: Address -> FilePath -> AWS ()
+
+data DownloadError =
+    DownloadSourceMissing Address
+  | DownloadDestinationExists FilePath
+  | MultipartError (RunError Error)
+
+renderDownloadError :: DownloadError -> Text
+renderDownloadError d =
+  case d of
+    DownloadSourceMissing a ->
+      "Can not download when the source object does not exist [" <> addressToText a <> "]"
+    DownloadDestinationExists f ->
+      "Can not download to a target that already exists [" <> T.pack f <> "]"
+    MultipartError r ->
+      "Multipart download error: " <> renderRunError r renderError
+
+download :: Address -> FilePath -> EitherT DownloadError AWS ()
 download =
   downloadWithMode Fail
 
-downloadWithMode :: WriteMode -> Address -> FilePath -> AWS ()
+downloadWithMode :: WriteMode -> Address -> FilePath -> EitherT DownloadError AWS ()
 downloadWithMode mode a f = do
-  when (mode == Fail) . whenM (liftIO $ doesFileExist f) . throwM $ DestinationFileExists f
-  liftIO $ createDirectoryIfMissing True (dropFileName f)
-  s' <- getSize a
-  size <- maybe (throwM $ SourceMissing DownloadError a) pure s'
+  when (mode == Fail) . whenM (liftIO $ doesFileExist f) . left $ DownloadDestinationExists f
+  liftIO $ createDirectoryIfMissing True (takeDirectory f)
+
+  size' <- lift $ getSize a
+  size <- maybe (left $ DownloadSourceMissing a) right size'
+
   if (size > 200 * 1024 * 1024)
     then multipartDownload a f size 100 100
     else downloadSingle a f
 
-downloadSingle :: Address -> FilePath -> AWS ()
-downloadSingle a p = do
-  r' <- getObject' a
-  r <- maybe (throwM $ SourceMissing DownloadError a) pure r'
-  liftIO . withFileSafe p $ \p' ->
-    runResourceT . ($$+- sinkFile p') $ r ^. gorsBody ^. to _streamBody
+downloadSingle :: Address -> FilePath -> EitherT DownloadError AWS ()
+downloadSingle a f = do
+  r <- (lift $ getObject' a) >>= maybe (left $ DownloadSourceMissing a) right
+  liftIO . withFileSafe f $ \p ->
+    runResourceT . ($$+- sinkFile p) $ r ^. gorsBody ^. to _streamBody
 
-multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> AWS ()
-multipartDownload source destination' size chunk' fork = do
+multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> EitherT DownloadError AWS ()
+multipartDownload source destination size chunk fork = bimapEitherT MultipartError id $ do
   e <- ask
-
-  let chunk = chunk' * 1024 * 1024
-  let chunks = calculateChunks size (fromInteger chunk)
-
-  let writer :: FilePath -> (Int, Int, Int) -> IO ()
-      writer out (o, c, _) =
-        let req :: AWS ()
-            req = downloadWithRange source o (o + c) out
-        in eitherT throwM pure $ runAWS e req
-
-  withFileSafe destination' $ \f -> liftIO $ do
-    -- create sparse file
-    withFile f WriteMode $ \h ->
+  let chunks = calculateChunks size (fromInteger $ chunk * 1024 * 1024)
+  void . withFileSafe destination $ \f -> do
+    liftIO $ withFile f WriteMode $ \h ->
       hSetFileSize h (toInteger size)
 
-    sem <- MSem.new fork
-    void $ mapConcurrently (MSem.with sem . writer f) chunks
+    ExceptT . liftIO .
+      consume (\q -> mapM (writeQueue q) chunks) fork $ \(o, c, _) ->
+        runEitherT . runAWS e $ downloadWithRange source o (o + c) f
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
-downloadWithRange source start end dest = do
-  let req = fencode' getObject source & goRange .~ (Just $ downRange start end)
-  r <- send req
-  let p :: AWS.GetObjectResponse = r
-  let y :: RsBody = p ^. AWS.gorsBody
+downloadWithRange a start end dest = do
+  r <- send $ fencode' getObject a &
+    goRange .~ (Just $ downRange start end)
 
-  fd <- liftIO $ openFd dest WriteOnly Nothing defaultFileFlags
-  void . liftIO $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
+  -- write to file
   liftIO $ do
-    let rs :: ResumableSource (ResourceT IO) BS.ByteString = y ^. to _streamBody
-    let s = awaitForever $ \bs -> liftIO $
-              UBS.fdWrite fd bs
-    runResourceT $ ($$+- s) rs
-  liftIO $ closeFd fd
+    fd <- openFd dest WriteOnly Nothing defaultFileFlags
+    void $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
+    let source = r ^. A.gorsBody ^. to _streamBody
+    let sink = awaitForever $ liftIO . UBS.fdWrite fd
+    runResourceT $ source $$+- sink
+    closeFd fd
+
 
 listMultipartParts :: Address -> T.Text -> AWS [Part]
 listMultipartParts a uploadId = do
-  let req = fencode' AWS.listParts a uploadId
+  let req = fencode' A.listParts a uploadId
   paginate req $$ DC.foldMap (^. lprsParts)
 
 listMultiparts :: Bucket -> AWS [MultipartUpload]
@@ -470,7 +479,7 @@ listRecursively a =
 
 listRecursively' :: Address -> Source AWS Address
 listRecursively' a@(Address (Bucket bn) (Key k)) =
-  paginate (AWS.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
+  paginate (A.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =

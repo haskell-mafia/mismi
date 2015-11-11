@@ -78,7 +78,8 @@ run c = do
     Upload s d m ->
       uploadWithModeOrFail m s d
     Download s d ->
-      download s . optAppendFileName d $ key s
+      eitherT (\se -> liftIO $ (hPutStrLn stderr $ renderDownloadError se) >> exitFailure) pure .
+        download s . optAppendFileName d $ key s
     Copy s d ->
       copy s d
     Move s d ->
