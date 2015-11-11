@@ -6,6 +6,13 @@ build-type:            Simple
 library
   build-depends:
                        base
+                     , ambiata-disorder-core
+                     , ambiata-p
+                     , ambiata-mismi-core
                      , ambiata-mismi-ec2
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+
 
   exposed-modules:
+                     Test.Mismi.EC2.Arbitrary
