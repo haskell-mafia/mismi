@@ -1,0 +1,16 @@
+#!/bin/sh -exu
+
+PROJECT=${1:?"'ci.bench' requires a single argument, specifying the mismi sub-project."}
+
+export LC_COLLATE=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+git submodule init
+git submodule sync
+git submodule update
+
+cd $PROJECT
+
+./mafia update || exit $?
+./mafia build || exit $?
+./mafia bench || exit $?

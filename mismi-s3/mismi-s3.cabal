@@ -194,3 +194,26 @@ test-suite test-cli
   build-depends:
                        base                            >= 3          && < 5
                      , ambiata-disorder-core
+
+benchmark bench
+  type:                exitcode-stdio-1.0
+  main-is:             bench.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , ambiata-disorder-corpus
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
+                     , ambiata-mismi-s3
+                     , ambiata-p
+                     , ambiata-x-eithert
+                     , criterion                       == 1.1.*
+                     , QuickCheck
+                     , quickcheck-instances            == 0.3.*
+                     , quickcheck-properties           == 0.1.*
+                     , quickcheck-text                 == 0.1.*
+                     , random
+                     , temporary                       == 1.2.*
+                     , text
+                     , transformers
+                     , uuid                            == 1.3.*

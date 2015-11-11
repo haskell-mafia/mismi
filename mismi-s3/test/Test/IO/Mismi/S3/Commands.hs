@@ -32,12 +32,12 @@ import           P
 import qualified System.Directory as D
 import qualified System.FilePath as F
 import           System.IO
+import           System.IO.Error
 
 import           Test.Mismi.Amazonka
 import           Test.Mismi.S3
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
-
 
 prop_exists = withAWS $ \a -> do
   writeOrFail a ""
@@ -305,6 +305,19 @@ prop_write_overwrite (UniquePair x y) = withAWS $ \a -> do
   writeWithModeOrFail Overwrite a y
   r <- read a
   pure $ r === pure y
+
+prop_sync_overwrite = forAll (elements muppets) $ \m -> withAWS' $ \a b -> do
+  createSmallFiles a m 10
+  syncWithMode OverwriteSync a b 1
+  syncWithMode OverwriteSync a b 1
+  mapM_ (\e -> exists e >>= \e' -> when (e' == False) (throwM . userError $ "Output files do not exist")) (files b m 10)
+  pure $ True === True
+
+prop_sync_fail = forAll (elements muppets) $ \m -> withAWS' $ \a b -> do
+  createSmallFiles a m 1
+  syncWithMode FailSync a b 1
+  r <- (False <$ syncWithMode FailSync a b 1) `catchAll` (const . pure $ True)
+  pure $ r === True
 
 -- | If the object does not exist, then the behaviour should be invariant with the WriteMode
 prop_write_nonexisting :: WriteMode -> Text -> Property

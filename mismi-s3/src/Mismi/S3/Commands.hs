@@ -503,7 +503,8 @@ hoistWorkerResult =
 
 worker :: Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
 worker source dest mode e c errs = forever $ do
-  let invariant = pure . WorkerErr $ Invariant "removeCommonPrefix"
+  let invariant f = pure . WorkerErr . Invariant $
+        "Worker: removeCommonPrefix [" <> addressToText source <> "] is not a common prefix of [" <> addressToText f <> "]."
       keep :: Address -> Key -> IO WorkerResult
       keep a k = (keep' a k >> return WorkerOk) `catch` \er -> return (WorkerErr er)
 
@@ -517,13 +518,13 @@ worker source dest mode e c errs = forever $ do
                   te = throwM $ Target a out
               foldSyncMode
                 (ifM ex te cp)
-                cp
+                (copyWithMode Overwrite a out)
                 (ifM ex (return ()) cp)
                 mode
         eitherT throwM pure $ runAWS e action
 
   a <- readChan c
-  wr <- maybe invariant (keep a) $ removeCommonPrefix source a
+  wr <- maybe (invariant a) (keep a) $ removeCommonPrefix source a
   writeChan errs wr
 
 data WorkerResult =
