@@ -1,25 +1,54 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Mismi.EC2.Data (
-    module X
-  , InstanceId (..)
+    InstanceId (..)
   , UserData (..)
+  , VirtualizationType (..)
+  , renderVirtualization
+  , renderVirtualizationAws
+  , parseVirtualization
   ) where
 
 import           Data.Text
 
-import qualified Network.AWS.EC2 as X
-import           Network.AWS.EC2 hiding (UserData)
-
 import           P
 
+import           Mismi.EC2.Amazonka (VirtualizationType (..))
 
 newtype InstanceId =
   InstanceId {
-      unInstanceId :: Text
+      instanceId :: Text
   } deriving (Eq, Show, Ord)
 
 newtype UserData =
   UserData {
-      unUserData :: Text
+      userData :: Text
   } deriving (Eq, Show)
+
+renderVirtualization :: VirtualizationType -> Text
+renderVirtualization v =
+  case v of
+    HVM ->
+      "hvm"
+    Paravirtual ->
+      "pv"
+
+parseVirtualization :: Text -> Maybe VirtualizationType
+parseVirtualization t =
+  case t of
+    "hvm" ->
+      Just HVM
+    "pv" ->
+      Just Paravirtual
+    "paravirtual" ->
+      Just Paravirtual
+    _ ->
+      Nothing
+
+renderVirtualizationAws :: VirtualizationType -> Text
+renderVirtualizationAws v =
+  case v of
+    HVM ->
+      "hvm"
+    Paravirtual ->
+      "paravirtual"

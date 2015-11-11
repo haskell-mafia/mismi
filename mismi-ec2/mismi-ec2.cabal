@@ -37,6 +37,7 @@ library
   exposed-modules:
                        Mismi.EC2
                        Mismi.EC2.Amazonka
+                       Mismi.EC2.Config.Virtualization
                        Mismi.EC2.Data
                        Mismi.EC2.Metadata
 
@@ -47,6 +48,7 @@ test-suite test
   hs-source-dirs:      test
   build-depends:       base
                      , ambiata-disorder-core
+                     , ambiata-p
                      , ambiata-mismi-core
                      , ambiata-mismi-ec2
                      , QuickCheck                      == 2.7.*
