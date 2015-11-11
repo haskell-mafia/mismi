@@ -17,5 +17,5 @@ aws s3 --region=ap-southeast-2 cp --recursive dist/doc/html/ambiata-$PROJECT/ s3
 
 if [ $PROJECT = "mismi-s3" ] ; then
     aws s3 --region=ap-southeast-2 cp dist/build/s3/s3 s3://ambiata-dist/s3/linux/x86_64/$VERSION/s3-$VERSION
-    aws s3 --region=ap-southeast-2 cp mismi-s3/dist/build/bench/bench s3://ambiata-dist-branches/s3-bench/linux/x86_64/$VERSION/s3-bench-$VERSION
+    aws s3 --region=ap-southeast-2 cp dist/build/bench/bench s3://ambiata-dist-branches/s3-bench/linux/x86_64/$VERSION/s3-bench-$VERSION
 fi
