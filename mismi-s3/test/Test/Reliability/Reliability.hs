@@ -17,21 +17,21 @@ import           System.IO
 import           System.Environment
 
 import           Test.Mismi
-import           Test.Mismi.Amazonka
+import           Test.Mismi.S3
 import           Test.QuickCheck
 
 testS3 :: Testable a => (Address -> Int -> AWS a) -> Property
-testS3 f =
-  property $ \t -> testAWS . withAWSToken t $ \a -> do
-      i <- liftIO $ testSize
-      f a i
+testS3 f = testAWS $ do
+  a <- newAddress
+  i <- liftIO $ testSize
+  f a i
 
 testAWS' :: Testable a => (Address -> Address -> Int -> AWS a) -> Property
-testAWS' f =
-  property $ \t t' -> testAWS . withAWSToken t $ \a ->
-      withAWSToken t' $ \b -> do
-        i <- liftIO $ testSize
-        f a b i
+testAWS' f = testAWS $ do
+  a <- newAddress
+  b <- newAddress
+  i <- liftIO $ testSize
+  f a b i
 
 testSize :: IO Int
 testSize = do

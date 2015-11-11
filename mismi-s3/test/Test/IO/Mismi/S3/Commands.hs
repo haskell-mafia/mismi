@@ -39,82 +39,93 @@ import           Test.Mismi.S3
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
-prop_exists = withAWS $ \a -> do
+prop_exists = testAWS $ do
+  a <- newAddress
   writeOrFail a ""
   e <- exists a
   pure $ e === True
 
-prop_exists_empty = withAWS $ \a ->
+prop_exists_empty = testAWS $ do
+  a <- newAddress
   not <$> exists a
 
-prop_exists_failure = withAWS $ \a -> do
+prop_exists_failure = testAWS $ do
+  a <- newAddress
   e <- exists a
   pure $ e === False
 
-prop_headObject = withAWS $ \a -> do
+prop_headObject = testAWS $ do
+  a <- newAddress
   h <- headObject a
   pure $ h === Nothing
 
 
-prop_getObjects_empty = withAWS $ \a -> do
+prop_getObjects_empty = testAWS $ do
+  a <- newAddress
   objs <- getObjectsRecursively $ a
   pure $ objs === []
 
-prop_getObjectsR :: Text -> Key -> Key -> Property
-prop_getObjectsR t p1 p2 = p1 /= p2 ==> withAWS $ \root -> do
+prop_getObjectsR d p1 p2 = p1 /= p2 ==> testAWS $ do
+  root <- newAddress
   let keys = [p1, p2 </> p1, p2 </> p2]
-  forM_ keys $ \k -> writeOrFail (withKey (</> k) root) t
+  forM_ keys $ \k -> writeOrFail (withKey (</> k) root) d
   objs <- getObjectsRecursively root
   pure $ on (===) L.sort ((^. A.oKey . to A.toText) <$> objs) (unKey . (</>) (key root) <$> keys)
 
-prop_getObjs = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> withAWS $ \a -> do
+prop_getObjs = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> testAWS $ do
+  a <- newAddress
   forM_ [1..n] $ \n' -> writeOrFail (withKey(</> Key (m <> pack (show n'))) a) ""
   r' <- list a
   pure $ length r' === n
 
-prop_size :: Text -> Property
-prop_size t = withAWS $ \a -> do
-  writeOrFail a t
+prop_size d = testAWS $ do
+  a <- newAddress
+  writeOrFail a d
   i <- getSize a
-  pure $ i === (Just . BS.length $ T.encodeUtf8 t)
+  pure $ i === (Just . BS.length $ T.encodeUtf8 d)
 
-prop_size_failure = withAWS $ \a -> do
+prop_size_failure = testAWS $ do
+  a <- newAddress
   i <- getSize a
   pure $ i === Nothing
 
-prop_copy :: Text -> Property
-prop_copy t = withAWS' $ \a b -> do
+prop_copy t = testAWS $ do
+  a <- newAddress
+  b <- newAddress
   writeOrFail a t
   copy a b
   a' <- read a
   b' <- read b
   pure $ a' === b'
 
-prop_copy_overwrite :: Text -> Text -> Property
-prop_copy_overwrite t t' = withAWS' $ \a b -> do
+prop_copy_overwrite t t' = testAWS $ do
+  a <- newAddress
+  b <- newAddress
   writeOrFail a t
   writeOrFail b t'
   copyWithMode Overwrite a b
   b' <- read b
   pure $ b' === Just t
 
-prop_copy_fail :: Text -> Property
-prop_copy_fail t = withAWS' $ \a b -> do
+prop_copy_fail t = testAWS $ do
+  a <- newAddress
+  b <- newAddress
   writeOrFail a t
   writeOrFail b t
   (False <$ copyWithMode Fail a b) `catchAll` (const . pure $ True)
 
-prop_move :: Text -> Token -> Property
-prop_move t d' = withAWS $ \s ->
-  withToken d' $ \d -> do
-    writeOrFail s t
-    move s d
-    es <- exists s
-    ed <- exists d
-    pure $ (es, ed) === (False, True)
+prop_move t = testAWS $ do
+  s <- newAddress
+  d <- newAddress
+  writeOrFail s t
+  move s d
+  es <- exists s
+  ed <- exists d
+  pure $ (es, ed) === (False, True)
 
-prop_upload_mode :: Text -> LocalPath -> WriteMode -> Property
-prop_upload_mode d l m = withLocalAWS $ \p a -> do
+prop_upload_mode d l m = testAWS $ do
+  p <- newFilePath
+  a <- newAddress
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
@@ -122,8 +133,9 @@ prop_upload_mode d l m = withLocalAWS $ \p a -> do
   r <- read a
   pure $ r === Just d
 
-prop_upload_overwrite :: Text -> Text -> LocalPath -> Property
-prop_upload_overwrite d1 d2 l = withLocalAWS $ \p a -> do
+prop_upload_overwrite d1 d2 l = testAWS $ do
+  p <- newFilePath
+  a <- newAddress
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d1
@@ -133,8 +145,9 @@ prop_upload_overwrite d1 d2 l = withLocalAWS $ \p a -> do
   r <- read a
   pure $ r === Just d2
 
-prop_upload_fail :: Text -> LocalPath -> Property
-prop_upload_fail d l = withLocalAWS $ \p a -> do
+prop_upload_fail d l = testAWS $ do
+  p <- newFilePath
+  a <- newAddress
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
@@ -142,8 +155,9 @@ prop_upload_fail d l = withLocalAWS $ \p a -> do
   r <- uploadWithMode Fail t a
   pure $ r === UploadError (UploadDestinationExists a)
 
-prop_upload :: Text -> LocalPath -> Property
-prop_upload d l = withLocalAWS $ \p a -> do
+prop_upload d l = testAWS $ do
+  p <- newFilePath
+  a <- newAddress
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
@@ -151,8 +165,9 @@ prop_upload d l = withLocalAWS $ \p a -> do
   r <- read a
   pure $ r === Just d
 
-prop_upload_multipart :: LocalPath -> Property
-prop_upload_multipart l = forAll arbitrary $ \bs -> withLocalAWS $ \p a -> do
+prop_upload_multipart l = forAll arbitrary $ \bs -> testAWS $ do
+  p <- newFilePath
+  a <- newAddress
   let t = p F.</> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ withFile t WriteMode $ \h ->
@@ -160,8 +175,8 @@ prop_upload_multipart l = forAll arbitrary $ \bs -> withLocalAWS $ \p a -> do
   uploadOrFail t a
   exists a
 
-prop_abort_multipart :: Property
-prop_abort_multipart = withMultipart $ \a i -> do
+prop_abort_multipart = testAWS $ do
+  (a, i) <- newMultipart
   sendMultipart "" a 1 i
   l <- listMultiparts (bucket a)
   forM_ (findMultiparts i l) $ abortCheck i (bucket a) 3
@@ -177,14 +192,14 @@ prop_abort_multipart = withMultipart $ \a i -> do
         liftIO $ threadDelay 500000
         abortCheck i b (n-1) u
 
-prop_list_multipart :: Property
-prop_list_multipart = withMultipart $ \a i -> do
+prop_list_multipart = testAWS $ do
+  (a, i) <- newMultipart
   sendMultipart "" a 1 i
   l <- listMultiparts (bucket a)
   pure $ multipartExists i l
 
-prop_list_parts :: Property
-prop_list_parts = withMultipart $ \a i -> do
+prop_list_parts = testAWS $ do
+  (a, i) <- newMultipart
   sendMultipart "" a 1 i
   l2 <- listMultipartParts a i
   pure (length l2 === 1)
@@ -201,54 +216,55 @@ findMultipart :: Text -> A.MultipartUpload -> Bool
 findMultipart uploadId m =
   m ^. A.muUploadId == Just uploadId
 
-
-prop_list :: Property
-prop_list = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> withAWS $ \a -> do
+prop_list = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> testAWS $ do
+  a <- newAddress
   writeOrFail (withKey(</> Key m) a) ""
   writeOrFail (withKey(</> (Key s </> Key m)) a) ""
   r' <- list a
   pure $ (Just . Key <$> [m, s <> "/"]) === (removeCommonPrefix a <$> r')
 
-prop_listObjects :: Property
-prop_listObjects = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> withAWS $ \a -> do
+prop_listObjects = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> testAWS $ do
+  a <- newAddress
   writeOrFail (withKey(</> Key m) a) ""
   writeOrFail (withKey(</> (Key s </> Key m)) a) ""
   (p, k) <- listObjects a
   pure $ ([Just . Key $ s <> "/"], [Just $ Key m]) === (removeCommonPrefix a <$> p, removeCommonPrefix a <$> k)
 
-prop_list_recursively :: Property
-prop_list_recursively = withAWS $ \a -> do
+prop_list_recursively = testAWS $ do
+  a <- newAddress
   writeOrFail a ""
   r' <- listRecursively (a { key = dirname $ key a })
   pure $ a `elem` r'
 
-prop_list_forbidden_bucket = withAWS $ \_ -> do
+prop_list_forbidden_bucke= testAWS $ do
   _ <- write (Address (Bucket "ambiata-dev-view") (Key "")) ""
   pure $ True
 
-prop_download :: Text -> LocalPath -> Property
-prop_download d l = withLocalAWS $ \p a -> do
-  let t = p F.</> localPath  l
+prop_download d l = testAWS $ do
+  p <- newFilePath
+  a <- newAddress
+  let f = p F.</> localPath  l
   writeOrFail a d
-  download a t
-  res <- liftIO $ T.readFile t
+  download a f
+  res <- liftIO $ T.readFile f
   pure $ res === d
 
-prop_download_multipart :: Property
-prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> elements muppets) $ \(bs, c, m) -> (BS.length bs /= 0) ==> withLocalAWS $ \p a -> do
-  let t = p F.</> unpack c
+prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> elements muppets) $ \(bs, c, m) -> (BS.length bs /= 0) ==> testAWS $ do
+  p <- newFilePath
+  a <- newAddress
+  let f = p F.</> unpack c
   let o = p F.</> unpack m
-  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
+  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory f
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory o
-  liftIO $ withFile t WriteMode $ \h ->
+  liftIO $ withFile f WriteMode $ \h ->
     replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
-  size <- liftIO . withFile t ReadMode $ hFileSize
-  uploadOrFail t a
+  size <- liftIO . withFile f ReadMode $ hFileSize
+  uploadOrFail f a
 
   let ten :: Int = 10
 
   multipartDownload a o (fromInteger size) (toInteger ten) 100
-  b <- liftIO $ LBS.readFile t
+  b <- liftIO $ LBS.readFile f
   let b' = sha1 b
   o' <- liftIO $ LBS.readFile o
   let o'' = sha1 o'
@@ -257,76 +273,83 @@ prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> el
     sha1 :: LBS.ByteString -> Digest SHA1
     sha1 = hashlazy
 
-prop_write_download_overwrite :: Text -> Text -> LocalPath -> Property
-prop_write_download_overwrite old new l = withLocalAWS $ \p a -> do
-  let t = p F.</> localPath  l
+prop_write_download_overwrite old new l = testAWS $ do
+  p <- newFilePath
+  a <- newAddress
+  let f = p F.</> localPath  l
   writeOrFail a old
-  downloadWithMode Fail a t
+  downloadWithMode Fail a f
   writeWithModeOrFail Overwrite a new
-  downloadWithMode Overwrite a t
-  r <- liftIO $ T.readFile t
+  downloadWithMode Overwrite a f
+  r <- liftIO $ T.readFile f
   pure $ r === new
 
-prop_write_download_fail :: Text -> Text -> LocalPath -> Property
-prop_write_download_fail old new l = withLocalAWS $ \p a -> do
-  let t = p F.</> localPath  l
+prop_write_download_fail old new l = testAWS $ do
+  p <- newFilePath
+  a <- newAddress
+  let f = p F.</> localPath  l
   writeOrFail a old
-  downloadWithMode Fail a t
+  downloadWithMode Fail a f
   writeWithModeOrFail Overwrite a new
-  (False <$ downloadWithMode Fail a t) `catchAll` (const . pure $ True)
+  (False <$ downloadWithMode Fail a f) `catchAll` (const . pure $ True)
 
-prop_delete :: WriteMode -> Property
-prop_delete w = withAWS $ \a -> do
+prop_delete w = testAWS $ do
+  a <- newAddress
   writeWithModeOrFail w a ""
   x <- exists a
   delete a
   y <- exists a
   pure $ (x, y) === (True, False)
 
-prop_delete_empty :: Property
-prop_delete_empty = withAWS $ \a ->
+prop_delete_empty = testAWS $ do
+  a <- newAddress
   (True <$ delete a) `catchAll` (const . pure $ False)
 
-prop_read_write :: Text -> Property
-prop_read_write d = withAWS $ \a -> do
+prop_read_write d = testAWS $ do
+  a <- newAddress
   writeOrFail a d
   r <- read a
   pure $ r === Just d
 
-prop_write_failure :: Text -> Property
-prop_write_failure d = withAWS $ \a -> do
+prop_write_failure d = testAWS $ do
+  a <- newAddress
   writeOrFail a d
   r <- write a d
   pure $ r === WriteDestinationExists a
 
-prop_write_overwrite :: UniquePair Text -> Property
-prop_write_overwrite (UniquePair x y) = withAWS $ \a -> do
+prop_write_overwrite (UniquePair x y) = testAWS $ do
+  a <- newAddress
   writeWithModeOrFail Fail a x
   writeWithModeOrFail Overwrite a y
   r <- read a
   pure $ r === pure y
 
-prop_sync_overwrite = forAll (elements muppets) $ \m -> withAWS' $ \a b -> do
+prop_sync_overwrite = forAll (elements muppets) $ \m -> testAWS $ do
+  a <- newAddress
+  b <- newAddress
   createSmallFiles a m 10
   syncWithMode OverwriteSync a b 1
   syncWithMode OverwriteSync a b 1
   mapM_ (\e -> exists e >>= \e' -> when (e' == False) (throwM . userError $ "Output files do not exist")) (files b m 10)
   pure $ True === True
 
-prop_sync_fail = forAll (elements muppets) $ \m -> withAWS' $ \a b -> do
+prop_sync_fail = forAll (elements muppets) $ \m -> testAWS $ do
+  a <- newAddress
+  b <- newAddress
   createSmallFiles a m 1
   syncWithMode FailSync a b 1
   r <- (False <$ syncWithMode FailSync a b 1) `catchAll` (const . pure $ True)
   pure $ r === True
 
 -- | If the object does not exist, then the behaviour should be invariant with the WriteMode
-prop_write_nonexisting :: WriteMode -> Text -> Property
-prop_write_nonexisting w t = withAWS $ \a -> do
-  writeWithModeOrFail w a t
+prop_write_nonexisting w d = testAWS $ do
+  a <- newAddress
+  writeWithModeOrFail w a d
   r <- read a
-  pure $ r === pure t
+  pure $ r === pure d
 
-prop_write_grant t = withAWS $ \a -> do
+prop_write_grant t = testAWS $ do
+  a <- newAddress
   writeOrFail a t
   grantReadAccess a $ ReadGrant "id=e3abd0cceaecbd471c3eaaa47bb722bf199296c5e41c9ee4222877cc91b536fc"
   r <- read a

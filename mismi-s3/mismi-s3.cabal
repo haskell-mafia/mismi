@@ -94,6 +94,9 @@ test-suite test
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      test
   build-depends:       base
+                     , amazonka
+                     , amazonka-core
+                     , amazonka-s3
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-mismi-core
@@ -101,23 +104,23 @@ test-suite test
                      , ambiata-mismi-s3
                      , ambiata-p
                      , ambiata-x-eithert
-                     , amazonka
-                     , amazonka-core
-                     , amazonka-s3
+                     , conduit
+                     , directory                       == 1.2.*
                      , exceptions
                      , filepath
-                     , directory                       == 1.2.*
                      , http-client
-                     , temporary                       == 1.2.*
-                     , text
-                     , transformers
+                     , lens
+                     , mtl                             >= 2.1        && < 2.3
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
+                     , resourcet
+                     , temporary                       == 1.2.*
+                     , text
+                     , time
+                     , transformers
                      , unix
                      , uuid
-                     , lens
-                     , time
-                     , conduit
+
 
 
 test-suite test-io
@@ -136,20 +139,24 @@ test-suite test-io
                      , ambiata-mismi-s3
                      , ambiata-p
                      , ambiata-x-eithert
+                     , bytestring
+                     , conduit
+                     , cryptohash
+                     , directory                       == 1.2.*
                      , exceptions
                      , filepath
-                     , directory
                      , http-client
+                     , lens
+                     , mtl                             >= 2.1        && < 2.3
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+                     , resourcet
                      , temporary                       == 1.2.*
                      , text
+                     , time
                      , transformers
-                     , QuickCheck
-                     , quickcheck-instances
                      , unix
                      , uuid
-                     , bytestring
-                     , lens
-                     , cryptohash
 
 
 test-suite test-reliability
@@ -168,18 +175,24 @@ test-suite test-reliability
                      , ambiata-mismi-s3
                      , ambiata-p
                      , ambiata-x-eithert
+                     , bytestring
+                     , conduit
+                     , cryptohash
+                     , directory                       == 1.2.*
                      , exceptions
-                     , directory
                      , filepath
+                     , http-client
+                     , lens
+                     , mtl                             >= 2.1        && < 2.3
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+                     , resourcet
+                     , temporary                       == 1.2.*
                      , text
+                     , time
                      , transformers
-                     , QuickCheck
-                     , quickcheck-instances
                      , unix
                      , uuid
-                     , bytestring
-                     , temporary
-                     , lens
 
 test-suite test-cli
   type:                exitcode-stdio-1.0

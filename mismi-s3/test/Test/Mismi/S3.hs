@@ -5,22 +5,34 @@ module Test.Mismi.S3 (
   , Token (..)
   , LocalPath (..)
   , testBucket
-  , withToken
   , createSmallFiles
   , files
+  , newAddress
+  , newFilePath
+  , addCleanupFinalizer
+  , addPrintFinalizer
+  , addLocalCleanupFinalizer
+  , addLocalPrintFinalizer
   ) where
 
-import           Control.Monad.IO.Class (liftIO)
+
+import           Control.Monad.Catch
+import           Control.Monad.Reader (ask)
+import           Control.Monad.Trans.Resource
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 
 import qualified Data.List as L
 import           Data.Text as T
+import qualified Data.Text.IO as T
 import           Data.UUID as U
 import           Data.UUID.V4 as U
 
 import           Disorder.Corpus
 
+import           System.Environment (lookupEnv)
 import           System.Posix.Env
 import           System.FilePath hiding ((</>))
+import           System.Directory
 
 import           Mismi.Control
 import           Mismi.S3
@@ -34,18 +46,24 @@ import           Test.Mismi as X
 import           Test.Mismi.Arbitrary ()
 import           Test.Mismi.S3.Arbitrary ()
 
+import           X.Control.Monad.Trans.Either
+
 data Token =
   Token {
       unToken :: Text
     } deriving (Eq, Show)
 
 instance Arbitrary Token where
-  arbitrary = do
-    n <- T.pack . show <$> (choose (0, 10000) :: Gen Int)
-    c <- elements cooking
-    m <- elements muppets
-    sep <- elements ["-", "=", "."]
-    pure . Token . T.intercalate sep $ [c, m, n]
+  arbitrary =
+    genToken
+
+genToken :: Gen Token
+genToken = do
+  n <- T.pack . show <$> (choose (0, 10000) :: Gen Int)
+  c <- elements cooking
+  m <- elements muppets
+  sep <- elements ["-", "=", "."]
+  pure . Token . T.intercalate sep $ [c, m, n]
 
 data LocalPath =
   LocalPath {
@@ -62,13 +80,6 @@ testBucket :: IO Bucket
 testBucket =
   Bucket . T.pack . fromMaybe "ambiata-dev-view" <$> getEnv "AWS_TEST_BUCKET"
 
-withToken :: Token -> (Address -> AWS a) -> AWS a
-withToken t f = do
-  b <- liftIO testBucket
-  u <- liftIO $ T.pack . U.toString <$> U.nextRandom
-  let a = Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
-  awsBracket_ (pure ()) (listRecursively a >>= mapM_ delete >> delete a) (f a)
-
 createSmallFiles :: Address -> Text -> Int -> AWS ()
 createSmallFiles prefix name n = do
   mapM_ (flip write "data") $ files prefix name n
@@ -76,3 +87,55 @@ createSmallFiles prefix name n = do
 files :: Address -> Text -> Int -> [Address]
 files prefix name n =
   fmap (\i -> withKey (</> Key (name <> "-" <> (T.pack $ show i))) prefix) [1..n]
+
+newAddress :: AWS Address
+newAddress = do
+  a <- liftIO $ do
+    t <- generate genToken
+    b <- testBucket
+    u <- T.pack . U.toString <$> U.nextRandom
+    pure $ Address b (Key . T.intercalate "/" $ ["mismi", u, unToken t])
+  addCleanupFinalizer a
+  addPrintFinalizer a
+  pure $ a
+
+newFilePath :: AWS FilePath
+newFilePath = do
+  p <- liftIO $ do
+    t <- generate genToken
+    d <- getTemporaryDirectory
+    u <- liftIO $ U.toString <$> U.nextRandom
+    let p = d <> "/mismi/" <> u <> "-" <> (T.unpack . unToken $ t)
+    createDirectoryIfMissing True p
+    pure p
+  addLocalCleanupFinalizer p
+  addLocalPrintFinalizer p
+  pure p
+
+vk :: MonadIO m => Text -> m Bool
+vk k = do
+  m <- liftIO $ lookupEnv (T.unpack k)
+  return $ maybe False (\v -> v == "1" || v == "true") m
+
+addCleanupFinalizer :: Address -> AWS ()
+addCleanupFinalizer a = do
+  e <- ask
+  whenM (vk "TEST_SKIP_CLEANUP_RESOURCES") $ do
+    void $ register (eitherT throwM pure . runAWS e $ listRecursively a >>= mapM_ delete >> delete a)
+    void $ register (T.putStrLn $ "Cleaning up [" <> addressToText a <> "]")
+
+addPrintFinalizer :: Address -> AWS ()
+addPrintFinalizer a =
+  whenM (vk "TEST_PRINT_PATHS") .
+    void $ register (T.putStrLn $ "Temporary s3 address [" <> addressToText a <> "]")
+
+addLocalCleanupFinalizer :: FilePath -> AWS ()
+addLocalCleanupFinalizer a = do
+  whenM (vk "TEST_SKIP_CLEANUP_RESOURCES") $ do
+    void $ register (removeDirectoryRecursive a)
+    void $ register (T.putStrLn $ "Cleaning up [" <> T.pack a <> "]")
+
+addLocalPrintFinalizer :: FilePath -> AWS ()
+addLocalPrintFinalizer a =
+  whenM (vk "TEST_PRINT_PATHS") .
+    void $ register (T.putStrLn $ "Temporary local filepath [" <> T.pack a <> "]")
