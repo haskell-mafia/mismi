@@ -89,10 +89,11 @@ waitForNResults i c = do
   waitForDone []
 
 -- | Create a temporary file location that can be used safely, and on a successful operation, do an (atomic) rename
+-- NOTE: This function requires that the `FilePath` provided in the callback exists, otherwise throws an exception
 withFileSafe :: (MonadCatch m, MonadIO m) => FilePath -> (FilePath -> m a) -> m a
 withFileSafe f1 run = do
   uuid <- liftIO nextRandom >>= return . toString
   let f2 = takeDirectory f1 <> "/" <> "." <> takeFileName f1 <> "." <> uuid
   onException
-    (run f2 >>= \a -> liftIO $ whenM (doesFileExist f2) (renameFile f2 f1) >> pure a)
+    (run f2 >>= \a -> liftIO (renameFile f2 f1) >> return a)
     (liftIO $ removeFile f2)
