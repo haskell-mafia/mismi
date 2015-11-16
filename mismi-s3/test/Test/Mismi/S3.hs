@@ -120,7 +120,7 @@ vk k = do
 addCleanupFinalizer :: Address -> AWS ()
 addCleanupFinalizer a = do
   e <- ask
-  whenM (vk "TEST_SKIP_CLEANUP_RESOURCES") $ do
+  unlessM (vk "TEST_SKIP_CLEANUP_RESOURCES") $ do
     void $ register (eitherT throwM pure . runAWS e $ listRecursively a >>= mapM_ delete >> delete a)
     void $ register (T.putStrLn $ "Cleaning up [" <> addressToText a <> "]")
 
@@ -131,7 +131,7 @@ addPrintFinalizer a =
 
 addLocalCleanupFinalizer :: FilePath -> AWS ()
 addLocalCleanupFinalizer a = do
-  whenM (vk "TEST_SKIP_CLEANUP_RESOURCES") $ do
+  unlessM (vk "TEST_SKIP_CLEANUP_RESOURCES") $ do
     void $ register (removeDirectoryRecursive a)
     void $ register (T.putStrLn $ "Cleaning up [" <> T.pack a <> "]")
 
