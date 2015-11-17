@@ -66,6 +66,7 @@ test-suite test
                      , filepath
                      , directory                       == 1.2.*
                      , http-client
+                     , resourcet                       == 1.1.*
                      , temporary                       == 1.2.*
                      , text
                      , transformers

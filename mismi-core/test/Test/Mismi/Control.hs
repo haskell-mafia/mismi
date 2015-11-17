@@ -1,10 +1,12 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Mismi.Control where
 
 import           Control.Monad.Catch hiding (finally)
 import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Resource
 
 import           Data.IORef
 import           Data.Text
@@ -42,7 +44,17 @@ prop_bracket_catch l final = final /= "" ==> testIO $ do
   (=== final : l) <$> readIORef r
 
 prop_testAWS :: Property
-prop_testAWS = expectFailure . Test.QuickCheck.once . testAWS $ pure False
+prop_testAWS =
+  expectFailure . Test.QuickCheck.once . testAWS $ pure False
+
+
+prop_finalizer = testIO $ do
+  r <- newIORef (0 :: Int)
+  runAWSDefaultRegion $ do
+    void $ register (modifyIORef r (const $ 1))
+  (=== 1) <$> readIORef r
+
+
 
 
 return []
