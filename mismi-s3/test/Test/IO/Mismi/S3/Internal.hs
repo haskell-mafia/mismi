@@ -30,8 +30,8 @@ prop_withFileSafe t = testIO . withSystemTempPath $ \f -> do
   pure $ (t, f2e) === (t2, False)
 
 prop_withFileSafe_empty = testIO . withSystemTempPath $ \f -> do
-  f2 <- withFileSafe f pure
-  fmap not $ doesFileExist f2
+  f2 <- flip catchIOError (\_ -> pure Nothing) $ withFileSafe f (pure . Just)
+  pure $ f2 === Nothing
 
 prop_withFileSafe_error = testIO . withSystemTempPath $ \f -> do
   flip catchIOError (\_ -> pure ()) . withFileSafe f $ \_ -> fail ""
