@@ -15,4 +15,5 @@ library
 
 
   exposed-modules:
+                     Test.IO.Mismi.EC2.Arbitrary
                      Test.Mismi.EC2.Arbitrary

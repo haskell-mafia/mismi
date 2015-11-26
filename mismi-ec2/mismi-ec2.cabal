@@ -24,6 +24,7 @@ library
                      , exceptions                      == 0.8.*
                      , http-client                     == 0.4.18.*
                      , http-conduit                    == 2.1.5.*
+                     , lens                            >= 4.8        && < 4.10
                      , mtl                             >= 2.2.1      && < 2.3
                      , text                            == 1.2.*
                      , transformers                    >= 0.3.1      && < 0.5
@@ -37,6 +38,7 @@ library
   exposed-modules:
                        Mismi.EC2
                        Mismi.EC2.Amazonka
+                       Mismi.EC2.Commands
                        Mismi.EC2.Config.Virtualization
                        Mismi.EC2.Data
                        Mismi.EC2.Metadata
@@ -50,6 +52,21 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-p
                      , ambiata-mismi-core
+                     , ambiata-mismi-ec2
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
+
+
+test-suite test-io
+  type:                exitcode-stdio-1.0
+  main-is:             test-io.hs
+  ghc-options:         -Wall -threaded -O2
+  hs-source-dirs:      test
+  build-depends:       base
+                     , ambiata-disorder-core
+                     , ambiata-p
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
                      , ambiata-mismi-ec2
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*
