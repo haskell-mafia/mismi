@@ -47,6 +47,9 @@ module Mismi.S3.Commands (
   , listRecursively'
   , sync
   , syncWithMode
+  , SyncError (..)
+  , SyncWorkerError (..)
+  , renderSyncError
   , grantReadAccess
   , sse
   ) where
@@ -54,14 +57,12 @@ module Mismi.S3.Commands (
 
 import           Control.Arrow ((***))
 
-import           Control.Concurrent (forkIO, killThread)
-import           Control.Concurrent.Chan (Chan, newChan, readChan, writeChan)
 import qualified Control.Concurrent.MSem as MSem
 
 import           Control.Concurrent.Async.Lifted (mapConcurrently)
 
 import           Control.Lens ((&), (.~), (^.), to)
-import           Control.Monad.Catch (throwM, catch, catchAll)
+import           Control.Monad.Catch (throwM, catchAll)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
 import           Control.Monad.Reader (ask)
@@ -132,9 +133,12 @@ import           System.FilePath (FilePath, dropFileName)
 import           System.Posix.IO (OpenMode(..), openFd, closeFd, fdSeek, defaultFileFlags)
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
+import           Twine.Parallel
+
 import qualified X.Data.Conduit.Binary as XB
 
-import           X.Control.Monad.Trans.Either (eitherT, left)
+import           Control.Monad.Trans.Except
+import           X.Control.Monad.Trans.Either (EitherT, eitherT, left, right, bimapEitherT, runEitherT)
 
 headObject :: Address -> AWS (Maybe HeadObjectResponse)
 headObject a =
@@ -472,69 +476,57 @@ liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
   DC.mapFoldable (\r -> (\o -> a { key = Key (let ObjectKey t = o ^. oKey in t) }) <$> (r ^. lorsContents) )
 
-sync :: Address -> Address -> Int -> AWS ()
-sync =
-  syncWithMode FailSync
-
-syncWithMode :: SyncMode -> Address -> Address -> Int -> AWS ()
-syncWithMode mode source dest fork = do
-  (c, r) <- liftIO $ (,) <$> newChan <*> newChan
-  e <- ask
-
-  -- worker
-  tid <- liftIO $ forM [1..fork] (const . forkIO $ worker source dest mode e c r)
-
-  -- sink list to channel
-  let l = listRecursively' source
-  i <- sinkChanWithDelay 50000 l c
-
-  -- wait for threads and lift errors
-  r' <- liftIO $ waitForNResults i r
-  liftIO $ forM_ tid killThread
-  forM_ r' hoistWorkerResult
-
 grantReadAccess :: Address -> ReadGrant -> AWS ()
 grantReadAccess a g =
   void . send $ (fencode' P.putObjectACL a & P.poaGrantRead .~ Just (readGrant g))
 
-hoistWorkerResult :: WorkerResult -> AWS ()
-hoistWorkerResult =
-  foldWR throwM (pure ())
+sync :: Address -> Address -> Int -> EitherT SyncError AWS ()
+sync =
+  syncWithMode FailSync
 
-worker :: Address -> Address -> SyncMode -> Env -> Chan Address -> Chan WorkerResult -> IO ()
-worker source dest mode e c errs = forever $ do
-  let invariant f = pure . WorkerErr . Invariant $
-        "Worker: removeCommonPrefix [" <> addressToText source <> "] is not a common prefix of [" <> addressToText f <> "]."
-      keep :: Address -> Key -> IO WorkerResult
-      keep a k = (keep' a k >> return WorkerOk) `catch` \er -> return (WorkerErr er)
+syncWithMode :: SyncMode -> Address -> Address -> Int -> EitherT SyncError AWS ()
+syncWithMode mode source dest fork = do
+  e <- ask
+  bimapEitherT SyncError id . void . ExceptT . liftIO $
+    (consume (sinkQueue e (listRecursively' source)) fork (worker source dest mode e))
 
-      keep' :: Address -> Key -> IO ()
-      keep' a k = do
-        let out = withKey (</> k) dest
-            action :: AWS ()
-            action = do
-              let cp = copy a out
-                  ex = exists out
-                  te = throwM $ Target a out
-              foldSyncMode
-                (ifM ex te cp)
-                (copyWithMode Overwrite a out)
-                (ifM ex (return ()) cp)
-                mode
-        eitherT throwM pure $ runAWS e action
 
-  a <- readChan c
-  wr <- maybe (invariant a) (keep a) $ removeCommonPrefix source a
-  writeChan errs wr
 
-data WorkerResult =
-    WorkerOk
-  | WorkerErr S3Error
+newtype SyncError =
+  SyncError (RunError SyncWorkerError) deriving Show
 
-foldWR :: (S3Error -> m a) -> m a -> WorkerResult -> m a
-foldWR e a = \case
-  WorkerOk -> a
-  WorkerErr err -> e err
+renderSyncError :: SyncError -> Text
+renderSyncError (SyncError r) =
+  renderRunError r renderSyncWorkerError
+
+data SyncWorkerError =
+   SyncInvariant Address Address
+ | OutputExists Address
+ | SyncAws Error
+ deriving Show
+
+renderSyncWorkerError :: SyncWorkerError -> Text
+renderSyncWorkerError w =
+  case w of
+    SyncInvariant a b ->
+      "Remove common prefix invariant: " <>
+      "[" <> addressToText b <> "] is not a common prefix of " <>
+      "[" <> addressToText a <> "]"
+    OutputExists a ->
+      "Can not copy to an address that already exists [" <> addressToText a <> "]"
+    SyncAws e ->
+      "AWS failure during 'sync': " <> renderError e
+
+worker :: Address -> Address -> SyncMode -> Env -> Address -> IO (Either SyncWorkerError ())
+worker input output mode env f = runEitherT . runAWST env SyncAws $ do
+  n <- maybe (left $ SyncInvariant input f) right $ removeCommonPrefix input f
+  let out = withKey (</> n) output
+      cp = lift $ copy f out
+  foldSyncMode
+    (ifM (lift $ exists out) (left $ OutputExists out) cp)
+    (lift $ copyWithMode Overwrite f out)
+    (ifM (lift $ exists out) (right ()) cp)
+    mode
 
 sse :: ServerSideEncryption
 sse =
