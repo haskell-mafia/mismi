@@ -11,7 +11,7 @@ import           Data.Time.Clock
 import           Disorder.Core.IO
 
 import           Mismi.S3.Commands
-import           Mismi.S3.Amazonka
+import qualified Mismi.S3.Amazonka as A
 
 import           P
 
@@ -24,13 +24,13 @@ prop_filter_old :: Positive NominalDiffTime -> Property
 prop_filter_old (Positive i) = testIO $ do
   n <- getCurrentTime
   let t = addUTCTime ((-1 * ((60 * 60 * 24 * 7) + i)) :: NominalDiffTime) n
-      r = filterOld n $ multipartUpload & muInitiated .~ Just t
+      r = filterOld n $ A.multipartUpload & A.muInitiated .~ Just t
   pure $ r === True
 
 prop_filter_failure :: Property
 prop_filter_failure = testIO $ do
   n <- getCurrentTime
-  let r = filterOld n $ multipartUpload & muInitiated .~ Just n
+  let r = filterOld n $ A.multipartUpload & A.muInitiated .~ Just n
   pure $ r === False
 
 return []

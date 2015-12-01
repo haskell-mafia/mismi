@@ -21,7 +21,7 @@ module Mismi.S3.Commands (
   , uploadOrFail
   , uploadWithMode
   , uploadWithModeOrFail
-  , multipartUpload'
+  , multipartUpload
   , uploadSingle
   , write
   , writeOrFail
@@ -59,12 +59,8 @@ module Mismi.S3.Commands (
 
 import           Control.Arrow ((***))
 
-import qualified Control.Concurrent.MSem as MSem
-
-import           Control.Concurrent.Async.Lifted (mapConcurrently)
-
 import           Control.Lens ((&), (.~), (^.), to)
-import           Control.Monad.Catch (throwM, catchAll)
+import           Control.Monad.Catch (throwM, onException)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
 import           Control.Monad.Reader (ask)
@@ -120,7 +116,6 @@ import           Network.AWS.S3 (poServerSideEncryption)
 import           Network.AWS.S3 (uprsETag)
 import           Network.AWS.S3 (createMultipartUpload, abortMultipartUpload, listMultipartUploads)
 import           Network.AWS.S3 (completeMultipartUpload, completedMultipartUpload, completedPart)
-import           Network.AWS.S3 (uploadPart)
 import           Network.AWS.S3 (getObject, putObject, copyObject, deleteObject)
 import qualified Network.AWS.S3 as A
 
@@ -192,84 +187,106 @@ move source destination' =
   copy source destination' >>
     delete source
 
-upload :: FilePath -> Address -> AWS UploadResult
+upload :: FilePath -> Address -> EitherT UploadError AWS ()
 upload =
   uploadWithMode Fail
 
 uploadOrFail :: FilePath -> Address -> AWS ()
 uploadOrFail f a =
-  upload f a >>= liftUploadResult
+  eitherT liftUploadError pure $ upload f a
 
 uploadWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
 uploadWithModeOrFail w f a =
-  uploadWithMode w f a >>= liftUploadResult
+  eitherT liftUploadError pure $ uploadWithMode w f a
 
-liftUploadResult :: UploadResult -> AWS ()
-liftUploadResult = \case
-  UploadOk ->
-    pure ()
-  UploadError (UploadSourceMissing f) ->
-    throwM $ SourceFileMissing f
-  UploadError (UploadDestinationExists a) ->
-    throwM $ DestinationAlreadyExists a
+liftUploadError :: UploadError -> AWS ()
+liftUploadError e =
+  case e of
+    UploadSourceMissing f ->
+      throwM $ SourceFileMissing f
+    UploadDestinationExists a ->
+      throwM $ DestinationAlreadyExists a
+    MultipartUploadError (WorkerError a) ->
+      throwM $ a
+    MultipartUploadError (BlowUpError a) ->
+      throwM $ a
 
-uploadWithMode :: WriteMode -> FilePath -> Address -> AWS UploadResult
-uploadWithMode m f a = eitherT (pure . UploadError) (const $ pure UploadOk) $ do
+uploadWithMode :: WriteMode -> FilePath -> Address -> EitherT UploadError AWS ()
+uploadWithMode m f a = do
   when (m == Fail) . whenM (lift $ exists a) . left $ UploadDestinationExists a
   unlessM (liftIO $ doesFileExist f) . left $ UploadSourceMissing f
   s <- liftIO $ withFile f ReadMode $ \h ->
     hFileSize h
   let chunk = 100 * 1024 * 1024
-  lift $ if s < chunk
-    then
-      uploadSingle f a
-    else
-      if s > 1024 * 1024 * 1024
-         then multipartUpload' f a s (2 * chunk) 100
-         else multipartUpload' f a s chunk 100
-
+  case s < chunk of
+    True ->
+      lift $ uploadSingle f a
+    False ->
+      case s > 1024 * 1024 * 1024 of
+        True ->
+          multipartUpload f a s (2 * chunk) 100
+        False ->
+          multipartUpload f a s chunk 100
 
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
   rq <- N.chunkedFile (ChunkSize $ 1024 * 1024) file
   void . send $ fencode' putObject a rq & poServerSideEncryption .~ pure sse
 
-
 data PartResponse =
   PartResponse !Int !ETag
 
-multipartUpload' :: FilePath -> Address -> Integer -> Integer -> Int -> AWS ()
-multipartUpload' file a fileSize chunk fork = do
+multipartUpload :: FilePath -> Address -> Integer -> Integer -> Int -> EitherT UploadError AWS ()
+multipartUpload file a fileSize chunk fork = do
   e <- ask
   mpu' <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ pure sse
   mpu <- maybe (throwM . Invariant $ "MultipartUpload: missing 'UploadId'") pure (mpu' ^. cmursUploadId)
 
   let chunks = calculateChunksCapped (fromInteger fileSize) (fromInteger chunk) 4096 -- max 4096 prts returned
-  let uploader :: (Int, Int, Int) -> IO PartResponse
-      uploader (o, c, i) = withFile file ReadMode $ \h -> do
-        req' <- liftIO $ do
-          let cs = (1024 * 1024) -- 1 mb
-              cl = toInteger c
-              b = XB.slurpHandle h (toInteger o) (Just $ toInteger c)
-              cb = ChunkedBody cs cl b
-          return . fencode' uploadPart a i mpu $ Chunked cb
 
-        r <- eitherT throwM pure . runAWS e $ send req'
-        m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ r ^. uprsETag
-        pure $! PartResponse i m
+  r <- liftIO $
+    consume (forM_ chunks . writeQueue) fork $ multipartUploadWorker e mpu file a
 
-  handle' mpu $ do
-    sem <- liftIO $ MSem.new fork
-    prts <- liftIO $ mapConcurrently (MSem.with sem . uploader) chunks
+  let abort =
+        void . send . fencode' abortMultipartUpload a $ mpu
 
-    let l = (\(PartResponse i etag) -> completedPart i etag) <$> prts
-    let ncps = NEL.nonEmpty l
+  case r of
+    Left f ->
+      abort >>
+        (left $ MultipartUploadError f)
 
-    void . send $ fencode' completeMultipartUpload a mpu &
-      cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
-  where
-    handle' :: Text -> AWS () -> AWS ()
-    handle' mpu x = x `catchAll` (const . void . send . fencode' abortMultipartUpload a $ mpu)
+    Right prts -> do
+      -- Sort is required here because the completeMultipartUpload api expects an
+      -- ascending list of part id's
+      let z = sortOn (\(PartResponse i _) -> i) $ snd prts
+          l = (\(PartResponse i etag) -> completedPart i etag) <$> z
+          ncps = NEL.nonEmpty l
+
+      flip onException abort $
+        void . send $ fencode' completeMultipartUpload a mpu &
+          cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
+
+
+multipartUploadWorker :: Env -> Text -> FilePath -> Address -> (Int, Int, Int) -> IO (Either Error PartResponse)
+multipartUploadWorker e mpu file a (o, c, i) =
+  withFile file ReadMode $ \h -> do
+    req' <- liftIO $ do
+      let cs = (1024 * 1024) -- 1 mb
+          cl = toInteger c
+          b = XB.slurpHandle h (toInteger o) (Just $ toInteger c)
+          cb = ChunkedBody cs cl b
+      return . fencode' A.uploadPart a i mpu $ Chunked cb
+
+    r <- runEitherT . runAWS e $ send req'
+    case r of
+      Left z ->
+        pure $! Left z
+
+      Right z -> do
+        m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ z ^. uprsETag
+        pure $! Right $! PartResponse i m
+
+
 
 write :: Address -> Text -> AWS WriteResult
 write =
