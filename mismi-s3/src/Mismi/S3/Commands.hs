@@ -137,10 +137,9 @@ import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 import           Twine.Data.Queue (writeQueue)
 import           Twine.Parallel (RunError (..), renderRunError, consume)
 
-import qualified X.Data.Conduit.Binary as XB
+import           X.Control.Monad.Trans.Either (EitherT, eitherT, left, right, bimapEitherT, runEitherT, newEitherT)
 
-import           Control.Monad.Trans.Except
-import           X.Control.Monad.Trans.Either (EitherT, eitherT, left, right, bimapEitherT, runEitherT)
+import qualified X.Data.Conduit.Binary as XB
 
 headObject :: Address -> AWS (Maybe HeadObjectResponse)
 headObject a =
@@ -407,7 +406,7 @@ multipartDownload source destination size chunk fork = bimapEitherT MultipartErr
     liftIO $ withFile f WriteMode $ \h ->
       hSetFileSize h (toInteger size)
 
-    ExceptT . liftIO .
+    newEitherT . liftIO .
       consume (\q -> mapM (writeQueue q) chunks) fork $ \(o, c, _) ->
         runEitherT . runAWS e $ downloadWithRange source o (o + c) f
 
@@ -496,7 +495,7 @@ sync =
 syncWithMode :: SyncMode -> Address -> Address -> Int -> EitherT SyncError AWS ()
 syncWithMode mode source dest fork = do
   e <- ask
-  bimapEitherT SyncError id . void . ExceptT . liftIO $
+  bimapEitherT SyncError id . void . newEitherT . liftIO $
     (consume (sinkQueue e (listRecursively' source)) fork (worker source dest mode e))
 
 
