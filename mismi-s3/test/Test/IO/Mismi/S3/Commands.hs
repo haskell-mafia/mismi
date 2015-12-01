@@ -240,62 +240,67 @@ prop_list_recursively = testAWS $ do
   r' <- listRecursively (a { key = dirname $ key a })
   pure $ a `elem` r'
 
-prop_list_forbidden_bucke= testAWS $ do
+prop_list_forbidden_bucket = testAWS $ do
   _ <- write (Address (Bucket "ambiata-dev-view") (Key "")) ""
   pure $ True
 
 prop_download d l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let f = p F.</> localPath  l
+  let t = p F.</> localPath l
   writeOrFail a d
-  download a f
-  res <- liftIO $ T.readFile f
-  pure $ res === d
+  r <- runEitherT $ download a t
+  res <- liftIO $ T.readFile t
+  pure $ (isRight r, res) === (True, d)
 
-prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> elements muppets) $ \(bs, c, m) -> (BS.length bs /= 0) ==> testAWS $ do
-  p <- newFilePath
-  a <- newAddress
-  let f = p F.</> unpack c
-  let o = p F.</> unpack m
-  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory f
-  liftIO . D.createDirectoryIfMissing True $ F.takeDirectory o
-  liftIO $ withFile f WriteMode $ \h ->
-    replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
-  size <- liftIO . withFile f ReadMode $ hFileSize
-  uploadOrFail f a
+prop_download_multipart :: Property
+prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> elements muppets) $ \(bs, c, m) ->
+  (BS.length bs /= 0) ==> testAWS $ do
+    p <- newFilePath
+    a <- newAddress
+    let t = p F.</> unpack c
+    let o = p F.</> unpack m
+    liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
+    liftIO . D.createDirectoryIfMissing True $ F.takeDirectory o
+    liftIO $ withFile t WriteMode $ \h ->
+      replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
+    size <- liftIO . withFile t ReadMode $ hFileSize
+    uploadOrFail t a
 
-  let ten :: Int = 10
+    let ten :: Int = 10
 
-  multipartDownload a o (fromInteger size) (toInteger ten) 100
-  b <- liftIO $ LBS.readFile f
-  let b' = sha1 b
-  o' <- liftIO $ LBS.readFile o
-  let o'' = sha1 o'
-  pure $ b' === o''
-  where
-    sha1 :: LBS.ByteString -> Digest SHA1
-    sha1 = hashlazy
+    r <- runEitherT $ multipartDownload a o (fromInteger size) (toInteger ten) 100
+    b <- liftIO $ LBS.readFile t
+
+
+    let b' = sha1 b
+    o' <- liftIO $ LBS.readFile o
+    let o'' = sha1 o'
+    pure $ (isRight r, b') === (True, o'')
+    where
+      sha1 :: LBS.ByteString -> Digest SHA1
+      sha1 = hashlazy
 
 prop_write_download_overwrite old new l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let f = p F.</> localPath  l
+  let t = p F.</> localPath l
   writeOrFail a old
-  downloadWithMode Fail a f
+  x <- runEitherT $ downloadWithMode Fail a t
   writeWithModeOrFail Overwrite a new
-  downloadWithMode Overwrite a f
-  r <- liftIO $ T.readFile f
-  pure $ r === new
+  y <- runEitherT $ downloadWithMode Overwrite a t
+  r <- liftIO $ T.readFile t
+  pure $ (isRight x, isRight y, r) === (True, True, new)
 
 prop_write_download_fail old new l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let f = p F.</> localPath  l
+  let t = p F.</> localPath l
   writeOrFail a old
-  downloadWithMode Fail a f
+  x <- runEitherT $ downloadWithMode Fail a t
   writeWithModeOrFail Overwrite a new
-  (False <$ downloadWithMode Fail a f) `catchAll` (const . pure $ True)
+  y <- runEitherT (downloadWithMode Fail a t)
+  pure $ (isRight x, isLeft y) === (True, True)
 
 prop_delete w = testAWS $ do
   a <- newAddress
