@@ -18,13 +18,13 @@ import           Test.Mismi.S3 ()
 
 prop_append :: Key -> Key -> Property
 prop_append p1 p2 =
-  T.count "//" (unKey (p1 </> p2)) === 0
+  T.count "//" (unKey (p1 // p2)) === 0
 
 prop_appendEdge :: Property
 prop_appendEdge = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> conjoin [
-    (Key (m <> "/") </> Key s) === (Key $ m <> "/" <> s)
-  , (Key m </> Key ("/" <> s)) === (Key $ m <> "/" <> s)
-  , (Key m </> Key s) === (Key $ m <> "/" <> s)
+    (Key (m <> "/") // Key s) === (Key $ m <> "/" <> s)
+  , (Key m // Key ("/" <> s)) === (Key $ m <> "/" <> s)
+  , (Key m // Key s) === (Key $ m <> "/" <> s)
   ]
 
 prop_parse :: Address -> Property
@@ -49,15 +49,15 @@ prop_withKey_dirname a =
 
 prop_withKey_key :: Address -> Key -> Property
 prop_withKey_key a k =
-  key (withKey (</> k) a) === (key a) </> k
+  key (withKey (// k) a) === (key a) // k
 
 prop_basename :: Key -> Text -> Property
 prop_basename k bn = T.all (/= '/') bn && not (T.null bn) ==>
-  basename (k </> (Key bn)) === Just bn
+  basename (k // (Key bn)) === Just bn
 
 prop_basename_prefix :: Key -> Text -> Property
 prop_basename_prefix k bn =
-  basename (k </> (Key $ bn <> "/")) === Nothing
+  basename (k // (Key $ bn <> "/")) === Nothing
 
 prop_basename_root :: Property
 prop_basename_root =
@@ -67,15 +67,15 @@ prop_dirname :: Address -> Text -> Property
 prop_dirname a t =
   let k = Key t in
   T.all (/= '/') t==>
-    dirname (key a </> k) === Key (dropWhileEnd ('/' ==) . unKey . key $ a)
+    dirname (key a // k) === Key (dropWhileEnd ('/' ==) . unKey . key $ a)
 
 prop_commonPrefix :: Address -> Key -> Property
 prop_commonPrefix a k =
-  removeCommonPrefix a (withKey (</> k) a) === Just k
+  removeCommonPrefix a (withKey (// k) a) === Just k
 
 prop_commonPrefix_fail :: Address -> Key -> Property
 prop_commonPrefix_fail a k =
-  removeCommonPrefix (withKey (</> k) a) a === Nothing
+  removeCommonPrefix (withKey (// k) a) a === Nothing
 
 
 return []

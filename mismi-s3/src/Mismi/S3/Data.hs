@@ -14,7 +14,7 @@ module Mismi.S3.Data (
   , ErrorType (..)
   , UploadError (..)
   , WriteResult (..)
-  , (</>)
+  , (//)
   , combineKey
   , dirname
   , foldWriteMode
@@ -171,8 +171,9 @@ data Upload =
   | UploadMultipart Integer Integer
   deriving (Eq, Show)
 
-(</>) :: Key -> Key -> Key
-(</>) = combineKey
+(//) :: Key -> Key -> Key
+(//) =
+  combineKey
 
 combineKey :: Key -> Key -> Key
 combineKey (Key p1) (Key p2) =
@@ -181,7 +182,9 @@ combineKey (Key p1) (Key p2) =
     else Key $ p1 <> "/" <> p2
 
 withKey :: (Key -> Key) -> Address -> Address
-withKey f (Address b k) = Address b $ f k
+withKey f (Address b k) =
+  Address b $ f k
+
 
 dirname :: Key -> Key
 dirname =
