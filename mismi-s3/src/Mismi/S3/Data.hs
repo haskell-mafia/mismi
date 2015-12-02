@@ -12,7 +12,6 @@ module Mismi.S3.Data (
   , Upload (..)
   , S3Error (..)
   , ErrorType (..)
-  , UploadResult (..)
   , UploadError (..)
   , WriteResult (..)
   , (</>)
@@ -27,6 +26,7 @@ module Mismi.S3.Data (
   , withKey
   , s3Parser
   , s3ErrorRender
+  , renderUploadError
   ) where
 
 import           Control.Exception.Base
@@ -41,7 +41,11 @@ import           Data.Typeable
 
 import           P
 
+import           Mismi (Error, renderError)
+
 import           System.FilePath (FilePath)
+
+import           Twine.Parallel (RunError (..), renderRunError)
 
 
 data S3Error =
@@ -96,23 +100,30 @@ data WriteResult =
   | WriteDestinationExists Address
   deriving (Eq, Show)
 
-data UploadResult =
-    UploadOk
-  | UploadError UploadError
-  deriving (Eq, Show)
-
 data UploadError =
     UploadSourceMissing FilePath
   | UploadDestinationExists Address
-  deriving (Eq, Show)
+  | MultipartUploadError (RunError Error)
+  deriving Show
+
+renderUploadError :: UploadError -> Text
+renderUploadError e =
+  case e of
+    UploadSourceMissing f ->
+      "Can not upload when the source file does not exist [" <> T.pack f <> "]"
+    UploadDestinationExists a ->
+      "Can not upload when the destination object already exists [" <> addressToText a <> "]"
+    MultipartUploadError a ->
+      renderRunError a ((<>) "Multipart upload failed on a worker: " . renderError)
+
 
 -- |
 -- Describes the semantics for destructive operation that may result in overwritten files.
 --
 data WriteMode =
-      Fail        -- ^ Fail rather than overwrite any data.
-    | Overwrite   -- ^ Overwrite existing data silently, i.e. we really want to do this.
-    deriving (Eq, Show)
+    Fail        -- ^ Fail rather than overwrite any data.
+  | Overwrite   -- ^ Overwrite existing data silently, i.e. we really want to do this.
+  deriving (Eq, Show)
 
 foldWriteMode :: a -> a -> WriteMode -> a
 foldWriteMode f o = \case

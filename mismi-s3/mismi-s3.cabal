@@ -46,7 +46,6 @@ library
                      , retry                           == 0.6.*
                      , lens                            >= 4.8        && < 4.10
                      , SafeSemaphore                   == 0.10.*
-                     , lifted-async                    == 0.7.*
                      , unix-bytestring                 == 0.3.7.*
                      , time                            == 1.4.*
                      , unordered-containers            == 0.2.5.*

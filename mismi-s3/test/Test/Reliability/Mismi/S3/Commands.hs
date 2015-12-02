@@ -46,7 +46,7 @@ prop_upload_single = forAll (elements muppets) $ \m -> testS3 $ \a i -> do
     liftIO $ D.createDirectoryIfMissing True p
     let f = combine p $ T.unpack m
     liftIO $ T.writeFile f "data"
-    mapM_ (upload f) $ files a m i
+    mapM_ (uploadOrFail f) $ files a m i
   pure $ True === True
 
 return []

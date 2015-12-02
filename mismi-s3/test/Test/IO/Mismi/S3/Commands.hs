@@ -156,8 +156,12 @@ prop_upload_fail d l = testAWS $ do
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
   uploadWithModeOrFail Fail t a
-  r <- uploadWithMode Fail t a
-  pure $ r === UploadError (UploadDestinationExists a)
+  r <- runEitherT $ uploadWithMode Fail t a
+  pure $ case r of
+    Left (UploadDestinationExists _) ->
+      property True
+    _ ->
+      failWith "Upload succeded but should have failed"
 
 prop_upload d l = testAWS $ do
   p <- newFilePath
