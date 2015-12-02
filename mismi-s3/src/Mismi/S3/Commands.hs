@@ -17,6 +17,7 @@ module Mismi.S3.Commands (
   , read'
   , copy
   , copyWithMode
+  , copyMultipart
   , move
   , upload
   , uploadOrFail
@@ -53,10 +54,10 @@ module Mismi.S3.Commands (
   , SyncError (..)
   , SyncWorkerError (..)
   , renderSyncError
+  , createMultipartUpload
   , grantReadAccess
   , sse
   ) where
-
 
 import           Control.Arrow ((***))
 
@@ -115,8 +116,7 @@ import           Network.AWS.S3 (lmursUploads)
 import           Network.AWS.S3 (lprsParts)
 import           Network.AWS.S3 (poServerSideEncryption)
 import           Network.AWS.S3 (uprsETag)
-import           Network.AWS.S3 (createMultipartUpload, abortMultipartUpload, listMultipartUploads)
-import           Network.AWS.S3 (completeMultipartUpload, completedMultipartUpload, completedPart)
+import           Network.AWS.S3 (completedMultipartUpload, completedPart)
 import           Network.AWS.S3 (getObject, putObject, copyObject, deleteObject)
 import qualified Network.AWS.S3 as A
 
@@ -177,18 +177,82 @@ read' a = do
 
 copy :: Address -> Address -> AWS ()
 copy =
-  copyWithMode Fail
+  copyWithMode Overwrite
 
 copyWithMode :: WriteMode -> Address -> Address -> AWS ()
 copyWithMode mode s d = do
+  -- FIX error
   unlessM (exists s) . throwM $ SourceMissing CopyError s
+  -- FIX error
   foldWriteMode  (whenM (exists d) . throwM . DestinationAlreadyExists $ d) (pure ()) mode
-  copy' s d
+  size' <- getSize s
+  -- FIX error
+  size <- fromMaybeM (fail $ "Can not caluclate size of source object [" <> (T.unpack $ addressToText s) <> "].") size'
+  let chunk = 100 * 1024 * 1024 -- 100 mb
+      big = 1024 * 1024 * 1024 -- 1 gb
+  case size < big of
+    True ->
+      copy' s d
+    False ->
+      copyMultipart s d size chunk 100
 
 copy' :: Address -> Address -> AWS ()
 copy' (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key dk)) =
   void . send $ copyObject (BucketName b) (sb <> "/" <> sk) (ObjectKey dk)
      & coServerSideEncryption .~ Just sse & coMetadataDirective .~ Just Copy
+
+copyMultipart :: Address -> Address -> Int -> Int -> Int -> AWS ()
+copyMultipart source dest size chunk fork = do
+  mpu <- createMultipartUpload dest -- target
+  e <- ask
+
+  let chunks = calculateChunksCapped size chunk 4096
+
+  r <- liftIO $
+    consume (forM_ chunks . writeQueue) fork $ multipartCopyWorker e mpu source dest
+
+  let abort =
+        abortMultipart' dest mpu
+
+  case r of
+    Left f ->
+      abort >>
+        fail ("multipart copy failed in worker: " <> show f)
+
+    Right prts -> do
+      -- Sort is required here because the completeMultipartUpload api expects an
+      -- ascending list of part id's
+      let z = sortOn (\(PartResponse i _) -> i) $ snd prts
+          l = (\(PartResponse i etag) -> completedPart i etag) <$> z
+          ncps = NEL.nonEmpty l
+
+      flip onException abort $
+        void . send $ fencode' A.completeMultipartUpload dest mpu &
+          cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
+
+
+multipartCopyWorker :: Env -> Text -> Address -> Address -> (Int, Int, Int) -> IO (Either Error PartResponse)
+multipartCopyWorker e mpu source dest (o, c, i) = do
+  let sb = unBucket $ bucket source
+      sk = unKey $ key source
+      db = unBucket $ bucket dest
+      dk = unKey $ key dest
+      req = A.uploadPartCopy (BucketName db) (sb <> "/" <> sk) (ObjectKey dk) i mpu & A.upcCopySourceRange .~ (Just $ bytesRange o (o + c - 1))
+
+  r <- runEitherT . runAWS e $ send req
+  case r of
+    Left z ->
+      pure $! Left z
+
+    Right z -> do
+      pr <- fromMaybeM (throwM . Invariant $ "upcrsCopyPartResult") $ z ^. A.upcrsCopyPartResult
+      m <- fromMaybeM (throwM . Invariant $ "cprETag") $ pr ^. A.cprETag
+      pure $! Right $! PartResponse i m
+
+createMultipartUpload :: Address -> AWS Text
+createMultipartUpload a = do
+  mpu <- send $ fencode' A.createMultipartUpload a & cmuServerSideEncryption .~ Just sse
+  maybe (throwM . Invariant $ "MultipartUpload: missing 'UploadId'") pure (mpu ^. cmursUploadId)
 
 move :: Address -> Address -> AWS ()
 move source destination' =
@@ -247,16 +311,14 @@ data PartResponse =
 multipartUpload :: FilePath -> Address -> Integer -> Integer -> Int -> EitherT UploadError AWS ()
 multipartUpload file a fileSize chunk fork = do
   e <- ask
-  mpu' <- send $ fencode' createMultipartUpload a & cmuServerSideEncryption .~ pure sse
-  mpu <- maybe (throwM . Invariant $ "MultipartUpload: missing 'UploadId'") pure (mpu' ^. cmursUploadId)
+  mpu <- lift $ createMultipartUpload a
 
   let chunks = calculateChunksCapped (fromInteger fileSize) (fromInteger chunk) 4096 -- max 4096 prts returned
 
   r <- liftIO $
     consume (forM_ chunks . writeQueue) fork $ multipartUploadWorker e mpu file a
 
-  let abort =
-        void . send . fencode' abortMultipartUpload a $ mpu
+  let abort = lift $ abortMultipart' a mpu
 
   case r of
     Left f ->
@@ -271,7 +333,7 @@ multipartUpload file a fileSize chunk fork = do
           ncps = NEL.nonEmpty l
 
       flip onException abort $
-        void . send $ fencode' completeMultipartUpload a mpu &
+        void . send $ fencode' A.completeMultipartUpload a mpu &
           cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
 
 
@@ -390,6 +452,7 @@ data DownloadError =
     DownloadSourceMissing Address
   | DownloadDestinationExists FilePath
   | MultipartError (RunError Error)
+  deriving Show
 
 renderDownloadError :: DownloadError -> Text
 renderDownloadError d =
@@ -438,7 +501,7 @@ multipartDownload source destination size chunk fork = bimapEitherT MultipartErr
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange a start end dest = do
   r <- send $ fencode' getObject a &
-    goRange .~ (Just $ downRange start end)
+    goRange .~ (Just $ bytesRange start end)
 
   -- write to file
   liftIO $ do
@@ -457,7 +520,7 @@ listMultipartParts a uploadId = do
 
 listMultiparts :: Bucket -> AWS [MultipartUpload]
 listMultiparts (Bucket bn) = do
-  let req = listMultipartUploads $ BucketName bn
+  let req = A.listMultipartUploads $ BucketName bn
   paginate req $$ DC.foldMap (^. lmursUploads)
 
 listOldMultiparts :: Bucket -> AWS [MultipartUpload]
@@ -493,9 +556,9 @@ abortMultipart (Bucket b) mu = do
   i <- maybe (throwM $ Invariant "Multipart uploadId missing") pure (mu ^. muUploadId)
   abortMultipart' (Address (Bucket b) (Key k)) i
 
-abortMultipart' :: Address -> T.Text -> AWS ()
+abortMultipart' :: Address -> Text -> AWS ()
 abortMultipart' a i =
-  void . send $ fencode' abortMultipartUpload a i
+  void . send $ fencode' A.abortMultipartUpload a i
 
 listRecursively :: Address -> AWS [Address]
 listRecursively a =
