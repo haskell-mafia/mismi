@@ -7,6 +7,9 @@ module Mismi.EC2.Data (
   , renderVirtualization
   , renderVirtualizationAws
   , parseVirtualization
+
+  , SecurityGroupName(..)
+  , SecurityGroupId(..)
   ) where
 
 import           Data.Text
@@ -52,3 +55,14 @@ renderVirtualizationAws v =
       "hvm"
     Paravirtual ->
       "paravirtual"
+
+
+newtype SecurityGroupName =
+  SecurityGroupName {
+      securityGroupName :: Text
+    } deriving (Eq, Show)
+
+newtype SecurityGroupId =
+  SecurityGroupId {
+      securityGroupId :: Text
+    } deriving (Eq, Show)
