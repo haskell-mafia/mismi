@@ -17,9 +17,9 @@ library
                      , ambiata-p
                      , ambiata-mismi-core
                      , ambiata-x-eithert
-                     , amazonka                        == 1.3.2.1
-                     , amazonka-core                   == 1.3.2
-                     , amazonka-rds                    == 1.3.2
+                     , amazonka                        == 1.3.4
+                     , amazonka-core                   == 1.3.4
+                     , amazonka-rds                    == 1.3.4
                      , bytestring                      == 0.10.*
                      , exceptions                      == 0.8.*
                      , http-client                     == 0.4.18.*
