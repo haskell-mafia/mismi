@@ -30,6 +30,7 @@ import qualified Mismi.S3.Amazonka as A
 import           P
 
 import qualified System.Directory as D
+import           System.FilePath ((</>))
 import qualified System.FilePath as F
 import           System.IO
 import           System.IO.Error
@@ -60,7 +61,7 @@ prop_exists_failure = testAWS $ do
 
 prop_exists_prefix k = k /= Key "" ==> testAWS $ do
   a <- newAddress
-  writeOrFail (withKey (</> k) a) ""
+  writeOrFail (withKey (// k) a) ""
   e <- existsPrefix a
   pure $ e === True
 
@@ -88,14 +89,14 @@ prop_getObjects_empty = testAWS $ do
 
 prop_getObjectsR d p1 p2 = p1 /= p2 ==> testAWS $ do
   root <- newAddress
-  let keys = [p1, p2 </> p1, p2 </> p2]
-  forM_ keys $ \k -> writeOrFail (withKey (</> k) root) d
+  let keys = [p1, p2 // p1, p2 // p2]
+  forM_ keys $ \k -> writeOrFail (withKey (// k) root) d
   objs <- getObjectsRecursively root
-  pure $ on (===) L.sort ((^. A.oKey . to A.toText) <$> objs) (unKey . (</>) (key root) <$> keys)
+  pure $ on (===) L.sort ((^. A.oKey . to A.toText) <$> objs) (unKey . (//) (key root) <$> keys)
 
 prop_getObjs = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, n) -> testAWS $ do
   a <- newAddress
-  forM_ [1..n] $ \n' -> writeOrFail (withKey(</> Key (m <> pack (show n'))) a) ""
+  forM_ [1..n] $ \n' -> writeOrFail (withKey(// Key (m <> pack (show n'))) a) ""
   r' <- list a
   pure $ length r' === n
 
@@ -147,7 +148,7 @@ prop_move t = testAWS $ do
 prop_upload_mode d l m = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let t = p F.</> localPath l
+  let t = p </> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
   uploadWithModeOrFail m t a
@@ -157,7 +158,7 @@ prop_upload_mode d l m = testAWS $ do
 prop_upload_overwrite d1 d2 l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let t = p F.</> localPath l
+  let t = p </> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d1
   uploadWithModeOrFail Fail t a
@@ -169,7 +170,7 @@ prop_upload_overwrite d1 d2 l = testAWS $ do
 prop_upload_fail d l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let t = p F.</> localPath l
+  let t = p </> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
   uploadWithModeOrFail Fail t a
@@ -183,7 +184,7 @@ prop_upload_fail d l = testAWS $ do
 prop_upload d l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let t = p F.</> localPath l
+  let t = p </> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ T.writeFile t d
   uploadOrFail t a
@@ -193,7 +194,7 @@ prop_upload d l = testAWS $ do
 prop_upload_multipart l = forAll arbitrary $ \bs -> testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let t = p F.</> localPath l
+  let t = p </> localPath l
   liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
   liftIO $ withFile t WriteMode $ \h ->
     replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
@@ -243,15 +244,15 @@ findMultipart uploadId m =
 
 prop_list = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> testAWS $ do
   a <- newAddress
-  writeOrFail (withKey(</> Key m) a) ""
-  writeOrFail (withKey(</> (Key s </> Key m)) a) ""
+  writeOrFail (withKey (// Key m) a) ""
+  writeOrFail (withKey (// (Key s // Key m)) a) ""
   r' <- list a
   pure $ (Just . Key <$> [m, s <> "/"]) === (removeCommonPrefix a <$> r')
 
 prop_listObjects = forAll ((,) <$> elements muppets <*> elements southpark) $ \(m, s) -> testAWS $ do
   a <- newAddress
-  writeOrFail (withKey(</> Key m) a) ""
-  writeOrFail (withKey(</> (Key s </> Key m)) a) ""
+  writeOrFail (withKey (// Key m) a) ""
+  writeOrFail (withKey (// (Key s // Key m)) a) ""
   (p, k) <- listObjects a
   pure $ ([Just . Key $ s <> "/"], [Just $ Key m]) === (removeCommonPrefix a <$> p, removeCommonPrefix a <$> k)
 
@@ -268,7 +269,7 @@ prop_list_forbidden_bucket = testAWS $ do
 prop_download d l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let t = p F.</> localPath l
+  let t = p </> localPath l
   writeOrFail a d
   r <- runEitherT $ download a t
   res <- liftIO $ T.readFile t
@@ -279,8 +280,8 @@ prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> el
   (BS.length bs /= 0) ==> testAWS $ do
     p <- newFilePath
     a <- newAddress
-    let t = p F.</> unpack c
-    let o = p F.</> unpack m
+    let t = p </> unpack c
+    let o = p </> unpack m
     liftIO . D.createDirectoryIfMissing True $ F.takeDirectory t
     liftIO . D.createDirectoryIfMissing True $ F.takeDirectory o
     liftIO $ withFile t WriteMode $ \h ->
@@ -305,7 +306,7 @@ prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> el
 prop_write_download_overwrite old new l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let t = p F.</> localPath l
+  let t = p </> localPath l
   writeOrFail a old
   x <- runEitherT $ downloadWithMode Fail a t
   writeWithModeOrFail Overwrite a new
@@ -316,7 +317,7 @@ prop_write_download_overwrite old new l = testAWS $ do
 prop_write_download_fail old new l = testAWS $ do
   p <- newFilePath
   a <- newAddress
-  let t = p F.</> localPath l
+  let t = p </> localPath l
   writeOrFail a old
   x <- runEitherT $ downloadWithMode Fail a t
   writeWithModeOrFail Overwrite a new
@@ -371,7 +372,7 @@ prop_sync_fail = forAll (elements muppets) $ \m -> testAWS $ do
   y <- runEitherT $ syncWithMode FailSync a b 1
   r <- pure $ case y of
     (Left (SyncError (WorkerError (OutputExists q)))) ->
-      q == withKey (</> Key (m <> "-1")) b
+      q == withKey (// Key (m <> "-1")) b
     _ ->
       False
   pure $ (isRight x, r) === (True, True)

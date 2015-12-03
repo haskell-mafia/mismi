@@ -35,7 +35,7 @@ createLargeFiles prefix n = do
 
 files :: Address -> Int -> [Address]
 files prefix n =
-  fmap (\i -> withKey (</> Key ("file-" <> (T.pack $ show i))) prefix) [1..n]
+  fmap (\i -> withKey (// Key ("file-" <> (T.pack $ show i))) prefix) [1..n]
 
 run :: AWS a -> IO a
 run =

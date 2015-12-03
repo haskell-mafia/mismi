@@ -553,7 +553,7 @@ renderSyncWorkerError w =
 worker :: Address -> Address -> SyncMode -> Env -> Address -> IO (Either SyncWorkerError ())
 worker input output mode env f = runEitherT . runAWST env SyncAws $ do
   n <- maybe (left $ SyncInvariant input f) right $ removeCommonPrefix input f
-  let out = withKey (</> n) output
+  let out = withKey (// n) output
       cp = lift $ copy f out
   foldSyncMode
     (ifM (lift $ exists out) (left $ OutputExists out) cp)

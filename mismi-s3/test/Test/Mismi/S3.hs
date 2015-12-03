@@ -31,7 +31,7 @@ import           Disorder.Corpus
 
 import           System.Environment (lookupEnv)
 import           System.Posix.Env
-import           System.FilePath hiding ((</>))
+import           System.FilePath
 import           System.Directory
 
 import           Mismi.Control
@@ -86,7 +86,7 @@ createSmallFiles prefix name n = do
 
 files :: Address -> Text -> Int -> [Address]
 files prefix name n =
-  fmap (\i -> withKey (</> Key (name <> "-" <> (T.pack $ show i))) prefix) [1..n]
+  fmap (\i -> withKey (// Key (name <> "-" <> (T.pack $ show i))) prefix) [1..n]
 
 newAddress :: AWS Address
 newAddress = do
