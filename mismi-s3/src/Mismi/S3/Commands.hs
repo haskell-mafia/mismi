@@ -10,6 +10,7 @@ module Mismi.S3.Commands (
   , renderDownloadError
   , headObject
   , exists
+  , existsPrefix
   , getSize
   , delete
   , read
@@ -59,7 +60,7 @@ module Mismi.S3.Commands (
 
 import           Control.Arrow ((***))
 
-import           Control.Lens ((&), (.~), (^.), to)
+import           Control.Lens ((&), (.~), (^.), to, view)
 import           Control.Monad.Catch (throwM, onException)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
@@ -143,6 +144,13 @@ headObject a =
 exists :: Address -> AWS Bool
 exists a =
   headObject a >>= pure . isJust
+
+existsPrefix :: Address -> AWS Bool
+existsPrefix (Address (Bucket b) (Key k)) =
+  fmap (\r -> length (view A.lorsContents r) == 1 || length (view A.lorsCommonPrefixes r) == 1) . send $ A.listObjects (BucketName b)
+    & A.loPrefix .~ Just ((+/) k)
+    & A.loDelimiter .~ Just '/'
+    & A.loMaxKeys .~ Just 1
 
 getSize :: Address -> AWS (Maybe Int)
 getSize a =

@@ -58,6 +58,23 @@ prop_exists_failure = testAWS $ do
   e <- exists a
   pure $ e === False
 
+prop_exists_prefix k = k /= Key "" ==> testAWS $ do
+  a <- newAddress
+  writeOrFail (withKey (</> k) a) ""
+  e <- existsPrefix a
+  pure $ e === True
+
+prop_exists_prefix_missing = testAWS $ do
+  a <- newAddress
+  writeOrFail a ""
+  e <- existsPrefix a
+  pure $ e === False
+
+prop_exists_prefix_key = testAWS $ do
+  a <- newAddress
+  e <- existsPrefix a
+  pure $ e === False
+
 prop_headObject = testAWS $ do
   a <- newAddress
   h <- headObject a
