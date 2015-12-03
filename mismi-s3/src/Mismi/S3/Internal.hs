@@ -14,7 +14,6 @@ module Mismi.S3.Internal (
   ) where
 
 import           Control.Concurrent
-import           Control.Retry
 
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
