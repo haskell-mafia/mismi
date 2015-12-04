@@ -5,7 +5,7 @@ module Mismi.S3.Internal (
     fencode'
   , calculateChunks
   , calculateChunksCapped
-  , downRange
+  , bytesRange
   , sinkChan
   , sinkChanWithDelay
   , sinkQueue
@@ -22,7 +22,8 @@ import           Control.Monad.IO.Class
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 
-import           Data.Text hiding (length)
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           Data.UUID
 import           Data.UUID.V4
 
@@ -57,22 +58,22 @@ calculateChunks :: Int -> Int -> [(Int, Int, Int)]
 calculateChunks size chunk' =
   let chunk = max 1 chunk'
       go :: Int -> Int -> [(Int, Int, Int)]
-      go !i o =
-        let !o' = (o + chunk) in
-          if (o' < size)
+      go !index offset =
+        let !offset' = (offset + chunk) in
+          if (offset' < size)
             then
-              (o, chunk, i) : go (i + 1) o'
+              (offset, chunk, index) : go (index + 1) offset'
             else
-              let !c' = (size - o) in -- last chunk
-              [(o, c', i)]
+              let !c' = (size - offset) in -- last chunk
+              [(offset, c', index)]
   in
     go 1 0
 
 -- http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
 -- https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3Client.java#L1135
-downRange :: Int -> Int -> Text
-downRange start end =
-  pack $ "bytes=" <> show start <> "-" <> show end
+bytesRange :: Int -> Int -> Text
+bytesRange start end =
+  T.pack $ "bytes=" <> show start <> "-" <> show end
 
 sinkChan :: MonadIO m => Source m a -> Chan a -> m Int
 sinkChan source c =

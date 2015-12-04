@@ -16,6 +16,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List as L
 import           Data.Text hiding (copy, length)
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 
@@ -42,7 +43,7 @@ import           Test.QuickCheck.Instances ()
 
 import           Twine.Parallel (RunError (..))
 
-import           X.Control.Monad.Trans.Either (runEitherT)
+import           X.Control.Monad.Trans.Either (runEitherT, eitherT)
 
 prop_exists = testAWS $ do
   a <- newAddress
@@ -115,17 +116,26 @@ prop_copy t = testAWS $ do
   a <- newAddress
   b <- newAddress
   writeOrFail a t
-  copy a b
+  eitherT (fail . T.unpack . renderCopyError) pure $ copy a b
   a' <- read a
   b' <- read b
   pure $ a' === b'
+
+prop_copy_missing = testAWS $ do
+  a <- newAddress
+  r <- runEitherT $ copy a a
+  pure $ case r of
+    Left (CopySourceMissing b) ->
+      a === b
+    _ ->
+      failWith "Copy didn't failure correctly"
 
 prop_copy_overwrite t t' = testAWS $ do
   a <- newAddress
   b <- newAddress
   writeOrFail a t
   writeOrFail b t'
-  copyWithMode Overwrite a b
+  eitherT (fail . T.unpack . renderCopyError) pure $ copyWithMode Overwrite a b
   b' <- read b
   pure $ b' === Just t
 
@@ -134,13 +144,46 @@ prop_copy_fail t = testAWS $ do
   b <- newAddress
   writeOrFail a t
   writeOrFail b t
-  (False <$ copyWithMode Fail a b) `catchAll` (const . pure $ True)
+  r <- runEitherT $ copyWithMode Fail a b
+  pure $ case r of
+    Left (CopyDestinationExists z) ->
+      b === z
+    _ ->
+      failWith "Copy didn't failure correctly"
+
+prop_copy_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> elements muppets) $ \(bs, c, m) -> (BS.length bs /= 0) ==> testAWS $ do
+  f <- newFilePath
+  a' <- newAddress
+  let a = withKey (// Key c) a'
+      b = withKey (// Key m) a'
+      s = f </> T.unpack c
+      d = f </> T.unpack m
+  -- create large file to copy
+  liftIO $ D.createDirectoryIfMissing True f
+  liftIO $ withFile s WriteMode $ \h ->
+    replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
+  liftIO . putStrLn $ "Generated file"
+
+  uploadOrFail s a
+  liftIO . putStrLn $ "Uploaded file"
+
+  liftIO . putStrLn $ "Running copy ..."
+  eitherT (fail . T.unpack . renderCopyError) pure $ copy a b
+
+  liftIO . putStrLn $ "Done copy"
+  -- compare
+  eitherT (fail . show) pure $ download b d
+  liftIO . putStrLn $ "Done download"
+
+  s' <- liftIO $ LBS.readFile s
+  d' <- liftIO $ LBS.readFile d
+  pure $ (sha1 s' === sha1 d')
 
 prop_move t = testAWS $ do
   s <- newAddress
   d <- newAddress
   writeOrFail s t
-  move s d
+  eitherT (fail . T.unpack . renderCopyError) pure $ move s d
   es <- exists s
   ed <- exists d
   pure $ (es, ed) === (False, True)
@@ -294,14 +337,11 @@ prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> el
     r <- runEitherT $ multipartDownload a o (fromInteger size) (toInteger ten) 100
     b <- liftIO $ LBS.readFile t
 
-
     let b' = sha1 b
     o' <- liftIO $ LBS.readFile o
     let o'' = sha1 o'
     pure $ (isRight r, b') === (True, o'')
-    where
-      sha1 :: LBS.ByteString -> Digest SHA1
-      sha1 = hashlazy
+
 
 prop_write_download_overwrite old new l = testAWS $ do
   p <- newFilePath
@@ -411,6 +451,10 @@ prop_read_empty k = ioProperty $ do
 -- HELPERS
 ----------
 missingAddress = Address (Bucket "ambiata-missing") (Key "m")
+
+sha1 :: LBS.ByteString -> Digest SHA1
+sha1 =
+  hashlazy
 
 return []
 tests :: IO Bool

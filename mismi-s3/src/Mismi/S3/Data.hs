@@ -3,7 +3,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module Mismi.S3.Data (
-    WriteMode (..)
+    PartResponse (..)
+  , WriteMode (..)
   , SyncMode (..)
   , Bucket (..)
   , Address (..)
@@ -12,7 +13,11 @@ module Mismi.S3.Data (
   , Upload (..)
   , S3Error (..)
   , ErrorType (..)
+  , DownloadError (..)
+  , CopyError (..)
   , UploadError (..)
+  , SyncError (..)
+  , SyncWorkerError (..)
   , WriteResult (..)
   , (//)
   , combineKey
@@ -26,7 +31,11 @@ module Mismi.S3.Data (
   , withKey
   , s3Parser
   , s3ErrorRender
+  , renderDownloadError
+  , renderCopyError
   , renderUploadError
+  , renderSyncError
+  , renderSyncWorkerError
   ) where
 
 import           Control.Exception.Base
@@ -42,11 +51,15 @@ import           Data.Typeable
 import           P
 
 import           Mismi (Error, renderError)
+import           Network.AWS.S3 (ETag)
 
 import           System.FilePath (FilePath)
 
 import           Twine.Parallel (RunError (..), renderRunError)
 
+
+data PartResponse =
+  PartResponse !Int !ETag
 
 data S3Error =
     SourceMissing ErrorType Address
@@ -69,9 +82,9 @@ s3ErrorRender s3err = "[Mismi internal error] - " <> case s3err of
   SourceMissing e a ->
     "Can not " <> renderErrorType e <> " when the source object does not exist [" <> addressToText a <> "]"
   SourceFileMissing f ->
-    "Can not copy when the source file does not exist [" <> T.pack f <> "]"
+    "Can not upload when the source file does not exist [" <> T.pack f <> "]"
   DestinationAlreadyExists a ->
-    "Can not copy to an address that already exists [" <> addressToText a <> "]"
+    "Can not upload to an address that already exists [" <> addressToText a <> "]"
   DestinationFileExists f ->
     "Can not download to a target that already exists [" <> T.pack f <> "]"
   DestinationDoesNotExist a ->
@@ -85,20 +98,54 @@ s3ErrorRender s3err = "[Mismi internal error] - " <> case s3err of
 
 data ErrorType =
     DownloadError
-  | CopyError
+  | CopyError'
   deriving (Eq, Show)
 
 renderErrorType :: ErrorType -> Text
 renderErrorType e = case e of
   DownloadError ->
     "download"
-  CopyError ->
+  CopyError' ->
     "copy"
 
 data WriteResult =
     WriteOk
   | WriteDestinationExists Address
   deriving (Eq, Show)
+
+data DownloadError =
+    DownloadSourceMissing Address
+  | DownloadDestinationExists FilePath
+  | MultipartError (RunError Error)
+  deriving Show
+
+renderDownloadError :: DownloadError -> Text
+renderDownloadError d =
+  case d of
+    DownloadSourceMissing a ->
+      "Can not download when the source object does not exist [" <> addressToText a <> "]"
+    DownloadDestinationExists f ->
+      "Can not download to a target that already exists [" <> T.pack f <> "]"
+    MultipartError r ->
+      "Multipart download error: " <> renderRunError r renderError
+
+data CopyError =
+    CopySourceMissing Address
+  | CopyDestinationExists Address
+  | CopySourceSize Address
+  | MultipartCopyError (RunError Error)
+
+renderCopyError :: CopyError -> Text
+renderCopyError e =
+  case e of
+    CopySourceMissing a ->
+      "Can not copy an object when the source object does not exist [" <> addressToText a <> "]"
+    CopyDestinationExists a ->
+      "Can not copy an object when the destination object already exists [" <> addressToText a <> "]"
+    CopySourceSize a ->
+      "Can not calculate the size of the source object [" <> addressToText a <> "]"
+    MultipartCopyError a ->
+      renderRunError a ((<>) "Multipart copy failed on a worker: " . renderError)
 
 data UploadError =
     UploadSourceMissing FilePath
@@ -115,6 +162,35 @@ renderUploadError e =
       "Can not upload when the destination object already exists [" <> addressToText a <> "]"
     MultipartUploadError a ->
       renderRunError a ((<>) "Multipart upload failed on a worker: " . renderError)
+
+newtype SyncError =
+  SyncError (RunError SyncWorkerError)
+
+renderSyncError :: SyncError -> Text
+renderSyncError (SyncError r) =
+  renderRunError r renderSyncWorkerError
+
+data SyncWorkerError =
+   SyncInvariant Address Address
+ | OutputExists Address
+ | SyncAws Error
+ | SyncCopyError CopyError
+
+renderSyncWorkerError :: SyncWorkerError -> Text
+renderSyncWorkerError w =
+  case w of
+    SyncInvariant a b ->
+      "Remove common prefix invariant: " <>
+      "[" <> addressToText b <> "] is not a common prefix of " <>
+      "[" <> addressToText a <> "]"
+    OutputExists a ->
+      "Can not copy to an address that already exists [" <> addressToText a <> "]"
+    SyncAws e ->
+      "AWS failure during 'sync': " <> renderError e
+    SyncCopyError c ->
+      "Copy failure during 'sync': " <> renderCopyError c
+
+
 
 
 -- |
