@@ -116,17 +116,26 @@ prop_copy t = testAWS $ do
   a <- newAddress
   b <- newAddress
   writeOrFail a t
-  copy a b
+  eitherT (fail . T.unpack . renderCopyError) pure $ copy a b
   a' <- read a
   b' <- read b
   pure $ a' === b'
+
+prop_copy_missing = testAWS $ do
+  a <- newAddress
+  r <- runEitherT $ copy a a
+  pure $ case r of
+    Left (CopySourceMissing b) ->
+      a === b
+    _ ->
+      failWith "Copy didn't failure correctly"
 
 prop_copy_overwrite t t' = testAWS $ do
   a <- newAddress
   b <- newAddress
   writeOrFail a t
   writeOrFail b t'
-  copyWithMode Overwrite a b
+  eitherT (fail . T.unpack . renderCopyError) pure $ copyWithMode Overwrite a b
   b' <- read b
   pure $ b' === Just t
 
@@ -135,7 +144,12 @@ prop_copy_fail t = testAWS $ do
   b <- newAddress
   writeOrFail a t
   writeOrFail b t
-  (False <$ copyWithMode Fail a b) `catchAll` (const . pure $ True)
+  r <- runEitherT $ copyWithMode Fail a b
+  pure $ case r of
+    Left (CopyDestinationExists z) ->
+      b === z
+    _ ->
+      failWith "Copy didn't failure correctly"
 
 prop_copy_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> elements muppets) $ \(bs, c, m) -> (BS.length bs /= 0) ==> testAWS $ do
   f <- newFilePath
@@ -148,14 +162,13 @@ prop_copy_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> elemen
   liftIO $ D.createDirectoryIfMissing True f
   liftIO $ withFile s WriteMode $ \h ->
     replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
-  size <- liftIO . withFile s ReadMode $ hFileSize
-
   liftIO . putStrLn $ "Generated file"
+
   uploadOrFail s a
   liftIO . putStrLn $ "Uploaded file"
 
   liftIO . putStrLn $ "Running copy ..."
-  copy a b
+  eitherT (fail . T.unpack . renderCopyError) pure $ copy a b
 
   liftIO . putStrLn $ "Done copy"
   -- compare
@@ -170,7 +183,7 @@ prop_move t = testAWS $ do
   s <- newAddress
   d <- newAddress
   writeOrFail s t
-  move s d
+  eitherT (fail . T.unpack . renderCopyError) pure $ move s d
   es <- exists s
   ed <- exists d
   pure $ (es, ed) === (False, True)

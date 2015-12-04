@@ -28,7 +28,7 @@ import           System.Posix.Signals
 import           System.Posix.Process
 
 import           X.Control.Monad.Trans.Either.Exit
-import           X.Control.Monad.Trans.Either (eitherT)
+import           X.Control.Monad.Trans.Either (EitherT, eitherT)
 import           X.Options.Applicative
 
 data Recursive =
@@ -78,14 +78,13 @@ run c = do
     Upload s d m ->
       uploadWithModeOrFail m s d
     Download s d ->
-      eitherT (\se -> liftIO $ (hPutStrLn stderr $ renderDownloadError se) >> exitFailure) pure .
-        download s . optAppendFileName d $ key s
+      renderExit renderDownloadError . download s . optAppendFileName d $ key s
     Copy s d ->
-      copy s d
+      renderExit renderCopyError $ copy s d
     Move s d ->
-      move s d
+      renderExit renderCopyError $ move s d
     Exists a ->
-      exists a >>= \b -> liftIO $ unless b exitFailure
+      exists a >>= liftIO . flip unless exitFailure
     Delete a ->
       delete a
     Write a t w ->
@@ -97,9 +96,14 @@ run c = do
     Size a ->
       getSize a >>= liftIO . maybe exitFailure (putStrLn . pack . show)
     Sync s d m f ->
-      eitherT (\se -> liftIO $ (hPutStrLn stderr $ renderSyncError se) >> exitFailure) pure (syncWithMode m s d f)
+      renderExit renderSyncError $ syncWithMode m s d f
     List a rq ->
       rec (list' a) (listRecursively' a) rq $$ DC.mapM_ (liftIO . putStrLn . addressToText)
+
+renderExit :: MonadIO m => (e -> Text) -> EitherT e m a -> m a
+renderExit f =
+  eitherT (\e -> liftIO $ (hPutStrLn stderr $ f e) >> exitFailure) return
+
 
 optAppendFileName :: FilePath -> Key -> FilePath
 optAppendFileName f k = fromMaybe f $ do

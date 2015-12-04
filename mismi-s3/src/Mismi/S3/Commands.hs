@@ -51,9 +51,6 @@ module Mismi.S3.Commands (
   , listRecursively'
   , sync
   , syncWithMode
-  , SyncError (..)
-  , SyncWorkerError (..)
-  , renderSyncError
   , createMultipartUpload
   , grantReadAccess
   , sse
@@ -94,7 +91,6 @@ import           Network.AWS.Data.Body (RqBody (..), RsBody (..), toBody)
 import           Network.AWS.Data.Body (ChunkedBody (..), ChunkSize (..))
 import           Network.AWS.Data.Text (toText)
 import           Network.AWS.S3 (BucketName (..))
-import           Network.AWS.S3 (ETag)
 import           Network.AWS.S3 (GetObjectResponse, gorsBody)
 import           Network.AWS.S3 (HeadObjectResponse, horsContentLength)
 import           Network.AWS.S3 (ListObjects, loPrefix, loDelimiter, loMarker)
@@ -131,7 +127,7 @@ import           System.Posix.IO (OpenMode(..), openFd, closeFd, fdSeek, default
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
 import           Twine.Data.Queue (writeQueue)
-import           Twine.Parallel (RunError (..), renderRunError, consume)
+import           Twine.Parallel (RunError (..), consume)
 
 import           X.Control.Monad.Trans.Either (EitherT, eitherT, left, right, bimapEitherT, runEitherT, newEitherT)
 
@@ -175,36 +171,33 @@ read' a = do
   r <- getObject' a
   pure $ fmap (^. gorsBody . to _streamBody) r
 
-copy :: Address -> Address -> AWS ()
-copy =
-  copyWithMode Overwrite
+copy :: Address -> Address -> EitherT CopyError AWS ()
+copy s d =
+  copyWithMode Overwrite s d
 
-copyWithMode :: WriteMode -> Address -> Address -> AWS ()
+copyWithMode :: WriteMode -> Address -> Address -> EitherT CopyError AWS ()
 copyWithMode mode s d = do
-  -- FIX error
-  unlessM (exists s) . throwM $ SourceMissing CopyError s
-  -- FIX error
-  foldWriteMode  (whenM (exists d) . throwM . DestinationAlreadyExists $ d) (pure ()) mode
-  size' <- getSize s
-  -- FIX error
-  size <- fromMaybeM (fail $ "Can not caluclate size of source object [" <> (T.unpack $ addressToText s) <> "].") size'
+  unlessM (lift $ exists s) . left $ CopySourceMissing s
+  when (mode == Fail) . whenM (lift $ exists d) . left $ CopyDestinationExists $ d
+  size' <- lift $ getSize s
+  size <- fromMaybeM (left $ CopySourceSize s) size'
   let chunk = 100 * 1024 * 1024 -- 100 mb
       big = 1024 * 1024 * 1024 -- 1 gb
   case size < big of
     True ->
-      copy' s d
+      lift $ copySingle s d
     False ->
       copyMultipart s d size chunk 100
 
-copy' :: Address -> Address -> AWS ()
-copy' (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key dk)) =
+copySingle :: Address -> Address -> AWS ()
+copySingle (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key dk)) =
   void . send $ copyObject (BucketName b) (sb <> "/" <> sk) (ObjectKey dk)
      & coServerSideEncryption .~ Just sse & coMetadataDirective .~ Just Copy
 
-copyMultipart :: Address -> Address -> Int -> Int -> Int -> AWS ()
+copyMultipart :: Address -> Address -> Int -> Int -> Int -> EitherT CopyError AWS ()
 copyMultipart source dest size chunk fork = do
-  mpu <- createMultipartUpload dest -- target
   e <- ask
+  mpu <- lift $ createMultipartUpload dest -- target
 
   let chunks = calculateChunksCapped size chunk 4096
 
@@ -212,24 +205,25 @@ copyMultipart source dest size chunk fork = do
     consume (forM_ chunks . writeQueue) fork $ multipartCopyWorker e mpu source dest
 
   let abort =
-        abortMultipart' dest mpu
+        lift $ abortMultipart' dest mpu
 
   case r of
     Left f ->
       abort >>
-        fail ("multipart copy failed in worker: " <> show f)
+        (left $ MultipartCopyError f)
 
-    Right prts -> do
-      -- Sort is required here because the completeMultipartUpload api expects an
-      -- ascending list of part id's
-      let z = sortOn (\(PartResponse i _) -> i) $ snd prts
-          l = (\(PartResponse i etag) -> completedPart i etag) <$> z
-          ncps = NEL.nonEmpty l
-
+    Right prts ->
       flip onException abort $
         void . send $ fencode' A.completeMultipartUpload dest mpu &
-          cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
+          cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ sortPartResponse (snd prts))
 
+-- Sort is required here because the completeMultipartUpload api expects an
+-- ascending list of part id's
+sortPartResponse :: [PartResponse] -> Maybe (NEL.NonEmpty A.CompletedPart)
+sortPartResponse prts =
+ let z = sortOn (\(PartResponse i _) -> i) prts
+     l = (\(PartResponse i etag) -> completedPart i etag) <$> z
+ in NEL.nonEmpty l
 
 multipartCopyWorker :: Env -> Text -> Address -> Address -> (Int, Int, Int) -> IO (Either Error PartResponse)
 multipartCopyWorker e mpu source dest (o, c, i) = do
@@ -254,10 +248,10 @@ createMultipartUpload a = do
   mpu <- send $ fencode' A.createMultipartUpload a & cmuServerSideEncryption .~ Just sse
   maybe (throwM . Invariant $ "MultipartUpload: missing 'UploadId'") pure (mpu ^. cmursUploadId)
 
-move :: Address -> Address -> AWS ()
+move :: Address -> Address -> EitherT CopyError AWS ()
 move source destination' =
   copy source destination' >>
-    delete source
+    lift (delete source)
 
 upload :: FilePath -> Address -> EitherT UploadError AWS ()
 upload =
@@ -305,9 +299,6 @@ uploadSingle file a = do
   rq <- N.chunkedFile (ChunkSize $ 1024 * 1024) file
   void . send $ fencode' putObject a rq & poServerSideEncryption .~ pure sse
 
-data PartResponse =
-  PartResponse !Int !ETag
-
 multipartUpload :: FilePath -> Address -> Integer -> Integer -> Int -> EitherT UploadError AWS ()
 multipartUpload file a fileSize chunk fork = do
   e <- ask
@@ -325,16 +316,10 @@ multipartUpload file a fileSize chunk fork = do
       abort >>
         (left $ MultipartUploadError f)
 
-    Right prts -> do
-      -- Sort is required here because the completeMultipartUpload api expects an
-      -- ascending list of part id's
-      let z = sortOn (\(PartResponse i _) -> i) $ snd prts
-          l = (\(PartResponse i etag) -> completedPart i etag) <$> z
-          ncps = NEL.nonEmpty l
-
+    Right prts ->
       flip onException abort $
         void . send $ fencode' A.completeMultipartUpload a mpu &
-          cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ ncps)
+          cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ sortPartResponse (snd prts))
 
 
 multipartUploadWorker :: Env -> Text -> FilePath -> Address -> (Int, Int, Int) -> IO (Either Error PartResponse)
@@ -355,7 +340,6 @@ multipartUploadWorker e mpu file a (o, c, i) =
       Right z -> do
         m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ z ^. uprsETag
         pure $! Right $! PartResponse i m
-
 
 
 write :: Address -> Text -> AWS WriteResult
@@ -448,21 +432,6 @@ liftAddressAndPrefix a =
   | otherwise          = k <> "/"
 
 
-data DownloadError =
-    DownloadSourceMissing Address
-  | DownloadDestinationExists FilePath
-  | MultipartError (RunError Error)
-  deriving Show
-
-renderDownloadError :: DownloadError -> Text
-renderDownloadError d =
-  case d of
-    DownloadSourceMissing a ->
-      "Can not download when the source object does not exist [" <> addressToText a <> "]"
-    DownloadDestinationExists f ->
-      "Can not download to a target that already exists [" <> T.pack f <> "]"
-    MultipartError r ->
-      "Multipart download error: " <> renderRunError r renderError
 
 download :: Address -> FilePath -> EitherT DownloadError AWS ()
 download =
@@ -588,39 +557,15 @@ syncWithMode mode source dest fork = do
 
 
 
-newtype SyncError =
-  SyncError (RunError SyncWorkerError) deriving Show
-
-renderSyncError :: SyncError -> Text
-renderSyncError (SyncError r) =
-  renderRunError r renderSyncWorkerError
-
-data SyncWorkerError =
-   SyncInvariant Address Address
- | OutputExists Address
- | SyncAws Error
- deriving Show
-
-renderSyncWorkerError :: SyncWorkerError -> Text
-renderSyncWorkerError w =
-  case w of
-    SyncInvariant a b ->
-      "Remove common prefix invariant: " <>
-      "[" <> addressToText b <> "] is not a common prefix of " <>
-      "[" <> addressToText a <> "]"
-    OutputExists a ->
-      "Can not copy to an address that already exists [" <> addressToText a <> "]"
-    SyncAws e ->
-      "AWS failure during 'sync': " <> renderError e
-
 worker :: Address -> Address -> SyncMode -> Env -> Address -> IO (Either SyncWorkerError ())
 worker input output mode env f = runEitherT . runAWST env SyncAws $ do
   n <- maybe (left $ SyncInvariant input f) right $ removeCommonPrefix input f
   let out = withKey (// n) output
-      cp = lift $ copy f out
+      liftCopy = bimapEitherT SyncCopyError id
+      cp = liftCopy $ copy f out
   foldSyncMode
     (ifM (lift $ exists out) (left $ OutputExists out) cp)
-    (lift $ copyWithMode Overwrite f out)
+    (liftCopy $ copyWithMode Overwrite f out)
     (ifM (lift $ exists out) (right ()) cp)
     mode
 
