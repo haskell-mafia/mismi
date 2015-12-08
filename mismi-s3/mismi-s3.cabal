@@ -80,7 +80,7 @@ executable s3
                      , ambiata-x-optparse
                      , ambiata-x-eithert
                      , filepath
-                     , optparse-applicative            == 0.11.*
+                     , optparse-applicative            >= 0.11 && < 0.13
                      , transformers
                      , conduit
                      , unix

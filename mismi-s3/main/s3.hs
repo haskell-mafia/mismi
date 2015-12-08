@@ -11,8 +11,9 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString as BS
+import           Data.String (String)
 import           Data.Text.IO (putStrLn, hPutStrLn)
-import           Data.Text hiding (copy)
+import           Data.Text hiding (copy, isPrefixOf, filter)
 
 import           Mismi.Environment
 import           Mismi.S3
@@ -28,7 +29,7 @@ import           System.Posix.Signals
 import           System.Posix.Process
 
 import           X.Control.Monad.Trans.Either.Exit
-import           X.Control.Monad.Trans.Either (EitherT, eitherT)
+import           X.Control.Monad.Trans.Either (EitherT, eitherT, runEitherT, firstEitherT)
 import           X.Options.Applicative
 
 data Recursive =
@@ -164,11 +165,13 @@ address' :: Parser Address
 address' = argument (pOption s3Parser) $
      metavar "S3URI"
   <> help "An s3 uri, i.e. s3://bucket/prefix/key"
+  <> completer addressCompleter
 
 filepath' :: Parser FilePath
 filepath' = strArgument $
      metavar "FILEPATH"
   <> help "Absolute file path, i.e. /tmp/fred"
+  <> action "file"
 
 text' :: Parser Text
 text' = pack <$> (strArgument $
@@ -193,3 +196,24 @@ fork' = option auto $
   <> metavar "INT"
   <> help "Number of threads to fork CopyObject call by."
   <> value 8
+
+addressCompleter :: Completer
+addressCompleter = mkCompleter $ \s -> do
+  res <- runEitherT (go s)
+  case res of
+    Left   _ -> pure []
+    Right xs -> pure xs
+  where
+    go :: String -> EitherT () IO [String]
+    go s = do
+      e <- forget discoverAWSEnv
+      forget $ runAWS e $ do
+        x <- case addressFromText (pack s) of
+          Nothing ->
+            pure []
+          Just a ->
+            let a' = withKey dirname a
+            in  fmap (unpack . addressToText) <$> list a'
+        let x' = filter (isPrefixOf s) x
+        pure x'
+    forget = firstEitherT (const ())
