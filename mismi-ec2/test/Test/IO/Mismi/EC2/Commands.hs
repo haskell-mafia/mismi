@@ -6,6 +6,7 @@ module Test.IO.Mismi.EC2.Commands where
 import           Data.Maybe
 
 import           Mismi.EC2.Commands
+import           Mismi.EC2.Data
 
 import           P
 

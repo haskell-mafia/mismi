@@ -4,12 +4,11 @@ module Mismi.EC2.Data (
     InstanceId (..)
   , UserData (..)
   , VirtualizationType (..)
+  , SecurityGroupName(..)
+  , SecurityGroupId(..)
   , renderVirtualization
   , renderVirtualizationAws
   , parseVirtualization
-
-  , SecurityGroupName(..)
-  , SecurityGroupId(..)
   ) where
 
 import           Data.Text

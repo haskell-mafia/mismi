@@ -6,6 +6,7 @@ module Mismi.Amazonka (
   ) where
 
 import           Network.AWS as A
+import           Network.AWS.Auth as A
 import           Network.AWS.Data as A
 import           Network.AWS.Error as A
 import           Network.AWS.Waiter as A

@@ -36,6 +36,7 @@ module Mismi.S3.Data (
   , renderUploadError
   , renderSyncError
   , renderSyncWorkerError
+  , sse
   ) where
 
 import           Control.Exception.Base
@@ -51,7 +52,7 @@ import           Data.Typeable
 import           P
 
 import           Mismi (Error, renderError)
-import           Network.AWS.S3 (ETag)
+import           Network.AWS.S3 (ETag, ServerSideEncryption (..))
 
 import           System.FilePath (FilePath)
 
@@ -324,3 +325,7 @@ s3Parser'' = do
   b <- takeWhile (/= '/')
   endOfInput
   pure $ Address (Bucket b) (Key "")
+
+sse :: ServerSideEncryption
+sse =
+  AES256

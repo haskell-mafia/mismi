@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 module Mismi.S3.Internal (
-    fencode'
+    f'
   , calculateChunks
   , calculateChunksCapped
   , bytesRange
@@ -41,8 +41,8 @@ import           System.FilePath
 import           Twine.Data
 
 
-fencode' :: (BucketName -> ObjectKey -> a) -> Address -> a
-fencode' f (Address (Bucket b) k) =
+f' :: (BucketName -> ObjectKey -> a) -> Address -> a
+f' f (Address (Bucket b) k) =
   BucketName b `f` ObjectKey (unKey k)
 
 
