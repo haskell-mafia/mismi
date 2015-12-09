@@ -47,10 +47,17 @@ f' f (Address (Bucket b) k) =
 
 calculateChunksCapped :: Int -> Int -> Int -> [(Int, Int, Int)]
 calculateChunksCapped size chunk' capped =
-  let s = calculateChunks size chunk' in
-  if length s > capped
-    then calculateChunksCapped size (chunk' * 2) capped
-    else s
+  calculateChunks size cappedChunk
+  where
+    minChunk = ceiling $ size' / capped'
+
+    cappedChunk = max chunk' minChunk
+
+    size' :: Double
+    size' = fromIntegral size
+
+    capped' :: Double
+    capped' = fromIntegral capped
 
 -- filesize -> Chunk -> [(offset, chunk, index)]
 calculateChunks :: Int -> Int -> [(Int, Int, Int)]
