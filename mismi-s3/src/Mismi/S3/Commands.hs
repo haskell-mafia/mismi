@@ -32,7 +32,9 @@ module Mismi.S3.Commands (
   , list
   , list'
   , download
+  , downloadOrFail
   , downloadWithMode
+  , downloadWithModeOrFail
   , downloadSingle
   , downloadWithRange
   , multipartDownload
@@ -50,6 +52,8 @@ module Mismi.S3.Commands (
   , syncWithMode
   , createMultipartUpload
   , grantReadAccess
+  , hoistUploadError
+  , hoistDownloadError
   ) where
 
 import           Control.Arrow ((***))
@@ -237,14 +241,14 @@ upload =
 
 uploadOrFail :: FilePath -> Address -> AWS ()
 uploadOrFail f a =
-  eitherT liftUploadError pure $ upload f a
+  eitherT hoistUploadError pure $ upload f a
 
 uploadWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
 uploadWithModeOrFail w f a =
-  eitherT liftUploadError pure $ uploadWithMode w f a
+  eitherT hoistUploadError pure $ uploadWithMode w f a
 
-liftUploadError :: UploadError -> AWS ()
-liftUploadError e =
+hoistUploadError :: UploadError -> AWS ()
+hoistUploadError e =
   case e of
     UploadSourceMissing f ->
       throwM $ SourceFileMissing f
@@ -415,9 +419,25 @@ liftAddressAndPrefix a =
   | T.isSuffixOf "/" k = k
   | otherwise          = k <> "/"
 
+hoistDownloadError :: DownloadError -> AWS ()
+hoistDownloadError e =
+  case e of
+    DownloadSourceMissing a ->
+      throwM $ SourceMissing DownloadError a
+    DownloadDestinationExists f ->
+      throwM $ DestinationFileExists f
+    MultipartError (WorkerError a) ->
+      throwM a
+    MultipartError (BlowUpError a) ->
+      throwM a
+
 download :: Address -> FilePath -> EitherT DownloadError AWS ()
 download =
   downloadWithMode Fail
+
+downloadOrFail :: Address -> FilePath -> AWS ()
+downloadOrFail a f =
+  eitherT hoistDownloadError pure $ download a f
 
 downloadWithMode :: WriteMode -> Address -> FilePath -> EitherT DownloadError AWS ()
 downloadWithMode mode a f = do
@@ -430,6 +450,10 @@ downloadWithMode mode a f = do
   if (size > 200 * 1024 * 1024)
     then multipartDownload a f size 100 100
     else downloadSingle a f
+
+downloadWithModeOrFail :: WriteMode -> Address -> FilePath -> AWS ()
+downloadWithModeOrFail m a f =
+  eitherT hoistDownloadError pure $ downloadWithMode m a f
 
 downloadSingle :: Address -> FilePath -> EitherT DownloadError AWS ()
 downloadSingle a f = do
