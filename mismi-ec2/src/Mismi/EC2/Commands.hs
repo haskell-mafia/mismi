@@ -1,12 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.EC2.Commands (
-    module X
-  , findSecurityGroupByName
+    findSecurityGroupByName
   ) where
 
 import           Mismi.Amazonka
-import           Mismi.EC2.Data as X
+import           Mismi.EC2.Data
 
 import           Mismi.EC2.Amazonka
 
