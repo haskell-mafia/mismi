@@ -21,9 +21,9 @@ library
                      , ambiata-x-exception
                      , ambiata-twine
                      , template-haskell
-                     , amazonka                        == 1.3.2.1
-                     , amazonka-core                   == 1.3.2
-                     , amazonka-s3                     == 1.3.2
+                     , amazonka                        == 1.3.6
+                     , amazonka-core                   == 1.3.6
+                     , amazonka-s3                     == 1.3.6
                      , bytestring                      == 0.10.*
                      , bifunctors                      == 4.2.*
                      , conduit                         == 1.2.*
@@ -43,7 +43,7 @@ library
                      , attoparsec                      == 0.12.*
                      , unix                            == 2.7.*
                      , async                           == 2.0.*
-                     , retry                           == 0.6.*
+                     , retry                           == 0.7.*
                      , lens                            >= 4.8        && < 4.10
                      , SafeSemaphore                   == 0.10.*
                      , unix-bytestring                 == 0.3.7.*

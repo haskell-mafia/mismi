@@ -4,6 +4,8 @@ module Mismi.EC2.Commands (
     findSecurityGroupByName
   ) where
 
+import           Control.Lens (view)
+
 import           Mismi.Amazonka
 import           Mismi.EC2.Data
 

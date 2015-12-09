@@ -22,7 +22,7 @@ import           Control.Monad.Trans.AWS (Credentials(..), Region(..))
 import           Control.Monad.Trans.AWS (Env, newEnv, envLogger)
 import           Control.Monad.Trans.AWS (Logger, LogLevel(..), newLogger)
 import           Control.Monad.Trans.Class (lift)
-import           Control.Retry (RetryPolicy, recovering, constantDelay, limitRetries)
+import           Control.Retry (RetryPolicyM, recovering, constantDelay, limitRetries)
 
 import           Data.Text (Text)
 import qualified Data.Text as T
@@ -92,15 +92,15 @@ discoverAWSEnvWithRegion :: Region -> IO Env
 discoverAWSEnvWithRegion r =
   flip discoverAWSEnvWithRegionRetry r $ limitRetries 1 <> constantDelay 200000
 
-discoverAWSEnvRetry :: RetryPolicy -> EitherT RegionError IO Env
+discoverAWSEnvRetry :: RetryPolicyM IO -> EitherT RegionError IO Env
 discoverAWSEnvRetry retry = do
   r <- getRegionFromEnv
   lift $ discoverAWSEnvWithRegionRetry retry r
 
-discoverAWSEnvWithRegionRetry :: RetryPolicy -> Region -> IO Env
+discoverAWSEnvWithRegionRetry :: RetryPolicyM IO -> Region -> IO Env
 discoverAWSEnvWithRegionRetry rpol r = do
   d <- getDebugging
-  e <- recovering rpol [(\_ -> Handler catchAuthError)] $ newEnv r Discover
+  e <- recovering rpol [(\_ -> Handler catchAuthError)] $ \_ -> newEnv r Discover
   pure $ setDebugging d e
   where
     catchAuthError :: AuthError -> IO Bool
