@@ -5,10 +5,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Mismi.S3.Commands (
-    module Mismi.Control
-  , DownloadError (..)
-  , renderDownloadError
-  , headObject
+    headObject
   , exists
   , existsPrefix
   , getSize
@@ -53,7 +50,6 @@ module Mismi.S3.Commands (
   , syncWithMode
   , createMultipartUpload
   , grantReadAccess
-  , sse
   ) where
 
 import           Control.Arrow ((***))
@@ -80,8 +76,8 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, addUTCTime)
 
+import           Mismi.Amazonka (Env, send, paginate)
 import           Mismi.Control
-import           Mismi.S3.Amazonka (Env, send, paginate)
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 import qualified Mismi.S3.Patch.Network as N
@@ -91,29 +87,11 @@ import           Network.AWS.Data.Body (RqBody (..), RsBody (..), toBody)
 import           Network.AWS.Data.Body (ChunkedBody (..), ChunkSize (..))
 import           Network.AWS.Data.Text (toText)
 import           Network.AWS.S3 (BucketName (..))
-import           Network.AWS.S3 (GetObjectResponse, gorsBody)
-import           Network.AWS.S3 (HeadObjectResponse, horsContentLength)
-import           Network.AWS.S3 (ListObjects, loPrefix, loDelimiter, loMarker)
-import           Network.AWS.S3 (ListObjectsResponse, lorsContents, lorsCommonPrefixes)
-import           Network.AWS.S3 (lorsIsTruncated, lorsNextMarker)
+import           Network.AWS.S3 (GetObjectResponse, HeadObjectResponse)
+import           Network.AWS.S3 (ListObjects, ListObjectsResponse)
 import           Network.AWS.S3 (MetadataDirective (..))
-import           Network.AWS.S3 (MultipartUpload, muKey, muUploadId, muInitiated)
-import           Network.AWS.S3 (Object, oKey)
-import           Network.AWS.S3 (ObjectKey (..))
-import           Network.AWS.S3 (Part)
-import           Network.AWS.S3 (ServerSideEncryption (..))
-import           Network.AWS.S3 (cMultipartUpload)
-import           Network.AWS.S3 (cmuParts, cmuServerSideEncryption)
-import           Network.AWS.S3 (cmursUploadId)
-import           Network.AWS.S3 (coMetadataDirective, coServerSideEncryption)
-import           Network.AWS.S3 (cpPrefix)
-import           Network.AWS.S3 (goRange)
-import           Network.AWS.S3 (lmursUploads)
-import           Network.AWS.S3 (lprsParts)
-import           Network.AWS.S3 (poServerSideEncryption)
-import           Network.AWS.S3 (uprsETag)
-import           Network.AWS.S3 (completedMultipartUpload, completedPart)
-import           Network.AWS.S3 (getObject, putObject, copyObject, deleteObject)
+import           Network.AWS.S3 (MultipartUpload, Part)
+import           Network.AWS.S3 (Object, ObjectKey (..))
 import qualified Network.AWS.S3 as A
 
 import           P
@@ -135,7 +113,7 @@ import qualified X.Data.Conduit.Binary as XB
 
 headObject :: Address -> AWS (Maybe HeadObjectResponse)
 headObject a =
-  handle404 . send . fencode' A.headObject $ a
+  handle404 . send . f' A.headObject $ a
 
 exists :: Address -> AWS Bool
 exists a =
@@ -150,15 +128,15 @@ existsPrefix (Address (Bucket b) (Key k)) =
 
 getSize :: Address -> AWS (Maybe Int)
 getSize a =
-  headObject a >>= pure . maybe Nothing (^. horsContentLength)
+  headObject a >>= pure . maybe Nothing (^. A.horsContentLength)
 
 delete :: Address -> AWS ()
 delete =
-  void . send . fencode' deleteObject
+  void . send . f' A.deleteObject
 
 getObject' :: Address -> AWS (Maybe GetObjectResponse)
 getObject' =
-  handle404 . send . fencode' getObject
+  handle404 . send . f' A.getObject
 
 read :: Address -> AWS (Maybe Text)
 read a = do
@@ -169,7 +147,7 @@ read a = do
 read' :: Address -> AWS (Maybe (ResumableSource (ResourceT IO) BS.ByteString))
 read' a = do
   r <- getObject' a
-  pure $ fmap (^. gorsBody . to _streamBody) r
+  pure $ fmap (^. A.gorsBody . to _streamBody) r
 
 copy :: Address -> Address -> EitherT CopyError AWS ()
 copy s d =
@@ -191,8 +169,8 @@ copyWithMode mode s d = do
 
 copySingle :: Address -> Address -> AWS ()
 copySingle (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key dk)) =
-  void . send $ copyObject (BucketName b) (sb <> "/" <> sk) (ObjectKey dk)
-     & coServerSideEncryption .~ Just sse & coMetadataDirective .~ Just Copy
+  void . send $ A.copyObject (BucketName b) (sb <> "/" <> sk) (ObjectKey dk)
+     & A.coServerSideEncryption .~ Just sse & A.coMetadataDirective .~ Just Copy
 
 copyMultipart :: Address -> Address -> Int -> Int -> Int -> EitherT CopyError AWS ()
 copyMultipart source dest size chunk fork = do
@@ -214,15 +192,15 @@ copyMultipart source dest size chunk fork = do
 
     Right prts ->
       flip onException abort $
-        void . send $ fencode' A.completeMultipartUpload dest mpu &
-          cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ sortPartResponse (snd prts))
+        void . send $ f' A.completeMultipartUpload dest mpu &
+          A.cMultipartUpload .~ pure (A.completedMultipartUpload & A.cmuParts .~ sortPartResponse (snd prts))
 
 -- Sort is required here because the completeMultipartUpload api expects an
 -- ascending list of part id's
 sortPartResponse :: [PartResponse] -> Maybe (NEL.NonEmpty A.CompletedPart)
 sortPartResponse prts =
  let z = sortOn (\(PartResponse i _) -> i) prts
-     l = (\(PartResponse i etag) -> completedPart i etag) <$> z
+     l = (\(PartResponse i etag) -> A.completedPart i etag) <$> z
  in NEL.nonEmpty l
 
 multipartCopyWorker :: Env -> Text -> Address -> Address -> (Int, Int, Int) -> IO (Either Error PartResponse)
@@ -245,8 +223,8 @@ multipartCopyWorker e mpu source dest (o, c, i) = do
 
 createMultipartUpload :: Address -> AWS Text
 createMultipartUpload a = do
-  mpu <- send $ fencode' A.createMultipartUpload a & cmuServerSideEncryption .~ Just sse
-  maybe (throwM . Invariant $ "MultipartUpload: missing 'UploadId'") pure (mpu ^. cmursUploadId)
+  mpu <- send $ f' A.createMultipartUpload a & A.cmuServerSideEncryption .~ Just sse
+  maybe (throwM . Invariant $ "MultipartUpload: missing 'UploadId'") pure (mpu ^. A.cmursUploadId)
 
 move :: Address -> Address -> EitherT CopyError AWS ()
 move source destination' =
@@ -297,7 +275,7 @@ uploadWithMode m f a = do
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
   rq <- N.chunkedFile (ChunkSize $ 1024 * 1024) file
-  void . send $ fencode' putObject a rq & poServerSideEncryption .~ pure sse
+  void . send $ f' A.putObject a rq & A.poServerSideEncryption .~ pure sse
 
 multipartUpload :: FilePath -> Address -> Integer -> Integer -> Int -> EitherT UploadError AWS ()
 multipartUpload file a fileSize chunk fork = do
@@ -318,8 +296,8 @@ multipartUpload file a fileSize chunk fork = do
 
     Right prts ->
       flip onException abort $
-        void . send $ fencode' A.completeMultipartUpload a mpu &
-          cMultipartUpload .~ pure (completedMultipartUpload & cmuParts .~ sortPartResponse (snd prts))
+        void . send $ f' A.completeMultipartUpload a mpu &
+          A.cMultipartUpload .~ pure (A.completedMultipartUpload & A.cmuParts .~ sortPartResponse (snd prts))
 
 
 multipartUploadWorker :: Env -> Text -> FilePath -> Address -> (Int, Int, Int) -> IO (Either Error PartResponse)
@@ -330,7 +308,7 @@ multipartUploadWorker e mpu file a (o, c, i) =
           cl = toInteger c
           b = XB.slurpHandle h (toInteger o) (Just $ toInteger c)
           cb = ChunkedBody cs cl b
-      return . fencode' A.uploadPart a i mpu $ Chunked cb
+      return . f' A.uploadPart a i mpu $ Chunked cb
 
     r <- runEitherT . runAWS e $ send req'
     case r of
@@ -338,7 +316,7 @@ multipartUploadWorker e mpu file a (o, c, i) =
         pure $! Left z
 
       Right z -> do
-        m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ z ^. uprsETag
+        m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ z ^. A.uprsETag
         pure $! Right $! PartResponse i m
 
 
@@ -366,43 +344,43 @@ writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
   case w of
     Fail -> whenM (lift $ exists a) . left $ WriteDestinationExists a
     Overwrite -> return ()
-  void . lift . send $ fencode' putObject a (toBody . T.encodeUtf8 $ t) & poServerSideEncryption .~ Just sse
+  void . lift . send $ f' A.putObject a (toBody . T.encodeUtf8 $ t) & A.poServerSideEncryption .~ Just sse
 
 -- pair of prefixs and keys
 getObjects :: Address -> AWS ([Key], [Key])
 getObjects (Address (Bucket buck) (Key ky)) =
-  ((Key <$>) *** ((\(ObjectKey t) -> Key t) <$>)) <$> ff (A.listObjects (BucketName buck) & loPrefix .~ Just ((+/) ky) & loDelimiter .~ Just '/' )
+  ((Key <$>) *** ((\(ObjectKey t) -> Key t) <$>)) <$> ff (A.listObjects (BucketName buck) & A.loPrefix .~ Just ((+/) ky) & A.loDelimiter .~ Just '/' )
   where
     ff :: ListObjects -> AWS ([T.Text], [ObjectKey])
     ff b = do
       r <- send b
-      if r ^. lorsIsTruncated == Just True
+      if r ^. A.lorsIsTruncated == Just True
         then
         do
-          let d = (maybeToList =<< fmap (^. cpPrefix) (r ^. lorsCommonPrefixes), fmap (^. oKey) (r ^. lorsContents))
-          n <- ff $ b & loMarker .~ (r ^. lorsNextMarker)
+          let d = (maybeToList =<< fmap (^. A.cpPrefix) (r ^. A.lorsCommonPrefixes), fmap (^. A.oKey) (r ^. A.lorsContents))
+          n <- ff $ b & A.loMarker .~ (r ^. A.lorsNextMarker)
           pure $ d <> n
         else
-        pure (maybeToList =<< fmap (^. cpPrefix) (r ^. lorsCommonPrefixes), fmap (^. oKey) (r ^. lorsContents))
+        pure (maybeToList =<< fmap (^. A.cpPrefix) (r ^. A.lorsCommonPrefixes), fmap (^. A.oKey) (r ^. A.lorsContents))
 
 getObjectsRecursively :: Address -> AWS [Object]
 getObjectsRecursively (Address (Bucket b) (Key ky)) =
-  getObjects' $ A.listObjects (BucketName b) & loPrefix .~ Just ((+/) ky)
+  getObjects' $ A.listObjects (BucketName b) & A.loPrefix .~ Just ((+/) ky)
   where
     -- Hoping this will have ok performance in cases where the results are large, it shouldnt
     -- affect correctness since we search through the list for it anyway
-    go x ks = (NEL.toList ks <>) <$> getObjects' (x & loMarker .~ Just (toText $ NEL.last ks ^. oKey))
+    go x ks = (NEL.toList ks <>) <$> getObjects' (x & A.loMarker .~ Just (toText $ NEL.last ks ^. A.oKey))
     getObjects' :: ListObjects -> AWS [Object]
     getObjects' x = do
       resp <- send x
-      if resp ^. lorsIsTruncated == Just True
+      if resp ^. A.lorsIsTruncated == Just True
         then
           maybe
             (throwM . Invariant $ "Truncated response with empty contents list.")
             (go x)
-            (NEL.nonEmpty $ resp ^. lorsContents)
+            (NEL.nonEmpty $ resp ^. A.lorsContents)
         else
-          pure $ resp ^. lorsContents
+          pure $ resp ^. A.lorsContents
 
 -- Pair of list of prefixes and list of keys
 listObjects :: Address -> AWS ([Address], [Address])
@@ -415,14 +393,20 @@ list a =
 
 list' :: Address -> Source AWS Address
 list' a@(Address (Bucket b) (Key k)) =
-  paginate (A.listObjects (BucketName b) & loPrefix .~ Just ((+/) k) & loDelimiter .~ Just '/') =$= liftAddressAndPrefix a
+  let run s = s =$= liftAddressAndPrefix a
+  in run . paginate $
+    A.listObjects (BucketName b)
+      & A.loPrefix .~ Just ((+/) k)
+      & A.loDelimiter .~ Just '/'
 
 liftAddressAndPrefix :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddressAndPrefix a =
   DC.mapFoldable (\r ->
-       fmap (\o -> let ObjectKey t = o ^. oKey in a { key = Key t })(r ^. lorsContents)
-    <> join (traverse (\cp -> maybeToList .fmap (\cp' -> a { key = Key cp' }) $ cp ^. cpPrefix) (r ^. lorsCommonPrefixes))
-  )
+       fmap (\o ->
+         let ObjectKey t = o ^. A.oKey
+         in a { key = Key t }) (r ^. A.lorsContents)
+    <> join (forM (r ^. A.lorsCommonPrefixes) $ \cp ->
+         maybeToList . fmap (\cp' -> a { key = Key cp' }) $ cp ^. A.cpPrefix))
 
 -- | add a "/" at the end of some text if missing and if the text is not empty
 (+/) :: Text -> Text
@@ -430,8 +414,6 @@ liftAddressAndPrefix a =
   | T.null k           = ""
   | T.isSuffixOf "/" k = k
   | otherwise          = k <> "/"
-
-
 
 download :: Address -> FilePath -> EitherT DownloadError AWS ()
 download =
@@ -453,7 +435,7 @@ downloadSingle :: Address -> FilePath -> EitherT DownloadError AWS ()
 downloadSingle a f = do
   r <- (lift $ getObject' a) >>= maybe (left $ DownloadSourceMissing a) right
   liftIO . withFileSafe f $ \p ->
-    runResourceT . ($$+- sinkFile p) $ r ^. gorsBody ^. to _streamBody
+    runResourceT . ($$+- sinkFile p) $ r ^. A.gorsBody ^. to _streamBody
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> EitherT DownloadError AWS ()
 multipartDownload source destination size chunk fork = bimapEitherT MultipartError id $ do
@@ -469,8 +451,8 @@ multipartDownload source destination size chunk fork = bimapEitherT MultipartErr
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange a start end dest = do
-  r <- send $ fencode' getObject a &
-    goRange .~ (Just $ bytesRange start end)
+  r <- send $ f' A.getObject a &
+    A.goRange .~ (Just $ bytesRange start end)
 
   -- write to file
   liftIO $ do
@@ -482,15 +464,15 @@ downloadWithRange a start end dest = do
     closeFd fd
 
 
-listMultipartParts :: Address -> T.Text -> AWS [Part]
+listMultipartParts :: Address -> Text -> AWS [Part]
 listMultipartParts a uploadId = do
-  let req = fencode' A.listParts a uploadId
-  paginate req $$ DC.foldMap (^. lprsParts)
+  let req = f' A.listParts a uploadId
+  paginate req $$ DC.foldMap (^. A.lprsParts)
 
 listMultiparts :: Bucket -> AWS [MultipartUpload]
 listMultiparts (Bucket bn) = do
   let req = A.listMultipartUploads $ BucketName bn
-  paginate req $$ DC.foldMap (^. lmursUploads)
+  paginate req $$ DC.foldMap (^. A.lmursUploads)
 
 listOldMultiparts :: Bucket -> AWS [MultipartUpload]
 listOldMultiparts b = do
@@ -508,7 +490,7 @@ filterOld :: UTCTime -> MultipartUpload -> Bool
 filterOld = filterNDays 7
 
 filterNDays :: Int -> UTCTime -> MultipartUpload -> Bool
-filterNDays n now m = case m ^. muInitiated of
+filterNDays n now m = case m ^. A.muInitiated of
   Nothing -> False
   Just x -> nDaysOld n now x
 
@@ -521,13 +503,13 @@ nDaysOld n now utc = do
 
 abortMultipart :: Bucket -> MultipartUpload -> AWS ()
 abortMultipart (Bucket b) mu = do
-  (ObjectKey k) <- maybe (throwM $ Invariant "Multipart key missing") pure (mu ^. muKey)
-  i <- maybe (throwM $ Invariant "Multipart uploadId missing") pure (mu ^. muUploadId)
+  (ObjectKey k) <- maybe (throwM $ Invariant "Multipart key missing") pure (mu ^. A.muKey)
+  i <- maybe (throwM $ Invariant "Multipart uploadId missing") pure (mu ^. A.muUploadId)
   abortMultipart' (Address (Bucket b) (Key k)) i
 
 abortMultipart' :: Address -> Text -> AWS ()
 abortMultipart' a i =
-  void . send $ fencode' A.abortMultipartUpload a i
+  void . send $ f' A.abortMultipartUpload a i
 
 listRecursively :: Address -> AWS [Address]
 listRecursively a =
@@ -535,15 +517,15 @@ listRecursively a =
 
 listRecursively' :: Address -> Source AWS Address
 listRecursively' a@(Address (Bucket bn) (Key k)) =
-  paginate (A.listObjects (BucketName bn) & loPrefix .~ Just k) =$= liftAddress a
+  paginate (A.listObjects (BucketName bn) & A.loPrefix .~ Just k) =$= liftAddress a
 
 liftAddress :: Address -> Conduit ListObjectsResponse AWS Address
 liftAddress a =
-  DC.mapFoldable (\r -> (\o -> a { key = Key (let ObjectKey t = o ^. oKey in t) }) <$> (r ^. lorsContents) )
+  DC.mapFoldable (\r -> (\o -> a { key = Key (let ObjectKey t = o ^. A.oKey in t) }) <$> (r ^. A.lorsContents) )
 
 grantReadAccess :: Address -> ReadGrant -> AWS ()
 grantReadAccess a g =
-  void . send $ (fencode' P.putObjectACL a & P.poaGrantRead .~ Just (readGrant g))
+  void . send $ (f' P.putObjectACL a & P.poaGrantRead .~ Just (readGrant g))
 
 sync :: Address -> Address -> Int -> EitherT SyncError AWS ()
 sync =
@@ -554,8 +536,6 @@ syncWithMode mode source dest fork = do
   e <- ask
   bimapEitherT SyncError id . void . newEitherT . liftIO $
     (consume (sinkQueue e (listRecursively' source)) fork (worker source dest mode e))
-
-
 
 worker :: Address -> Address -> SyncMode -> Env -> Address -> IO (Either SyncWorkerError ())
 worker input output mode env f = runEitherT . runAWST env SyncAws $ do
@@ -568,7 +548,3 @@ worker input output mode env f = runEitherT . runAWST env SyncAws $ do
     (liftCopy $ copyWithMode Overwrite f out)
     (ifM (lift $ exists out) (right ()) cp)
     mode
-
-sse :: ServerSideEncryption
-sse =
-  AES256

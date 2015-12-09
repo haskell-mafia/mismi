@@ -27,7 +27,7 @@ import           X.Control.Monad.Trans.Either
 
 sendMultipart :: Text -> Address -> Int -> Text -> AWS ()
 sendMultipart t a i ui = do
-  let req = fencode' A.uploadPart a i ui (A.toBody $ encodeUtf8 t)
+  let req = f' A.uploadPart a i ui (A.toBody $ encodeUtf8 t)
   void $ A.send req
 
 withMultipart :: Testable a => (Address -> Text -> AWS a) -> Property

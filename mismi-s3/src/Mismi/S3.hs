@@ -1,4 +1,3 @@
--- | Import this module to use new `amazonka`-based Mismi
 module Mismi.S3 (
     module X
   ) where
