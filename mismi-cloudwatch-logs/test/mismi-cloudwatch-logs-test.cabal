@@ -1,4 +1,4 @@
-name:                  ambiata-mismi-cloudwatch-test
+name:                  ambiata-mismi-cloudwatch-logs-test
 version:               0.0.1
 cabal-version:         >= 1.8
 build-type:            Simple
@@ -6,6 +6,6 @@ build-type:            Simple
 library
   build-depends:
                        base
-                     , ambiata-mismi-cloudwatch
+                     , ambiata-mismi-cloudwatch-logs
 
   exposed-modules:
