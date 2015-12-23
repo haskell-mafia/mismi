@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.EC2.Config.Virtualization (
-    A.InstanceType
+    A.InstanceType (..)
   , virtualizationFor
   ) where
 
