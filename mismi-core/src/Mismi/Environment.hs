@@ -34,7 +34,7 @@ import           Network.AWS.Data (fromText)
 import           P
 
 import           System.Environment (lookupEnv)
-import           System.IO (IO, stdout)
+import           System.IO (IO, stderr)
 
 import           X.Control.Monad.Trans.Either (EitherT, left, right)
 
@@ -69,9 +69,9 @@ getDebugging = do
     (\s ->
       case T.pack s of
         "true" ->
-          return . DebugEnabled =<< newLogger Trace stdout
+          return . DebugEnabled =<< newLogger Trace stderr
         "1" ->
-          return . DebugEnabled =<< newLogger Trace stdout
+          return . DebugEnabled =<< newLogger Trace stderr
         _ ->
           return DebugDisabled)
     d
