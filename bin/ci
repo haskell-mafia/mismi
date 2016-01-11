@@ -13,9 +13,9 @@ else
     VERSION=$(date '+%Y%m%d%H%M%S')-$(git log --pretty=format:%h -n 1)
 fi
 
-aws s3 --region=ap-southeast-2 cp --recursive dist/doc/html/ambiata-$PROJECT/ s3://ambiata-doc/ambiata-$PROJECT-haddock/$VERSION
+aws s3 --region=ap-southeast-2 cp --recursive dist/doc/html/ambiata-$PROJECT/ ${AMBIATA_HADDOCK}/ambiata-$PROJECT-haddock/$VERSION
 
 if [ $PROJECT = "mismi-s3" ] ; then
-    aws s3 --region=ap-southeast-2 cp dist/build/s3/s3 s3://ambiata-dist/s3/linux/x86_64/$VERSION/s3-$VERSION
-    aws s3 --region=ap-southeast-2 cp dist/build/bench/bench s3://ambiata-dist-branches/s3-bench/linux/x86_64/$VERSION/s3-bench-$VERSION
+    aws s3 --region=ap-southeast-2 cp dist/build/s3/s3 ${AMBIATA_ARTEFACTS_MASTER}/s3/linux/x86_64/$VERSION/s3-$VERSION
+    aws s3 --region=ap-southeast-2 cp dist/build/bench/bench ${AMBIATA_BENCHMARK_RESULTS}/s3-bench/linux/x86_64/$VERSION/s3-bench-$VERSION
 fi
