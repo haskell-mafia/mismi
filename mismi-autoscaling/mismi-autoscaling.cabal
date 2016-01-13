@@ -47,5 +47,5 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-mismi-core
                      , ambiata-mismi-autoscaling
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*

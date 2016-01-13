@@ -50,7 +50,7 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-mismi-core
                      , ambiata-mismi-iam
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
 
 test-suite test-io
@@ -64,5 +64,5 @@ test-suite test-io
                      , ambiata-mismi-core-test
                      , ambiata-mismi-iam
                      , ambiata-p
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*

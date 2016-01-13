@@ -53,7 +53,7 @@ test-suite test
                      , ambiata-p
                      , ambiata-mismi-core
                      , ambiata-mismi-ec2
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
 
 
@@ -68,5 +68,5 @@ test-suite test-io
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-ec2
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*

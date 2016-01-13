@@ -111,7 +111,7 @@ test-suite test
                      , http-client
                      , lens
                      , mtl                             >= 2.1        && < 2.3
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
                      , resourcet
                      , temporary                       == 1.2.*
@@ -149,7 +149,7 @@ test-suite test-io
                      , http-client
                      , lens
                      , mtl                             >= 2.1        && < 2.3
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
                      , resourcet
                      , temporary                       == 1.2.*
@@ -185,7 +185,7 @@ test-suite test-reliability
                      , http-client
                      , lens
                      , mtl                             >= 2.1        && < 2.3
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
                      , resourcet
                      , temporary                       == 1.2.*
