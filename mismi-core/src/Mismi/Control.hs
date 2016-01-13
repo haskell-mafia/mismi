@@ -29,7 +29,7 @@ module Mismi.Control (
   , configureRetries
   ) where
 
-import           Control.Lens
+import           Control.Lens ((.~), (^.), (^?), over)
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader

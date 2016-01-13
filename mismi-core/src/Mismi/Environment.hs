@@ -15,7 +15,7 @@ module Mismi.Environment (
   , discoverAWSEnvWithRegionRetry
   ) where
 
-import           Control.Lens ((.~), (&))
+import           Control.Lens ((.~))
 import           Control.Monad.Catch (MonadThrow(..), Handler(..))
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Trans.AWS (Credentials(..), Region(..))

@@ -4,7 +4,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Test.Mismi.S3.Commands where
 
-import           Control.Lens
+import           Control.Lens ((.~))
 
 import           Data.Time.Clock
 
