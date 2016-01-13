@@ -71,7 +71,7 @@ library
 executable s3
   main-is:             s3.hs
   ghc-options:         -Wall -threaded -O2
-  hs-source-dirs:      main
+  hs-source-dirs:      main, gen
   build-depends:       base
                      , exceptions
                      , ambiata-mismi-core
