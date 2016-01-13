@@ -33,7 +33,7 @@ library
                      , retry                           == 0.7.*
                      , template-haskell
                      , text                            == 1.2.*
-                     , time                            == 1.4.*
+                     , time                            >= 1.4        && < 1.6
                      , transformers                    >= 0.3.1      && < 0.5
                      , semigroups                      == 0.16.*
 
@@ -71,7 +71,7 @@ test-suite test
                      , temporary                       == 1.2.*
                      , text
                      , transformers
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
                      , uuid                            == 1.3.*
