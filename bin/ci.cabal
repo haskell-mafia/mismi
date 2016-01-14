@@ -11,15 +11,10 @@ git submodule update
 
 cd $PROJECT
 
-cabal sandbox delete
-
 ./mafia update
 ./mafia build
-cabal install
 
 (
     cd test && \
-    cabal sandbox init --sandbox ../.cabal-sandbox && \
-    cabal configure && \
-    cabal install
+    ../mafia build
 ) || exit $?
