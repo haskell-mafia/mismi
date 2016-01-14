@@ -12,7 +12,6 @@ module Mismi.SQS.Commands (
   ) where
 
 import           Control.Exception.Lens
-import           Control.Lens
 import           Control.Monad.Catch
 
 import           Data.Text as T

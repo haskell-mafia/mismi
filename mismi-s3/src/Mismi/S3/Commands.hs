@@ -58,7 +58,7 @@ module Mismi.S3.Commands (
 
 import           Control.Arrow ((***))
 
-import           Control.Lens ((&), (.~), (^.), to, view)
+import           Control.Lens ((.~), (^.), to, view)
 import           Control.Monad.Catch (throwM, onException)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
