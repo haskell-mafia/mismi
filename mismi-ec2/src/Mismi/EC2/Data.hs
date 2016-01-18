@@ -11,7 +11,7 @@ module Mismi.EC2.Data (
   , parseVirtualization
   ) where
 
-import           Data.Text
+import           Data.Text (Text)
 
 import           P
 

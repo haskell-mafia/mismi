@@ -37,8 +37,6 @@ library
 
   exposed-modules:
                        Mismi.IAM
-                       Mismi.IAM.Commands
-                       Mismi.IAM.Data
                        Mismi.IAM.Amazonka
 
 test-suite test
@@ -50,19 +48,5 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-mismi-core
                      , ambiata-mismi-iam
-                     , QuickCheck                      == 2.8.*
-                     , quickcheck-instances            == 0.3.*
-
-test-suite test-io
-  type:                exitcode-stdio-1.0
-  main-is:             test-io.hs
-  ghc-options:         -Wall -threaded -O2
-  hs-source-dirs:      test
-  build-depends:       base
-                     , ambiata-disorder-core
-                     , ambiata-mismi-core
-                     , ambiata-mismi-core-test
-                     , ambiata-mismi-iam
-                     , ambiata-p
                      , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*
