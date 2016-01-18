@@ -17,5 +17,5 @@ instance Arbitrary SecurityGroupName where
   arbitrary =
     elements . fmap SecurityGroupName $ [
       "default"
-    , "test.hub.db"
+    , "ci.ci.db"
     ]
