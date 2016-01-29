@@ -19,7 +19,7 @@ library
                      , resourcet                       == 1.1.*
                      , text                            == 1.2.*
                      , transformers                    >= 0.3        && < 0.5
-                     , QuickCheck                      == 2.8.*
+                     , QuickCheck                      >= 2.7        && < 2.9
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
                      , temporary                       == 1.2.*
