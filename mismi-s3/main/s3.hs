@@ -7,6 +7,7 @@ import           BuildInfo_ambiata_mismi_s3
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 
+import           Control.Concurrent (setNumCapabilities)
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
 
@@ -14,6 +15,8 @@ import qualified Data.ByteString as BS
 import           Data.String (String)
 import           Data.Text.IO (putStrLn, hPutStrLn)
 import           Data.Text hiding (copy, isPrefixOf, filter)
+
+import           GHC.Conc (getNumProcessors)
 
 import           Mismi.Environment
 import           Mismi.S3
@@ -63,6 +66,10 @@ main = do
   hSetBuffering stderr LineBuffering
   forM_ [sigINT, sigTERM, sigQUIT] $ \s ->
     installHandler s (Catch . void . exitImmediately $ ExitFailure 111) Nothing
+
+  -- set number of capabilities
+  numProcs <- liftIO $ getNumProcessors
+  liftIO $ setNumCapabilities numProcs
 
   dispatch mismi >>= \case
       VersionCommand ->
