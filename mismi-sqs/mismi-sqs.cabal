@@ -28,8 +28,8 @@ library
                      , resourcet                       == 1.1.*
                      , text                            == 1.2.*
                      , transformers                    >= 0.3.1      && < 0.5
-                     , lens                            >= 4.8        && < 4.10
-                     , unordered-containers            == 0.2.5.*
+                     , lens                            >= 4.8        && < 4.14
+                     , unordered-containers            >= 0.2.5      && < 0.3
                      , scientific                      == 0.3.3.*
 
 
