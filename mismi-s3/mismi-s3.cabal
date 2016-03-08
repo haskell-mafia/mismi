@@ -111,7 +111,7 @@ test-suite test
                      , http-client
                      , lens
                      , mtl                             >= 2.1        && < 2.3
-                     , QuickCheck                      == 2.8.*
+                     , QuickCheck                      >= 2.8.2      && < 2.9
                      , quickcheck-instances            == 0.3.*
                      , resourcet
                      , temporary                       == 1.2.*
@@ -149,7 +149,7 @@ test-suite test-io
                      , http-client
                      , lens
                      , mtl                             >= 2.1        && < 2.3
-                     , QuickCheck                      == 2.8.*
+                     , QuickCheck                      >= 2.8.2      && < 2.9
                      , quickcheck-instances            == 0.3.*
                      , resourcet
                      , temporary                       == 1.2.*
@@ -185,7 +185,7 @@ test-suite test-reliability
                      , http-client
                      , lens
                      , mtl                             >= 2.1        && < 2.3
-                     , QuickCheck                      == 2.8.*
+                     , QuickCheck                      >= 2.8.2      && < 2.9
                      , quickcheck-instances            == 0.3.*
                      , resourcet
                      , temporary                       == 1.2.*
@@ -223,7 +223,7 @@ benchmark bench
                      , ambiata-x-eithert
                      , criterion                       == 1.1.*
                      , exceptions                      == 0.8.*
-                     , QuickCheck
+                     , QuickCheck                      >= 2.8.2      && < 2.9
                      , quickcheck-instances            == 0.3.*
                      , quickcheck-properties           == 0.1.*
                      , quickcheck-text                 == 0.1.*

@@ -71,7 +71,7 @@ test-suite test
                      , temporary                       == 1.2.*
                      , text
                      , transformers
-                     , QuickCheck                      == 2.8.*
+                     , QuickCheck                      >= 2.8.2      && < 2.9
                      , quickcheck-instances            == 0.3.*
                      , unix                            == 2.7.*
                      , uuid                            == 1.3.*
