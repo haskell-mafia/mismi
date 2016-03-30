@@ -11,6 +11,7 @@ module Mismi.SQS.Commands (
   , deleteMessage
   ) where
 
+import           Control.Lens ((^.), (.~))
 import           Control.Exception.Lens
 import           Control.Monad.Catch
 

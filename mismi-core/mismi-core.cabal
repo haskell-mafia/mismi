@@ -14,13 +14,15 @@ description:           mismi.
 library
   build-depends:
                        base                            >= 3          && < 5
-                     , amazonka                        == 1.3.6
-                     , amazonka-core                   == 1.3.6
+                     , amazonka                        >= 1.3.6      && < 1.5
+                     , amazonka-core                   >= 1.3.6      && < 1.5
                      , ambiata-p
                      , ambiata-x-eithert
                      , ambiata-x-exception
                      , bifunctors                      >= 4.2        && < 5.3
                      , bytestring                      == 0.10.*
+                     -- FIX for conduit-extra https://github.com/snoyberg/conduit/pull/261
+                     , conduit-extra                   == 1.1.11 
                      , exceptions                      >= 0.6        && < 0.9
                      , ini                             == 0.3.3
                      , http-client                     == 0.4.18.*
