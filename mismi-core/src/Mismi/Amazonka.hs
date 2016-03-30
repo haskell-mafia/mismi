@@ -10,4 +10,4 @@ import           Network.AWS.Auth as A
 import           Network.AWS.Data as A
 import           Network.AWS.Error as A
 import           Network.AWS.Waiter as A
-import           Network.AWS.Prelude as A hiding ((&))
+import           Network.AWS.Prelude as A

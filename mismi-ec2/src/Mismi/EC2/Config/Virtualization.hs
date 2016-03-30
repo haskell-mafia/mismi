@@ -56,6 +56,8 @@ virtualizationFor itype =
       HVM
     A.G2_2XLarge ->
       HVM
+    A.G2_8XLarge ->
+      HVM
     A.HI1_4XLarge ->
       Paravirtual
     A.HS1_8XLarge ->
@@ -119,4 +121,6 @@ virtualizationFor itype =
     A.T2_Micro ->
       HVM
     A.T2_Small ->
+      HVM
+    A.T2_Nano ->
       HVM

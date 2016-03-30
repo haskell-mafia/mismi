@@ -48,6 +48,7 @@ module Mismi.S3.Patch.PutObjectACL
     , poarsResponseStatus
     ) where
 
+import           Control.Lens (Lens', lens)
 import           Network.AWS.Prelude
 import           Network.AWS.Request
 import           Network.AWS.Response
