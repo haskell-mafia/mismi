@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.EC2.Config.Virtualization (
@@ -56,8 +57,10 @@ virtualizationFor itype =
       HVM
     A.G2_2XLarge ->
       HVM
+#if MIN_VERSION_amazonka(1,4,0)
     A.G2_8XLarge ->
       HVM
+#endif
     A.HI1_4XLarge ->
       Paravirtual
     A.HS1_8XLarge ->
@@ -122,5 +125,7 @@ virtualizationFor itype =
       HVM
     A.T2_Small ->
       HVM
+#if MIN_VERSION_amazonka(1,4,0)
     A.T2_Nano ->
       HVM
+#endif
