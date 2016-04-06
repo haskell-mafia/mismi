@@ -26,16 +26,23 @@ run_upgrade () {
 
   trap clean_up EXIT
 
+  MAFIA_CUR="$0"
+
+  if [ -L "$MAFIA_CUR" ]; then
+    echo 'Refusing to overwrite a symlink; run `upgrade` from the canonical path.' >&2
+    exit 1
+  fi
+
   echo "Checking for a new version of mafia ..."
   fetch_latest > $MAFIA_TEMP
 
   LATEST_VERSION=$(latest_version)
   echo "# Version: $LATEST_VERSION" >> $MAFIA_TEMP
 
-  if ! cmp ./mafia $MAFIA_TEMP >/dev/null 2>&1; then
+  if ! cmp $MAFIA_CUR $MAFIA_TEMP >/dev/null 2>&1; then
+    mv $MAFIA_TEMP $MAFIA_CUR
+    chmod +x $MAFIA_CUR
     echo "New version found and upgraded. You can now commit it to your git repo."
-    mv $MAFIA_TEMP ./mafia
-    chmod +x ./mafia
   else
     echo "You have latest mafia."
   fi
@@ -60,11 +67,9 @@ exec_mafia () {
 
       # Create a temporary file in MAFIA_BIN so we can do an atomic copy/move dance.
       mkdir -p $MAFIA_BIN
-      MAFIA_PATH_TEMP=$(mktemp --tmpdir=$MAFIA_BIN $MAFIA_FILE-XXXXXX 2>/dev/null || TMPDIR=$MAFIA_BIN mktemp -t $MAFIA_FILE)
 
       clean_up () {
         rm -rf "$MAFIA_TEMP"
-        rm -f "$MAFIA_PATH_TEMP"
       }
 
       trap clean_up EXIT
@@ -80,9 +85,19 @@ exec_mafia () {
 
         bin/bootstrap ) || exit $?
 
+      MAFIA_PATH_TEMP=$(mktemp --tmpdir=$MAFIA_BIN $MAFIA_FILE-XXXXXX 2>/dev/null || TMPDIR=$MAFIA_BIN mktemp -t $MAFIA_FILE)
+
+      clean_up_temp () {
+        clean_up
+        rm -f "$MAFIA_PATH_TEMP"
+      }
+      trap clean_up_temp EXIT
+
       cp "$MAFIA_TEMP/mafia/.cabal-sandbox/bin/mafia" "$MAFIA_PATH_TEMP"
-      chmod +x "$MAFIA_PATH_TEMP"
+      chmod 755 "$MAFIA_PATH_TEMP"
       mv "$MAFIA_PATH_TEMP" "$MAFIA_PATH"
+
+      clean_up_temp
     }
 
     exec $MAFIA_PATH "$@"
@@ -103,4 +118,4 @@ case "$MODE" in
 upgrade) shift; run_upgrade "$@" ;;
 *) exec_mafia "$@"
 esac
-# Version: 81930dba49292eca959d7e0eb7ea9d61a773290f
+# Version: 0c5576267dc02c616b0ffd4c208c526b67fa02a8
