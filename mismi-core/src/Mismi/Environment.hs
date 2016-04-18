@@ -2,7 +2,8 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module Mismi.Environment (
-    Region (..)
+    Env
+  , Region (..)
   , RegionError (..)
   , Debugging (..)
   , getRegionFromEnv
