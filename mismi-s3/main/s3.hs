@@ -3,6 +3,7 @@
 {-# LANGUAGE LambdaCase #-}
 
 import           BuildInfo_ambiata_mismi_s3
+import           DependencyInfo_ambiata_mismi_s3
 
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
@@ -67,6 +68,8 @@ main = do
   dispatch mismi >>= \case
       VersionCommand ->
         putStrLn ("s3: " <> pack buildInfoVersion) >> exitSuccess
+      DependencyCommand ->
+        mapM (putStrLn . pack)  dependencyInfo >> exitSuccess
       RunCommand DryRun c ->
         print c >> exitSuccess
       RunCommand RealRun c ->

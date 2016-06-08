@@ -28,7 +28,7 @@ library
                      , http-conduit                    == 2.1.5.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , text                            == 1.2.*
-                     , transformers                    >= 0.3.1      && < 0.5
+                     , transformers                    >= 0.3.1      && < 0.6
 
   ghc-options:
                        -Wall
