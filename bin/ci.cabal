@@ -2,17 +2,7 @@
 
 PROJECT=${1:?"'ci.cabal' requires a single argument, specifying the mismi sub-project."}
 
-export LC_COLLATE=en_US.UTF-8
-export LANG=en_US.UTF-8
-
-git submodule init
-git submodule sync
-git submodule update
-
 cd $PROJECT
-
-./mafia update
-./mafia build
 
 (
     cd test && \
