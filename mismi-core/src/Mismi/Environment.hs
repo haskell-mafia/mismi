@@ -25,7 +25,6 @@ import           Control.Monad.Trans.AWS (Logger, LogLevel(..), newLogger)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Retry (RetryPolicyM, recovering, constantDelay, limitRetries)
 
-import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Typeable (Typeable)
 

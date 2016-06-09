@@ -21,7 +21,6 @@ import           Control.Monad.IO.Class
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 
-import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.UUID
 import           Data.UUID.V4

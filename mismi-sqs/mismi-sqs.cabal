@@ -29,10 +29,10 @@ library
                      , mtl                             >= 2.2.1      && < 2.3
                      , resourcet                       == 1.1.*
                      , text                            == 1.2.*
-                     , transformers                    >= 0.3.1      && < 0.5
-                     , lens                            >= 4.8        && < 4.14
+                     , transformers                    >= 0.3.1      && < 0.6
+                     , lens                            >= 4.8        && < 4.15
                      , unordered-containers            >= 0.2.5      && < 0.3
-                     , scientific                      == 0.3.3.*
+                     , scientific                      == 0.3.4.*
 
 
   ghc-options:
