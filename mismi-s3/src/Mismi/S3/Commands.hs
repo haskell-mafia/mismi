@@ -73,7 +73,6 @@ import           Data.Conduit.Binary (sinkFile, sinkLbs)
 import qualified Data.Conduit.List as DC
 
 import qualified Data.List.NonEmpty as NEL
-import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
@@ -99,7 +98,6 @@ import           Network.AWS.S3 (Object, ObjectKey (..))
 import qualified Network.AWS.S3 as A
 
 import           P
-import           Prelude (($!))
 
 import           System.IO (IO, IOMode (..), SeekMode (..))
 import           System.IO (hFileSize, hSetFileSize, withFile)

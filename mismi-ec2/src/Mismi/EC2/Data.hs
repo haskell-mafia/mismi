@@ -11,8 +11,6 @@ module Mismi.EC2.Data (
   , parseVirtualization
   ) where
 
-import           Data.Text (Text)
-
 import           P
 
 import           Mismi.EC2.Amazonka (VirtualizationType (..))

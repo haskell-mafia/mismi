@@ -44,7 +44,6 @@ import           Control.Exception.Base
 import           Data.Attoparsec.Text hiding (parse, Fail)
 import qualified Data.Attoparsec.Text as AT
 import qualified Data.Text as T
-import           Data.Text (Text)
 import           Data.List (init, zipWith)
 import           Data.String
 import           Data.Typeable
