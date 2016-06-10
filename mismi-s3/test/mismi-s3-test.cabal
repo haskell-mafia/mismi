@@ -14,6 +14,8 @@ library
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
+                     , ambiata-mismi-s3-core
+                     , ambiata-mismi-s3-core-test
                      , ambiata-p
                      , ambiata-x-eithert
                      , ambiata-twine

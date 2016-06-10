@@ -1,20 +1,21 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-module Test.Mismi.S3.Data where
+module Test.Mismi.S3.Core.Data where
 
 import           Data.Text as T
 import           Data.List as L (sort)
 import           Disorder.Corpus
 
-import           Mismi.S3.Data
+import           Mismi.S3.Core.Data
 
 import           P
 
 import           System.IO
 
 import           Test.QuickCheck
-import           Test.Mismi.S3 ()
+import           Test.Mismi.S3.Core.Arbitrary ()
+
 
 prop_append :: Key -> Key -> Property
 prop_append p1 p2 =

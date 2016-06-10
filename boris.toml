@@ -12,12 +12,14 @@
     , ["master", "build", "dist-7-8", "-C", "mismi-emr"]
     , ["master", "build", "dist-7-8", "-C", "mismi-iam"]
     , ["master", "build", "dist-7-8", "-C", "mismi-rds"]
+    , ["master", "build", "dist-7-8", "-C", "mismi-s3-core"]
     , ["master", "build", "dist-7-8", "-C", "mismi-s3"]
     , ["master", "build", "dist-7-8", "-C", "mismi-sqs"]
     , ["master", "build", "dist-7-8", "-C", "mismi-sts"]
 
     , ["bin/ci.cabal", "mismi-core"]
     , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3-core"]
     , ["bin/ci.cabal", "mismi-s3"]
     ]
 
@@ -32,12 +34,14 @@
     , ["master", "build", "dist-7-10", "-C", "mismi-emr"]
     , ["master", "build", "dist-7-10", "-C", "mismi-iam"]
     , ["master", "build", "dist-7-10", "-C", "mismi-rds"]
+    , ["master", "build", "dist-7-10", "-C", "mismi-s3-core"]
     , ["master", "build", "dist-7-10", "-C", "mismi-s3"]
     , ["master", "build", "dist-7-10", "-C", "mismi-sqs"]
     , ["master", "build", "dist-7-10", "-C", "mismi-sts"]
 
     , ["bin/ci.cabal", "mismi-core"]
     , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3-core"]
     , ["bin/ci.cabal", "mismi-s3"]
     ]
 
@@ -52,12 +56,14 @@
     , ["master", "build", "dist-8-0", "-C", "mismi-emr"]
     , ["master", "build", "dist-8-0", "-C", "mismi-iam"]
     , ["master", "build", "dist-8-0", "-C", "mismi-rds"]
+    , ["master", "build", "dist-8-0", "-C", "mismi-s3-core"]
     , ["master", "build", "dist-8-0", "-C", "mismi-s3"]
     , ["master", "build", "dist-8-0", "-C", "mismi-sqs"]
     , ["master", "build", "dist-8-0", "-C", "mismi-sts"]
 
     , ["bin/ci.cabal", "mismi-core"]
     , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3-core"]
     , ["bin/ci.cabal", "mismi-s3"]
     ]
 
@@ -73,12 +79,14 @@
     , ["master", "build", "branches-7-8", "-C", "mismi-iam"]
     , ["master", "build", "branches-7-8", "-C", "mismi-rds"]
     , ["master", "build", "branches-7-8", "-C", "mismi-s3"]
+    , ["master", "build", "branches-7-8", "-C", "mismi-s3-core"]
     , ["master", "build", "branches-7-8", "-C", "mismi-sqs"]
     , ["master", "build", "branches-7-8", "-C", "mismi-sts"]
 
 
     , ["bin/ci.cabal", "mismi-core"]
     , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3-core"]
     , ["bin/ci.cabal", "mismi-s3"]
     ]
 
@@ -93,12 +101,14 @@
     , ["master", "build", "branches-7-10", "-C", "mismi-emr"]
     , ["master", "build", "branches-7-10", "-C", "mismi-iam"]
     , ["master", "build", "branches-7-10", "-C", "mismi-rds"]
+    , ["master", "build", "branches-7-10", "-C", "mismi-s3-core"]
     , ["master", "build", "branches-7-10", "-C", "mismi-s3"]
     , ["master", "build", "branches-7-10", "-C", "mismi-sqs"]
     , ["master", "build", "branches-7-10", "-C", "mismi-sts"]
 
     , ["bin/ci.cabal", "mismi-core"]
     , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3-core"]
     , ["bin/ci.cabal", "mismi-s3"]
     ]
 
@@ -113,12 +123,14 @@
     , ["master", "build", "branches-8-0", "-C", "mismi-emr"]
     , ["master", "build", "branches-8-0", "-C", "mismi-iam"]
     , ["master", "build", "branches-8-0", "-C", "mismi-rds"]
+    , ["master", "build", "branches-8-0", "-C", "mismi-s3-core"]
     , ["master", "build", "branches-8-0", "-C", "mismi-s3"]
     , ["master", "build", "branches-8-0", "-C", "mismi-sqs"]
     , ["master", "build", "branches-8-0", "-C", "mismi-sts"]
 
     , ["bin/ci.cabal", "mismi-core"]
     , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3-core"]
     , ["bin/ci.cabal", "mismi-s3"]
     ]
 
