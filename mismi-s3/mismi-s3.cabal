@@ -69,9 +69,9 @@ library
                        Mismi.S3.Internal
 
 executable s3
-  main-is:             s3.hs
+  main-is:             ../main/s3.hs
   ghc-options:         -Wall -threaded -O2
-  hs-source-dirs:      main, gen
+  hs-source-dirs:      gen
   build-depends:       base
                      , exceptions
                      , ambiata-mismi-core
@@ -223,7 +223,7 @@ benchmark bench
                      , ambiata-x-eithert
                      , criterion                       == 1.1.*
                      -- FIX for conduit-extra https://github.com/snoyberg/conduit/pull/261
-                     , conduit-extra                   == 1.1.11 
+                     , conduit-extra                   == 1.1.11
                      , exceptions                      == 0.8.*
                      , QuickCheck                      >= 2.8.2      && < 2.9
                      , quickcheck-instances            == 0.3.*
