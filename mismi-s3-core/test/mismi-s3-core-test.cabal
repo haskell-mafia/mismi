@@ -1,0 +1,19 @@
+name:                  ambiata-mismi-s3-core-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base                            >= 3          && < 6
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
+                     , ambiata-mismi-s3-core
+                     , ambiata-p
+                     , attoparsec
+                     , text
+                     , QuickCheck                      >= 2.8.2      && < 2.9
+                     , quickcheck-instances            == 0.3.*
+
+  exposed-modules:
+                     Test.Mismi.S3.Core.Arbitrary

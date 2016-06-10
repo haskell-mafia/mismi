@@ -15,6 +15,7 @@ library
   build-depends:
                        base                            >= 3          && < 6
                      , ambiata-mismi-core
+                     , ambiata-mismi-s3-core
                      , ambiata-p
                      , ambiata-x-conduit
                      , ambiata-x-eithert
@@ -76,6 +77,7 @@ executable s3
                      , exceptions
                      , ambiata-mismi-core
                      , ambiata-mismi-s3
+                     , ambiata-mismi-s3-core
                      , ambiata-p
                      , ambiata-x-optparse
                      , ambiata-x-eithert
@@ -102,6 +104,8 @@ test-suite test
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
+                     , ambiata-mismi-s3-core
+                     , ambiata-mismi-s3-core-test
                      , ambiata-p
                      , ambiata-x-eithert
                      , conduit
@@ -137,6 +141,8 @@ test-suite test-io
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
+                     , ambiata-mismi-s3-core
+                     , ambiata-mismi-s3-core-test
                      , ambiata-p
                      , ambiata-x-eithert
                      , bytestring
@@ -174,6 +180,8 @@ test-suite test-reliability
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
+                     , ambiata-mismi-s3-core
+                     , ambiata-mismi-s3-core-test
                      , ambiata-p
                      , ambiata-x-eithert
                      , bytestring
@@ -219,6 +227,8 @@ benchmark bench
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-s3
+                     , ambiata-mismi-s3-core
+                     , ambiata-mismi-s3-core-test
                      , ambiata-p
                      , ambiata-x-eithert
                      , criterion                       == 1.1.*
