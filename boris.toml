@@ -15,6 +15,10 @@
     , ["master", "build", "dist-7-8", "-C", "mismi-s3"]
     , ["master", "build", "dist-7-8", "-C", "mismi-sqs"]
     , ["master", "build", "dist-7-8", "-C", "mismi-sts"]
+
+    , ["bin/ci.cabal", "mismi-core"]
+    , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3"]
     ]
 
 [build.dist-7-10]
@@ -31,6 +35,10 @@
     , ["master", "build", "dist-7-10", "-C", "mismi-s3"]
     , ["master", "build", "dist-7-10", "-C", "mismi-sqs"]
     , ["master", "build", "dist-7-10", "-C", "mismi-sts"]
+
+    , ["bin/ci.cabal", "mismi-core"]
+    , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3"]
     ]
 
 [build.dist-8-0]
@@ -47,6 +55,10 @@
     , ["master", "build", "dist-8-0", "-C", "mismi-s3"]
     , ["master", "build", "dist-8-0", "-C", "mismi-sqs"]
     , ["master", "build", "dist-8-0", "-C", "mismi-sts"]
+
+    , ["bin/ci.cabal", "mismi-core"]
+    , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3"]
     ]
 
 [build.branches-7-8]
@@ -63,6 +75,11 @@
     , ["master", "build", "branches-7-8", "-C", "mismi-s3"]
     , ["master", "build", "branches-7-8", "-C", "mismi-sqs"]
     , ["master", "build", "branches-7-8", "-C", "mismi-sts"]
+
+
+    , ["bin/ci.cabal", "mismi-core"]
+    , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3"]
     ]
 
 [build.branches-7-10]
@@ -79,6 +96,10 @@
     , ["master", "build", "branches-7-10", "-C", "mismi-s3"]
     , ["master", "build", "branches-7-10", "-C", "mismi-sqs"]
     , ["master", "build", "branches-7-10", "-C", "mismi-sts"]
+
+    , ["bin/ci.cabal", "mismi-core"]
+    , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3"]
     ]
 
 [build.branches-8-0]
@@ -95,4 +116,14 @@
     , ["master", "build", "branches-8-0", "-C", "mismi-s3"]
     , ["master", "build", "branches-8-0", "-C", "mismi-sqs"]
     , ["master", "build", "branches-8-0", "-C", "mismi-sts"]
+
+    , ["bin/ci.cabal", "mismi-core"]
+    , ["bin/ci.cabal", "mismi-ec2"]
+    , ["bin/ci.cabal", "mismi-s3"]
     ]
+
+[build.reliability]
+  command = [["bin/ci.reliability mismi-s3"]]
+
+[build.validate]
+  command = [["validate-respect"]]

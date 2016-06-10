@@ -18,3 +18,9 @@
 
 [build.branches-8-0]
   git = "refs/heads/topic/*"
+
+[build.reliability]
+  git = "refs/heads/master"
+
+[build.validate]
+  git = "refs/heads/master"
