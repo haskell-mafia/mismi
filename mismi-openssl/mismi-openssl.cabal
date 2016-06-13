@@ -1,0 +1,40 @@
+name:                  ambiata-mismi-openssl
+version:               0.0.1
+license:               Apache-2.0
+license-file:          LICENSE
+author:                Ambiata <info@ambiata.com>
+maintainer:            Ambiata <info@ambiata.com>
+copyright:             (c) 2015 Ambiata
+synopsis:              AWS library
+category:              AWS
+cabal-version:         >= 1.8
+build-type:            Simple
+description:           mismi.
+
+library
+  build-depends:
+                       base                            >= 3          && < 6
+                     , amazonka                        >= 1.3.6      && < 1.5
+                     , amazonka-core                   >= 1.3.6      && < 1.5
+                     , ambiata-mismi-core
+                     , ambiata-p
+                     , ambiata-x-eithert
+                     , ambiata-x-exception
+                     , exceptions                      >= 0.6        && < 0.9
+                     , HsOpenSSL                       == 0.11.*
+                     , http-client                     == 0.4.*
+                     , http-client-openssl             == 0.2.*
+                     , lens                            >= 4.8        && < 4.15
+                     , retry                           == 0.7.*
+                     , transformers                    >= 0.3.1      && < 0.6
+                     , text                            == 1.2.*
+
+  ghc-options:
+                       -Wall
+
+  hs-source-dirs:
+                       src
+
+
+  exposed-modules:
+                       Mismi.OpenSSL.Environment
