@@ -2,8 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 
-import           BuildInfo_ambiata_mismi_s3
-import           DependencyInfo_ambiata_mismi_s3
+import           BuildInfo_ambiata_mismi_cli
+import           DependencyInfo_ambiata_mismi_cli
 
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
