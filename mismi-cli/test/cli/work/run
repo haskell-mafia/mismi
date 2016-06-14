@@ -56,6 +56,10 @@ $MISMI write $s3 "foobar" || exit_cleanup $?
 
 $MISMI write $s3 "nofoobar" --overwrite || exit_cleanup $?
 
+AWS_FORCE=true $MISMI write $s3 "nofoobar" || exit_cleanup $?
+
+AWS_FORCE=true $MISMI write $s3 "nofoobar" --overwrite || exit_cleanup $?
+
 $MISMI read $s3 > ${TEST}/read || exit_cleanup $?
 
 if [ "nofoobar" = $(cat ${TEST}/read) ]; then

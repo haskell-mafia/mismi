@@ -24,6 +24,7 @@ import           Options.Applicative
 import           P
 
 import           System.IO hiding (putStrLn, hPutStrLn)
+import           System.Environment (lookupEnv)
 import           System.Exit
 import           System.FilePath
 import           System.Posix.Signals
@@ -58,6 +59,19 @@ data Command =
   | List Address Recursive
   deriving (Eq, Show)
 
+data Force =
+    Force
+  | NotForce
+    deriving (Eq, Show)
+
+parseForce :: Maybe String -> Force
+parseForce f =
+  case f of
+    Just "true" ->
+      Force
+    _ ->
+      NotForce
+
 main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
@@ -65,7 +79,8 @@ main = do
   forM_ [sigINT, sigTERM, sigQUIT] $ \s ->
     installHandler s (Catch . void . exitImmediately $ ExitFailure 111) Nothing
 
-  dispatch mismi >>= \case
+  f <- lookupEnv "AWS_FORCE"
+  dispatch (mismi $ parseForce f) >>= \case
       VersionCommand ->
         putStrLn ("s3: " <> pack buildInfoVersion) >> exitSuccess
       DependencyCommand ->
@@ -115,14 +130,15 @@ optAppendFileName f k = fromMaybe f $ do
   bn <- basename k
   pure . combine fp $ unpack bn
 
-mismi :: Parser (SafeCommand Command)
-mismi = safeCommand commandP'
+mismi :: Force -> Parser (SafeCommand Command)
+mismi f =
+  safeCommand (commandP' f)
 
-commandP' :: Parser Command
-commandP' = subparser $
+commandP' :: Force -> Parser Command
+commandP' f = subparser $
      command' "upload"
               "Upload a file to s3."
-              (Upload <$> filepath' <*> address' <*> writeMode')
+              (Upload <$> filepath' <*> address' <*> writeMode' f)
   <> command' "download"
               "Download a file from s3."
               (Download <$> address' <*> filepath')
@@ -140,7 +156,7 @@ commandP' = subparser $
               (Delete <$> address')
   <> command' "write"
               "Write to an address."
-              (Write <$> address' <*> text' <*> writeMode')
+              (Write <$> address' <*> text' <*> writeMode' f)
   <> command' "read"
               "Read from an address."
               (Read <$> address')
@@ -181,11 +197,18 @@ text' = pack <$> (strArgument $
      metavar "STRING"
   <> help "Data to write to S3 address.")
 
-writeMode' :: Parser WriteMode
-writeMode' =
-  flag Fail Overwrite $
-       long "overwrite"
-    <> help "WriteMode"
+writeMode' :: Force -> Parser WriteMode
+writeMode' ff = do
+  flip fmap (flag Fail Overwrite $ long "overwrite" <> help "WriteMode") $ \f ->
+    case f of
+      Overwrite ->
+        Overwrite
+      Fail ->
+        case ff of
+          Force ->
+            Overwrite
+          NotForce ->
+            Fail
 
 syncMode' :: Parser SyncMode
 syncMode' =
