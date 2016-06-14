@@ -14,6 +14,7 @@ module Mismi.Environment (
   , discoverAWSEnvWithRegion
   , discoverAWSEnvRetry
   , discoverAWSEnvWithRegionRetry
+  , catchAuthError
   ) where
 
 import           Control.Lens ((.~))
@@ -102,18 +103,18 @@ discoverAWSEnvWithRegionRetry rpol r = do
   d <- getDebugging
   e <- recovering rpol [(\_ -> Handler catchAuthError)] $ \_ -> newEnv r Discover
   pure $ setDebugging d e
-  where
-    catchAuthError :: AuthError -> IO Bool
-    -- MDS sometimes has transient failures.
-    catchAuthError (RetrievalError _)   = pure True
-    -- 'MissingFileError' is rethrown from 'getAuth' in
-    -- 'Discover' mode if 'isEC2' (which queries the MDS) returns
-    -- 'False'.
-    -- FIXME(sio): fix this upstream so we can distinguish between
-    -- legit 'MissingFileError's and MDS failures.
-    catchAuthError (MissingFileError _) = pure True
-    -- Everything else is unlikely to be transient.
-    catchAuthError _                    = pure False
+
+catchAuthError :: AuthError -> IO Bool
+-- MDS sometimes has transient failures.
+catchAuthError (RetrievalError _)   = pure True
+-- 'MissingFileError' is rethrown from 'getAuth' in
+-- 'Discover' mode if 'isEC2' (which queries the MDS) returns
+-- 'False'.
+-- FIXME(sio): fix this upstream so we can distinguish between
+-- legit 'MissingFileError's and MDS failures.
+catchAuthError (MissingFileError _) = pure True
+-- Everything else is unlikely to be transient.
+catchAuthError _                    = pure False
 
 renderRegionError :: RegionError -> Text
 renderRegionError e =

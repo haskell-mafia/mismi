@@ -1,7 +1,8 @@
 #!/usr/bin/env runhaskell
 
-import           Data.Char (isDigit)
-import           Data.List (intercalate)
+import           Data.Char (isDigit, toLower)
+import           Data.Function (on)
+import           Data.List (intercalate, sortBy)
 import           Data.Monoid ((<>))
 import           Data.Version (showVersion)
 
@@ -75,7 +76,8 @@ genDependencyInfo verbosity pkg info = do
       in
        n ++ "-" ++ v
     deps = fmap (render . sourcePackageId) . allPackages $ installedPkgs info
-    strs = flip fmap deps $ \d -> "\"" ++ d ++ "\""
+    sdeps = sortBy (compare `on` fmap toLower) deps
+    strs = flip fmap sdeps $ \d -> "\"" ++ d ++ "\""
 
   createDirectoryIfMissingVerbose verbosity True (autogenModulesDir info)
 
