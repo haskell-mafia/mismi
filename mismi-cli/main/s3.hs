@@ -16,7 +16,7 @@ import           Data.String (String)
 import           Data.Text.IO (putStrLn, hPutStrLn)
 import           Data.Text hiding (copy, isPrefixOf, filter)
 
-import           Mismi.Environment
+import qualified Mismi.OpenSSL as O
 import           Mismi.S3
 
 import           Options.Applicative
@@ -92,8 +92,8 @@ main = do
 
 run :: Command -> IO ()
 run c = do
-  e <- orDie renderRegionError discoverAWSEnv
-  orDie renderError . runAWS e $ case c of
+  e <- orDie O.renderRegionError O.discoverAWSEnv
+  orDie O.renderError . O.runAWS e $ case c of
     Upload s d m ->
       uploadWithModeOrFail m s d
     Download s d ->
@@ -232,8 +232,8 @@ addressCompleter = mkCompleter $ \s -> do
   where
     go :: String -> EitherT () IO [String]
     go s = do
-      e <- forget discoverAWSEnv
-      forget $ runAWS e $ do
+      e <- forget O.discoverAWSEnv
+      forget $ O.runAWS e $ do
         x <- case addressFromText (pack s) of
           Nothing ->
             pure []
