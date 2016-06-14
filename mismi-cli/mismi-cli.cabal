@@ -15,7 +15,7 @@ executable s3
   main-is:             ../main/s3.hs
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      gen
-  build-depends:       base
+  build-depends:       base                            >= 3          && < 5
                      , exceptions
                      , ambiata-mismi-core
                      , ambiata-mismi-s3
@@ -43,5 +43,5 @@ test-suite test-cli
                        test
 
   build-depends:
-                       base                            >= 3          && < 6
+                       base                            >= 3          && < 5
                      , ambiata-disorder-core
