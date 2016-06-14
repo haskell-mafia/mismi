@@ -9,7 +9,6 @@ module Mismi.OpenSSL.Environment (
   , X.getRegionFromEnv
   , X.getDebugging
   , X.setDebugging
-  , X.withOpenSSL
   , discoverAWSEnv
   , discoverAWSEnvWithRegion
   , discoverAWSEnvRetry
@@ -27,7 +26,7 @@ import           Control.Retry (RetryPolicyM, recovering, constantDelay, limitRe
 import           Network.AWS.Env (envManager)
 import           Network.HTTP.Client (newManager)
 import           Network.HTTP.Client.OpenSSL (opensslManagerSettings)
-import qualified Network.HTTP.Client.OpenSSL as X
+import           Network.HTTP.Client.OpenSSL (withOpenSSL)
 import           OpenSSL.Session (context)
 
 import           Mismi.Environment (RegionError (..))
@@ -55,6 +54,7 @@ discoverAWSEnvRetry retry = do
 
 discoverAWSEnvWithRegionRetry :: RetryPolicyM IO -> Region -> IO Env
 discoverAWSEnvWithRegionRetry rpol r = do
+  withOpenSSL $ pure ()
   d <- getDebugging
   e <- recovering rpol [(\_ -> Handler catchAuthError)] $ \_ -> newEnv r Discover
   m <- newManager $ opensslManagerSettings context

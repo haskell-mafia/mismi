@@ -37,4 +37,6 @@ library
 
 
   exposed-modules:
+                       Mismi.OpenSSL
+                       Mismi.OpenSSL.Control
                        Mismi.OpenSSL.Environment

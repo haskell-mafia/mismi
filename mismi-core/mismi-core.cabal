@@ -22,7 +22,7 @@ library
                      , bifunctors                      >= 4.2        && < 5.3
                      , bytestring                      == 0.10.*
                      -- FIX for conduit-extra https://github.com/snoyberg/conduit/pull/261
-                     , conduit-extra                   == 1.1.11 
+                     , conduit-extra                   == 1.1.11
                      , exceptions                      >= 0.6        && < 0.9
                      , ini                             == 0.3.5
                      , http-client                     == 0.4.18.*
