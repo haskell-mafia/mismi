@@ -19,7 +19,7 @@ library
                      , ambiata-p
                      , ambiata-x-eithert
                      , ambiata-twine
-                     , lens                            >= 4.8        && < 4.14
+                     , lens                            >= 4.8        && < 4.15
                      , conduit                         == 1.2.*
                      , time                            >= 1.4        && < 1.6
                      , exceptions                      >= 0.6        && < 0.9
