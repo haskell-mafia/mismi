@@ -18,6 +18,7 @@ executable s3
   build-depends:       base                            >= 3          && < 5
                      , exceptions
                      , ambiata-mismi-core
+                     , ambiata-mismi-openssl
                      , ambiata-mismi-s3
                      , ambiata-mismi-s3-core
                      , ambiata-p
