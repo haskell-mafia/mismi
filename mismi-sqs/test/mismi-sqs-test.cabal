@@ -12,6 +12,8 @@ library
                      , ambiata-disorder-corpus
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
+                     , ambiata-mismi-sqs-core
+                     , ambiata-mismi-sqs-core-test
                      , ambiata-mismi-sqs
                      , ambiata-p
                      , ambiata-x-eithert

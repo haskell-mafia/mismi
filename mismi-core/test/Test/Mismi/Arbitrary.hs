@@ -5,6 +5,7 @@ module Test.Mismi.Arbitrary where
 
 import           Network.AWS.Types
 
+import           Test.Mismi.Kernel.Arbitrary ()
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
@@ -12,11 +13,9 @@ import           Data.Text.Encoding
 
 import           P
 
-
-
 instance Arbitrary Region where
   -- Shorter list than possible, aws doesn't support all potential Regions.
-  arbitrary = elements [Ireland, Tokyo, Singapore, Sydney, NorthCalifornia, Oregon]
+  arbitrary = elements [Ireland, Tokyo, Singapore, Sydney, NorthCalifornia, Oregon, NorthVirginia]
 
 instance Arbitrary AccessKey where
   arbitrary = AccessKey <$> (encodeUtf8 <$> arbitrary)

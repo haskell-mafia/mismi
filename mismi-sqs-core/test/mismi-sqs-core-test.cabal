@@ -1,0 +1,20 @@
+name:                  ambiata-mismi-sqs-core-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base                            >= 3          && < 5
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
+                     , ambiata-mismi-kernel
+                     , ambiata-mismi-kernel-test
+                     , ambiata-mismi-sqs-core
+                     , ambiata-p
+                     , text
+                     , QuickCheck                      >= 2.8.2      && < 2.9
+                     , quickcheck-instances            == 0.3.*
+
+  exposed-modules:
+                       Test.Mismi.SQS.Core.Arbitrary

@@ -51,7 +51,7 @@ runSQSWithQueue = runSQSWithQueueArg testVisibilityTimeout
 
 runSQSWithQueueArg :: Maybe Int -> Queue -> (QueueUrl -> AWS a) -> IO a
 runSQSWithQueueArg v (Queue qn r) f = do
-  runAWSDefaultRegion . M.within r $ withQueueArg v qn f
+  runAWSDefaultRegion . M.within (fromMismiRegion r) $ withQueueArg v qn f
 
 testVisibilityTimeout :: Maybe Int
 testVisibilityTimeout = Just 8400

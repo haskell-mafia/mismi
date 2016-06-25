@@ -30,12 +30,12 @@ import           P
 -- | Create a queue, which may be in a different region than our global/current one (which will be ignored)
 onQueue :: Queue -> Maybe Int -> (QueueUrl -> AWS a) -> AWS a
 onQueue (Queue q r) v action =
-  within r (action =<< createQueue q v)
+  within (fromMismiRegion r) (action =<< createQueue q v)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
 createQueue :: QueueName -> Maybe Int -> AWS QueueUrl
 createQueue q v = do
-  res <- handleExists . send $ A.createQueue (unQueueName q) &
+  res <- handleExists . send $ A.createQueue (renderQueueName q) &
            cqAttributes .~
              (M.fromList . maybeToList
                 $ ((VisibilityTimeout,) <$> ((T.pack . show) <$> v)))
@@ -47,17 +47,17 @@ createQueue q v = do
     -- If queue alsready exists (and has different VisibilityTimeout)
     handleExists = handling _QueueNameExists $ \_ ->
       -- Get existing queue (using default parameters)
-      send $ A.createQueue (unQueueName q)
+      send $ A.createQueue (renderQueueName q)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html
 deleteQueue :: QueueUrl -> AWS ()
 deleteQueue =
-  void . send . A.deleteQueue . unQueueUrl
+  void . send . A.deleteQueue . renderQueueUrl
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
 writeMessage :: QueueUrl -> Text -> Maybe Int -> AWS (MessageId)
 writeMessage q m d = do
-  res <- send $ A.sendMessage (unQueueUrl q) m & smDelaySeconds .~ d
+  res <- send $ A.sendMessage (renderQueueUrl q) m & smDelaySeconds .~ d
   maybe
     (throwM . Invariant $ "Failed to parse MessageId")
     (pure . MessageId)
@@ -66,7 +66,7 @@ writeMessage q m d = do
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
 readMessages :: QueueUrl -> Maybe Int -> Maybe Int -> AWS [A.Message]
 readMessages q n w = do
-  res <- send $ A.receiveMessage (unQueueUrl q) &
+  res <- send $ A.receiveMessage (renderQueueUrl q) &
            rmMaxNumberOfMessages .~ n &
            rmWaitTimeSeconds .~ w
 
@@ -76,4 +76,4 @@ readMessages q n w = do
 deleteMessage :: QueueUrl -> A.Message -> AWS ()
 deleteMessage q m = do
    i <- maybe (throwM . Invariant $ "MessageId cannot be Nothing") pure (m ^. mReceiptHandle)
-   void . send $ A.deleteMessage (unQueueUrl q) i
+   void . send $ A.deleteMessage (renderQueueUrl q) i

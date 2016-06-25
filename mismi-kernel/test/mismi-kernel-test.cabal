@@ -1,0 +1,16 @@
+name:                  ambiata-mismi-kernel-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base                            >= 3          && < 6
+                     , ambiata-mismi-kernel
+                     , ambiata-p
+                     , text                            == 1.2.*
+                     , QuickCheck                      >= 2.7        && < 2.9
+                     , quickcheck-instances            == 0.3.*
+
+  exposed-modules:
+                       Test.Mismi.Kernel.Arbitrary
