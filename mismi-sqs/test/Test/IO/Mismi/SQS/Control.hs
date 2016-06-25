@@ -13,7 +13,7 @@ import           Test.Mismi.SQS
 import           Test.QuickCheck
 
 prop_result :: NonEmptyMessage -> Queue -> Property
-prop_result t (Queue q r) = testAWS . M.within r $ do
+prop_result t (Queue q r) = testAWS . M.within (fromMismiRegion r) $ do
   r' <- withQueue q $ \a -> do
     _ <- writeMessage a (unMessage t) Nothing
     readMessages a (Just 1) Nothing

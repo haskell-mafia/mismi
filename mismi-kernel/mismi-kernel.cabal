@@ -1,4 +1,4 @@
-name:                  ambiata-mismi-sqs-core
+name:                  ambiata-mismi-kernel
 version:               0.0.1
 license:               Apache-2.0
 license-file:          LICENSE
@@ -9,13 +9,12 @@ synopsis:              AWS library
 category:              AWS
 cabal-version:         >= 1.8
 build-type:            Simple
-description:           mismi-sqs-core.
+description:           mismi-kernel.
 
 library
   build-depends:
                        base                            >= 3          && < 5
                      , ambiata-p
-                     , ambiata-mismi-kernel
                      , text                            == 1.2.*
 
   ghc-options:
@@ -26,7 +25,7 @@ library
 
 
   exposed-modules:
-                       Mismi.SQS.Core.Data
+                       Mismi.Kernel.Data
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -37,8 +36,6 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-mismi-kernel
-                     , ambiata-mismi-kernel-test
-                     , ambiata-mismi-sqs-core
                      , ambiata-p
                      , text
                      , QuickCheck                      >= 2.8.2      && < 2.9

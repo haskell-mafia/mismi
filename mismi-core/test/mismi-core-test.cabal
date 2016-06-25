@@ -11,6 +11,8 @@ library
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-mismi-core
+                     , ambiata-mismi-kernel
+                     , ambiata-mismi-kernel-test
                      , ambiata-p
                      , ambiata-x-eithert
                      , exceptions                      >= 0.6        && < 0.9

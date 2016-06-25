@@ -170,8 +170,6 @@
   git = "refs/heads/master"
 [build.dist-7-10-core-cabal-test]
   git = "refs/heads/master"
-[build.dist-7-10-ec2-core-cabal-test]
-  git = "refs/heads/master"
 [build.dist-7-10-ec2-cabal-test]
   git = "refs/heads/master"
 [build.dist-7-10-s3-core-cabal-test]
@@ -187,8 +185,6 @@
   git = "refs/heads/topic/*"
 [build.branches-7-10-core-cabal-test]
   git = "refs/heads/topic/*"
-[build.branches-7-10-ec2-core-cabal-test]
-  git = "refs/heads/topic/*"
 [build.branches-7-10-ec2-cabal-test]
   git = "refs/heads/topic/*"
 [build.branches-7-10-s3-core-cabal-test]
@@ -198,58 +194,6 @@
 [build.branches-7-10-sqs-core-cabal-test]
   git = "refs/heads/topic/*"
 [build.branches-7-10-sqs-cabal-test]
-  git = "refs/heads/topic/*"
-
-[build.dist-8-0-kernel-cabal-test]
-  git = "refs/heads/master"
-[build.dist-8-0-core-cabal-test]
-  git = "refs/heads/master"
-[build.dist-8-0-ec2-core-cabal-test]
-  git = "refs/heads/master"
-[build.dist-8-0-ec2-cabal-test]
-  git = "refs/heads/master"
-[build.dist-8-0-s3-core-cabal-test]
-  git = "refs/heads/master"
-[build.dist-8-0-s3-cabal-test]
-  git = "refs/heads/master"
-[build.dist-8-0-sqs-core-cabal-test]
-  git = "refs/heads/master"
-[build.dist-8-0-sqs-cabal-test]
-  git = "refs/heads/master"
-
-[build.branches-8-0-kernel-cabal-test]
-  git = "refs/heads/topic/*"
-[build.branches-8-0-core-cabal-test]
-  git = "refs/heads/topic/*"
-[build.branches-8-0-ec2-core-cabal-test]
-  git = "refs/heads/topic/*"
-[build.branches-8-0-ec2-cabal-test]
-  git = "refs/heads/topic/*"
-[build.branches-8-0-s3-core-cabal-test]
-  git = "refs/heads/topic/*"
-[build.branches-8-0-s3-cabal-test]
-  git = "refs/heads/topic/*"
-[build.branches-8-0-sqs-core-cabal-test]
-  git = "refs/heads/topic/*"
-[build.branches-8-0-sqs-cabal-test]
-  git = "refs/heads/topic/*"
-  
-[build.dist-7-8]
-  git = "refs/heads/master"
-
-[build.dist-7-10]
-  git = "refs/heads/master"
-
-[build.dist-8-0]
-  git = "refs/heads/master"
-
-[build.branches-7-8]
-  git = "refs/heads/topic/*"
-
-[build.branches-7-10]
-  git = "refs/heads/topic/*"
-
-[build.branches-8-0]
   git = "refs/heads/topic/*"
 
 [build.reliability]
