@@ -1,6 +1,239 @@
 [boris]
   version = 1
 
+[build.dist-7-10-kernel]
+  git = "refs/heads/master"
+[build.dist-7-10-core]
+  git = "refs/heads/master"
+[build.dist-7-10-autoscaling-core]
+  git = "refs/heads/master"
+[build.dist-7-10-autoscaling]
+  git = "refs/heads/master"
+[build.dist-7-10-cloudwatch]
+  git = "refs/heads/master"
+[build.dist-7-10-cloudwatch-logs]
+  git = "refs/heads/master"
+[build.dist-7-10-ec2-core]
+  git = "refs/heads/master"
+[build.dist-7-10-ec2]
+  git = "refs/heads/master"
+[build.dist-7-10-elb]
+  git = "refs/heads/master"
+[build.dist-7-10-emr]
+  git = "refs/heads/master"
+[build.dist-7-10-iam]
+  git = "refs/heads/master"
+[build.dist-7-10-rds-core]
+  git = "refs/heads/master"
+[build.dist-7-10-rds]
+  git = "refs/heads/master"
+[build.dist-7-10-s3-core]
+  git = "refs/heads/master"
+[build.dist-7-10-s3]
+  git = "refs/heads/master"
+[build.dist-7-10-sqs-core]
+  git = "refs/heads/master"
+[build.dist-7-10-sqs]
+  git = "refs/heads/master"
+[build.dist-7-10-sts]
+  git = "refs/heads/master"
+[build.dist-7-10-cli]
+  git = "refs/heads/master"
+[build.dist-7-10-openssl]
+  git = "refs/heads/master"
+
+[build.dist-8-0-kernel]
+  git = "refs/heads/master"
+[build.dist-8-0-core]
+  git = "refs/heads/master"
+[build.dist-8-0-autoscaling-core]
+  git = "refs/heads/master"
+[build.dist-8-0-autoscaling]
+  git = "refs/heads/master"
+[build.dist-8-0-cloudwatch]
+  git = "refs/heads/master"
+[build.dist-8-0-cloudwatch-logs]
+  git = "refs/heads/master"
+[build.dist-8-0-ec2-core]
+  git = "refs/heads/master"
+[build.dist-8-0-ec2]
+  git = "refs/heads/master"
+[build.dist-8-0-elb]
+  git = "refs/heads/master"
+[build.dist-8-0-emr]
+  git = "refs/heads/master"
+[build.dist-8-0-iam]
+  git = "refs/heads/master"
+[build.dist-8-0-rds-core]
+  git = "refs/heads/master"
+[build.dist-8-0-rds]
+  git = "refs/heads/master"
+[build.dist-8-0-s3-core]
+  git = "refs/heads/master"
+[build.dist-8-0-s3]
+  git = "refs/heads/master"
+[build.dist-8-0-sqs-core]
+  git = "refs/heads/master"
+[build.dist-8-0-sqs]
+  git = "refs/heads/master"
+[build.dist-8-0-sts]
+  git = "refs/heads/master"
+[build.dist-8-0-cli]
+  git = "refs/heads/master"
+[build.dist-8-0-openssl]
+  git = "refs/heads/master"
+
+[build.branches-7-10-kernel]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-core]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-autoscaling-core]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-autoscaling]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-cloudwatch]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-cloudwatch-logs]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-ec2-core]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-ec2]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-elb]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-emr]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-iam]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-rds-core]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-rds]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-s3-core]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-s3]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-sqs-core]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-sqs]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-sts]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-cli]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-openssl]
+  git = "refs/heads/topic/*"
+
+[build.branches-8-0-kernel]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-core]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-autoscaling-core]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-autoscaling]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-cloudwatch]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-cloudwatch-logs]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-ec2-core]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-ec2]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-elb]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-emr]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-iam]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-rds-core]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-rds]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-s3-core]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-s3]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-sqs-core]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-sqs]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-sts]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-cli]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-openssl]
+  git = "refs/heads/topic/*"
+
+
+[build.dist-7-10-kernel-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-ec2-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-ec2-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-s3-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-s3-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-sqs-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-sqs-cabal-test]
+  git = "refs/heads/master"
+
+[build.branches-7-10-kernel-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-ec2-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-ec2-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-s3-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-s3-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-sqs-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-sqs-cabal-test]
+  git = "refs/heads/topic/*"
+
+[build.dist-8-0-kernel-cabal-test]
+  git = "refs/heads/master"
+[build.dist-8-0-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-8-0-ec2-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-8-0-ec2-cabal-test]
+  git = "refs/heads/master"
+[build.dist-8-0-s3-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-8-0-s3-cabal-test]
+  git = "refs/heads/master"
+[build.dist-8-0-sqs-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-8-0-sqs-cabal-test]
+  git = "refs/heads/master"
+
+[build.branches-8-0-kernel-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-ec2-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-ec2-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-s3-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-s3-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-sqs-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-sqs-cabal-test]
+  git = "refs/heads/topic/*"
+  
 [build.dist-7-8]
   git = "refs/heads/master"
 
