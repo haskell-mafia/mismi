@@ -110,4 +110,21 @@ else
     exit_cleanup
 fi
 
+s3_xxx=$(unique_s3_url xxx)
+BEFORE=$($MISMI ls --recursive $s3_xxx)
+$MISMI write "${s3_xxx}/fred" "data" || exit_cleanup $?
+$MISMI write "${s3_xxx}/bar" "data" || exit_cleanup $?
+$MISMI write "${s3_xxx}/cat" "data" || exit_cleanup $?
+$MISMI delete $s3_xxx --recursive || exit_cleanup $?
+AFTER=$($MISMI ls --recursive $s3_xxx)
+
+if [ $BEFORE = $AFTER ]; then
+    echo "PASSED [delete recursive]"
+else
+    echo ""
+    echo "Test case [delete recursive] failed."
+    exit_cleanup
+fi
+
+
 cleanup
