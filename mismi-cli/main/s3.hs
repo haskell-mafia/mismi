@@ -35,14 +35,17 @@ import           X.Control.Monad.Trans.Either (EitherT, eitherT, runEitherT, fir
 import           X.Options.Applicative
 
 data Recursive =
-  Recursive
+    Recursive
   | NotRecursive
-  deriving (Eq, Show)
+    deriving (Eq, Show)
 
 rec :: a -> a -> Recursive -> a
-rec notrecursive recursive r = case r of
-  NotRecursive -> notrecursive
-  Recursive -> recursive
+rec notrecursive recursive r =
+  case r of
+    NotRecursive ->
+      notrecursive
+    Recursive ->
+      recursive
 
 data Command =
     Upload FilePath Address WriteMode
@@ -50,7 +53,7 @@ data Command =
   | Copy Address Address
   | Move Address Address
   | Exists Address
-  | Delete Address
+  | Delete Address Recursive
   | Write Address Text WriteMode
   | Read Address
   | Cat Address
@@ -104,8 +107,8 @@ run c = do
       renderExit renderCopyError $ move s d
     Exists a ->
       exists a >>= liftIO . flip unless exitFailure
-    Delete a ->
-      delete a
+    Delete a r ->
+      rec (delete a) (listRecursively' a $$ DC.mapM_ delete) r
     Write a t w ->
       writeWithModeOrFail w a t
     Read a ->
@@ -153,7 +156,7 @@ commandP' f = subparser $
               (Exists <$> address')
   <> command' "delete"
               "Delete an address."
-              (Delete <$> address')
+              (Delete <$> address' <*> recursive')
   <> command' "write"
               "Write to an address."
               (Write <$> address' <*> text' <*> writeMode' f)
