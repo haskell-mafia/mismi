@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Mismi.S3.Core.Data (
     WriteMode (..)
   , SyncMode (..)
@@ -28,12 +29,16 @@ import qualified Data.Text as T
 import           Data.List (init, zipWith)
 import           Data.String
 
+import           GHC.Generics (Generic)
+
 import           P
 
 data WriteResult =
     WriteOk
   | WriteDestinationExists Address
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
+
+instance NFData WriteResult
 
 -- |
 -- Describes the semantics for destructive operation that may result in overwritten files.
@@ -41,7 +46,9 @@ data WriteResult =
 data WriteMode =
     Fail        -- ^ Fail rather than overwrite any data.
   | Overwrite   -- ^ Overwrite existing data silently, i.e. we really want to do this.
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
+
+instance NFData WriteMode
 
 foldWriteMode :: a -> a -> WriteMode -> a
 foldWriteMode f o m = case m of
@@ -52,7 +59,9 @@ data SyncMode =
     FailSync
   | OverwriteSync
   | SkipSync
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
+
+instance NFData SyncMode
 
 foldSyncMode :: a -> a -> a -> SyncMode -> a
 foldSyncMode f o s m = case m of
@@ -63,23 +72,31 @@ foldSyncMode f o s m = case m of
 newtype Bucket =
   Bucket {
       unBucket :: Text
-    } deriving (Eq, Show, Ord)
+    } deriving (Eq, Show, Ord, Generic)
+
+instance NFData Bucket
 
 newtype Key =
   Key {
       unKey :: Text
-    } deriving (Eq, Show, Ord)
+    } deriving (Eq, Show, Ord, Generic)
+
+instance NFData Key
 
 data Address =
   Address {
       bucket :: Bucket
     , key :: Key
-    } deriving (Eq, Ord)
+    } deriving (Eq, Ord, Generic)
+
+instance NFData Address
 
 newtype ReadGrant =
   ReadGrant {
       readGrant :: Text
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Generic)
+
+instance NFData ReadGrant
 
 instance Show Address where
   show (Address b k) =
