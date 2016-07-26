@@ -35,7 +35,7 @@ import           P
 
 data WriteResult =
     WriteOk
-  | WriteDestinationExists Address
+  | WriteDestinationExists !Address
   deriving (Eq, Show, Generic)
 
 instance NFData WriteResult
@@ -85,8 +85,8 @@ instance NFData Key
 
 data Address =
   Address {
-      bucket :: Bucket
-    , key :: Key
+      bucket :: !Bucket
+    , key :: !Key
     } deriving (Eq, Ord, Generic)
 
 instance NFData Address
