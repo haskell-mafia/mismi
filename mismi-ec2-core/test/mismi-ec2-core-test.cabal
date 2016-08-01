@@ -1,4 +1,4 @@
-name:                  ambiata-mismi-ec2-test
+name:                  ambiata-mismi-ec2-core-test
 version:               0.0.1
 cabal-version:         >= 1.8
 build-type:            Simple
@@ -7,13 +7,14 @@ library
   build-depends:
                        base
                      , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , ambiata-p
                      , ambiata-mismi-core
-                     , ambiata-mismi-ec2
+                     , ambiata-mismi-ec2-core
+                     , text
                      , QuickCheck                      >= 2.7        && < 2.9
                      , quickcheck-instances            == 0.3.*
 
 
   exposed-modules:
-                     Test.IO.Mismi.EC2.Arbitrary
-                     Test.Mismi.EC2.Arbitrary
+                     Test.Mismi.EC2.Core.Arbitrary

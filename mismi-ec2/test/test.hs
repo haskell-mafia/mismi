@@ -1,6 +1,6 @@
 import           Disorder.Core.Main
 
-import           Test.Mismi.EC2.Data
+import qualified Test.Mismi.EC2.Data
 
 main :: IO ()
 main =

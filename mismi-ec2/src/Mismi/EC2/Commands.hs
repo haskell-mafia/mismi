@@ -13,7 +13,6 @@ import           Mismi.EC2.Amazonka
 
 import           P
 
-
 findSecurityGroupByName :: SecurityGroupName -> AWS (Maybe SecurityGroupId)
 findSecurityGroupByName (SecurityGroupName n) = do
   r <- send $ describeSecurityGroups & dsgsFilters .~ [filter' "group-name" & fValues .~ [n]]
