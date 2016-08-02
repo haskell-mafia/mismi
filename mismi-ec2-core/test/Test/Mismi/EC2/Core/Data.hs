@@ -2,9 +2,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-module Test.Mismi.EC2.Data where
+module Test.Mismi.EC2.Core.Data where
 
-import           Mismi.EC2.Data
+import           Mismi.EC2.Core.Data
 
 import           P
 
@@ -12,11 +12,8 @@ import           Test.Mismi.EC2.Core.Arbitrary ()
 import           Test.QuickCheck
 
 
-prop_instance_type v =
-  toMismiInstanceType (fromMismiInstanceType v) === v
-
 prop_virtualization v =
-  toMismiVirtualizationType (fromMismiVirtualizationType v) === v
+  parseVirtualization (renderVirtualization v) === Just v
 
 return []
 tests = $quickCheckAll

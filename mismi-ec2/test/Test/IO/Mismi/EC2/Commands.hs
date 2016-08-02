@@ -12,14 +12,13 @@ import           P
 
 import           System.IO (IO)
 
-import           Test.IO.Mismi.EC2.Arbitrary ()
 import           Test.Mismi
 import           Test.QuickCheck
 
 
-prop_findSecurityGroupByName_found :: SecurityGroupName -> Property
-prop_findSecurityGroupByName_found sg = testAWS $ do
-  mid <- findSecurityGroupByName sg
+prop_findSecurityGroupByName_found :: Property
+prop_findSecurityGroupByName_found = testAWS $ do
+  mid <- findSecurityGroupByName (SecurityGroupName "ci.ci.db")
   return $ isJust mid
 
 prop_findSecurityGroupByName_not_found :: Property

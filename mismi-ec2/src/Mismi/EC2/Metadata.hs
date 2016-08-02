@@ -35,7 +35,6 @@ data MetadataError =
     MetadataHttpError HttpException
   | MetadataParseError Text
 
-
 fetchMetadata :: AWS.Metadata -> EitherT MetadataError IO ByteString
 fetchMetadata  metadata' = EitherT $ do
   m <- managerWithDefaultTimeout
