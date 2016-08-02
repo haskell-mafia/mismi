@@ -26,3 +26,9 @@
 [build.branches-8-0]
   GHC_VERSION = "8.0.1"
   CABAL_VERSION = "1.24.0.0"
+
+[build.dist-7-10-cabal-test]
+  GHC_VERSION = "7.10.2"
+  CABAL_VERSION = "1.22.4.0"
+  TEST = "false"
+  CABAL_TEST = "true"
