@@ -15,7 +15,10 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , ambiata-p
+                     , ambiata-mismi-ec2-core
+                     , semigroups                      >= 0.16       && < 0.19
                      , text                            == 1.2.*
+                     , time                            >= 1.4        && < 1.7
 
   ghc-options:
                        -Wall
@@ -35,8 +38,12 @@ test-suite test
   build-depends:       base
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
-                     , ambiata-mismi-autoscaling-core
                      , ambiata-p
+                     , ambiata-mismi-autoscaling-core
+                     , ambiata-mismi-ec2-core
+                     , ambiata-mismi-ec2-core-test
+                     , semigroups                      >= 0.16       && < 0.19
                      , text
+                     , time
                      , QuickCheck                      >= 2.8.2      && < 2.9
                      , quickcheck-instances            == 0.3.*
