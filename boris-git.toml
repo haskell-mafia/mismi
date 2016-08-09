@@ -23,6 +23,8 @@
   git = "refs/heads/master"
 [build.dist-7-10-iam]
   git = "refs/heads/master"
+[build.dist-7-10-iam-core]
+  git = "refs/heads/master"
 [build.dist-7-10-rds-core]
   git = "refs/heads/master"
 [build.dist-7-10-rds]
@@ -63,6 +65,8 @@
 [build.dist-8-0-emr]
   git = "refs/heads/master"
 [build.dist-8-0-iam]
+  git = "refs/heads/master"
+[build.dist-8-0-iam-core]
   git = "refs/heads/master"
 [build.dist-8-0-rds-core]
   git = "refs/heads/master"
@@ -105,6 +109,8 @@
   git = "refs/heads/topic/*"
 [build.branches-7-10-iam]
   git = "refs/heads/topic/*"
+[build.branches-7-10-iam-core]
+  git = "refs/heads/topic/*"
 [build.branches-7-10-rds-core]
   git = "refs/heads/topic/*"
 [build.branches-7-10-rds]
@@ -145,6 +151,8 @@
 [build.branches-8-0-emr]
   git = "refs/heads/topic/*"
 [build.branches-8-0-iam]
+  git = "refs/heads/topic/*"
+[build.branches-8-0-iam-core]
   git = "refs/heads/topic/*"
 [build.branches-8-0-rds-core]
   git = "refs/heads/topic/*"

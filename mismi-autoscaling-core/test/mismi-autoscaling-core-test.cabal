@@ -1,0 +1,23 @@
+name:                  ambiata-mismi-autoscaling-core-test
+version:               0.0.1
+cabal-version:         >= 1.8
+build-type:            Simple
+
+library
+  build-depends:
+                       base
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
+                     , ambiata-p
+                     , ambiata-mismi-autoscaling-core
+                     , ambiata-mismi-ec2-core
+                     , ambiata-mismi-ec2-core-test
+                     , semigroups                      >= 0.16       && < 0.19
+                     , text
+                     , time
+                     , QuickCheck                      >= 2.7        && < 2.9
+                     , quickcheck-instances            == 0.3.*
+
+
+  exposed-modules:
+                     Test.Mismi.Autoscaling.Core.Arbitrary

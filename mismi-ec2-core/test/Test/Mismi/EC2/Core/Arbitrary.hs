@@ -18,6 +18,10 @@ instance Arbitrary InstanceId where
   arbitrary =
     InstanceId <$> elements muppets
 
+instance Arbitrary LoadBalancer where
+  arbitrary =
+    LoadBalancer <$> elements colours
+
 instance Arbitrary EC2Tag where
   arbitrary =
     EC2Tag

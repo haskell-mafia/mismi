@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.EC2.Core.Data (
@@ -68,7 +67,7 @@ data EC2Tag =
   EC2Tag {
       tagKey :: !Text
     , tagVale :: !Text
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Ord)
 
 -- | Mismi's view of spot instance types.
 data MismiSpotInstanceType =
