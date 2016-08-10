@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.Autoscaling.Core.Data (
     ConfigurationName (..)
+  , Configuration (..)
   , GroupName (..)
   , Group (..)
   , NonEmpty (..)
@@ -10,6 +11,7 @@ module Mismi.Autoscaling.Core.Data (
   , GroupTag (..)
   , EC2Tag (..)
   , Propagate (..)
+  , propagateToBool
   , increaseInstances
   , decreaseInstances
   ) where
@@ -17,14 +19,31 @@ module Mismi.Autoscaling.Core.Data (
 import           Data.List.NonEmpty (NonEmpty (..))
 import           Data.Time (UTCTime)
 
-import           P
-
 import           Mismi.EC2.Core.Data
+import           Mismi.IAM.Core.Data
+
+import           P
 
 newtype ConfigurationName =
   ConfigurationName {
       renderConfigurationName :: Text
     } deriving (Eq, Show, Ord)
+
+data Configuration =
+  Configuration {
+      configurationName :: ConfigurationName
+    , configurationImageId :: ImageId
+    , configurationInstanceType :: MismiInstanceType
+    , configurationSecurityGroups :: [SecurityGroupName]
+    , configurationIam :: IamRole
+    , configurationUserData :: UserData
+    , configurationMarket :: AutoscalingMarket
+    } deriving (Eq, Show, Ord)
+
+data AutoscalingMarket =
+    OnDemand
+  | Spot !Text
+    deriving (Eq, Show, Ord)
 
 newtype GroupName =
   GroupName {
@@ -68,6 +87,13 @@ data Propagate =
   | DontPropagate
     deriving (Eq, Show, Ord, Enum, Bounded)
 
+propagateToBool :: Propagate -> Bool
+propagateToBool p =
+  case p of
+    Propagate ->
+      True
+    DontPropagate ->
+      False
 
 decreaseInstances :: DesiredInstances -> DesiredInstances
 decreaseInstances d =

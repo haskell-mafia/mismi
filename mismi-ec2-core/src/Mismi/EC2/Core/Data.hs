@@ -30,7 +30,7 @@ newtype InstanceId =
 newtype UserData =
   UserData {
       userData :: Text
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Ord)
 
 newtype SecurityGroupName =
   SecurityGroupName {
