@@ -27,6 +27,7 @@ module Mismi.Control (
   , setServiceRetry
   , setRetry
   , configureRetries
+  , handleServiceError
   ) where
 
 import           Control.Lens ((.~), (^.), (^?), over)
@@ -165,4 +166,17 @@ onStatus_ r f m =
       Just r1 ->
         return r1
       Nothing ->
+        throwM e
+
+handleServiceError :: (ServiceError -> Bool) -> a -> AWS a -> AWS a
+handleServiceError f pass action =
+  action `catch` \(e :: Error) ->
+    case e of
+      ServiceError se ->
+        if f se
+          then pure pass
+          else throwM e
+      SerializeError _ ->
+        throwM e
+      TransportError _ ->
         throwM e

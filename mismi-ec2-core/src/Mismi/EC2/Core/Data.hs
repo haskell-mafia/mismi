@@ -15,6 +15,7 @@ module Mismi.EC2.Core.Data (
   , MismiVirtualizationType (..)
   , BlockDeviceMapping (..)
   , encodeUserData
+  , decodeUserData
   , renderVirtualization
   , renderVirtualizationAws
   , parseVirtualization
@@ -22,6 +23,7 @@ module Mismi.EC2.Core.Data (
   ) where
 
 import qualified Data.ByteString.Base64 as Base64
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
 import           P
@@ -39,6 +41,10 @@ newtype UserData =
 encodeUserData :: UserData -> Text
 encodeUserData =
   T.decodeUtf8 . Base64.encode . T.encodeUtf8 . userData
+
+decodeUserData :: Text -> Either Text UserData
+decodeUserData =
+  bimap T.pack (UserData . T.decodeUtf8) . Base64.decode . T.encodeUtf8
 
 newtype SecurityGroupName =
   SecurityGroupName {

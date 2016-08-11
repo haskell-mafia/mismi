@@ -3,6 +3,7 @@
 module Mismi.Autoscaling.Core.Data (
     ConfigurationName (..)
   , Configuration (..)
+  , AutoscalingMarket (..)
   , GroupName (..)
   , Group (..)
   , NonEmpty (..)
@@ -13,6 +14,7 @@ module Mismi.Autoscaling.Core.Data (
   , Propagate (..)
   , renderSpotPrice
   , propagateToBool
+  , propagateFromBool
   , increaseInstances
   , decreaseInstances
   ) where
@@ -74,10 +76,11 @@ data GroupResult =
       groupResultName :: GroupName
     , groupResultConfName :: ConfigurationName
     , groupResultCapacity :: DesiredInstances
-    , groupResultAvailabilityZones :: [AvailabilityZone]
+    , groupResultAvailabilityZones :: NonEmpty AvailabilityZone
     , groupResultLoadBalances :: [LoadBalancer]
     , groupResultInstances :: [InstanceId]
     , groupResultCreationTime :: UTCTime
+    , groupResultTags :: [GroupTag]
     } deriving (Eq, Show)
 
 newtype DesiredInstances =
@@ -103,6 +106,14 @@ propagateToBool p =
       True
     DontPropagate ->
       False
+
+propagateFromBool :: Bool -> Propagate
+propagateFromBool p =
+  case p of
+    True ->
+      Propagate
+    False ->
+      DontPropagate
 
 decreaseInstances :: DesiredInstances -> DesiredInstances
 decreaseInstances d =
