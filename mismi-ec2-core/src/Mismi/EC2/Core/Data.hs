@@ -13,6 +13,7 @@ module Mismi.EC2.Core.Data (
   , EC2Tag (..)
   , MismiInstanceType (..)
   , MismiVirtualizationType (..)
+  , BlockDeviceMapping (..)
   , encodeUserData
   , renderVirtualization
   , renderVirtualizationAws
@@ -147,6 +148,13 @@ data MismiVirtualizationType =
     HVM
   | Paravirtual
     deriving (Eq, Show, Enum, Bounded)
+
+-- | Mismi's view of block devices
+data BlockDeviceMapping =
+  BlockDeviceMapping {
+      blockDeviceMappingDeviceName :: Text
+    , blockDeviceMappingVirtualName :: Text
+    } deriving (Eq, Show)
 
 renderVirtualization :: MismiVirtualizationType -> Text
 renderVirtualization v =
