@@ -13,14 +13,17 @@ module Mismi.EC2.Core.Data (
   , EC2Tag (..)
   , MismiInstanceType (..)
   , MismiVirtualizationType (..)
+  , encodeUserData
   , renderVirtualization
   , renderVirtualizationAws
   , parseVirtualization
   , virutalizationFor
   ) where
 
-import           P
+import qualified Data.ByteString.Base64 as Base64
+import qualified Data.Text.Encoding as T
 
+import           P
 
 newtype InstanceId =
   InstanceId {
@@ -31,6 +34,10 @@ newtype UserData =
   UserData {
       userData :: Text
     } deriving (Eq, Show, Ord)
+
+encodeUserData :: UserData -> Text
+encodeUserData =
+  T.decodeUtf8 . Base64.encode . T.encodeUtf8 . userData
 
 newtype SecurityGroupName =
   SecurityGroupName {
@@ -61,7 +68,7 @@ newtype ImageId =
 data EC2Market =
     OnDemand
   | Spot !Text !MismiSpotInstanceType
-  deriving (Eq, Show)
+    deriving (Eq, Show)
 
 data EC2Tag =
   EC2Tag {
@@ -132,7 +139,7 @@ data MismiInstanceType =
   | T2_Micro
   | T2_Nano
   | T2_Small
-    deriving (Eq, Show, Enum, Bounded)
+    deriving (Eq, Show, Ord, Enum, Bounded)
 
 
 -- | Mismi's view of available Virtualization types.
