@@ -40,8 +40,8 @@ instance Arbitrary ImageId where
 instance Arbitrary EC2Market where
   arbitrary =
     oneof [
-        pure OnDemand
-      , Spot <$> elements ["0.05", "1.10", "0.40"] <*> elements [OneTime, Persistent]
+        pure EC2OnDemand
+      , EC2Spot <$> elements ["0.05", "1.10", "0.40"] <*> elements [OneTime, Persistent]
       ]
 
 instance Arbitrary AvailabilityZone where

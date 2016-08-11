@@ -11,6 +11,7 @@ module Mismi.Autoscaling.Core.Data (
   , GroupTag (..)
   , EC2Tag (..)
   , Propagate (..)
+  , renderSpotPrice
   , propagateToBool
   , increaseInstances
   , decreaseInstances
@@ -44,6 +45,14 @@ data AutoscalingMarket =
     OnDemand
   | Spot !Text
     deriving (Eq, Show, Ord)
+
+renderSpotPrice :: AutoscalingMarket -> Maybe Text
+renderSpotPrice a =
+  case a of
+    OnDemand ->
+      Nothing
+    Spot v ->
+      Just v
 
 newtype GroupName =
   GroupName {

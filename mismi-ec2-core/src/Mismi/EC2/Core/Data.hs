@@ -67,8 +67,8 @@ newtype ImageId =
 
 
 data EC2Market =
-    OnDemand
-  | Spot !Text !MismiSpotInstanceType
+    EC2OnDemand
+  | EC2Spot !Text !MismiSpotInstanceType
     deriving (Eq, Show)
 
 data EC2Tag =
