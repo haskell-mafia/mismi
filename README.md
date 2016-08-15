@@ -32,11 +32,16 @@ Permissions required for testing.
 ## AWS Testing
 
 Optional environment variables that can be used to disable testing on
-AWS resources, all variables should default to 'true'.
+AWS resources, all variables default to 'true'.
 
 ### Autoscaling
 
 `AWS_TEST_AUTOSCALING`
+
+### S3
+
+`AWS_TEST_S3`
+
 
 ## Debugging
 
