@@ -178,8 +178,6 @@
   git = "refs/heads/master"
 [build.dist-7-10-core-cabal-test]
   git = "refs/heads/master"
-[build.dist-7-10-ec2-cabal-test]
-  git = "refs/heads/master"
 [build.dist-7-10-ec2-core-cabal-test]
   git = "refs/heads/master"
 [build.dist-7-10-autoscaling-cabal-test]
@@ -198,8 +196,6 @@
 [build.branches-7-10-kernel-cabal-test]
   git = "refs/heads/topic/*"
 [build.branches-7-10-core-cabal-test]
-  git = "refs/heads/topic/*"
-[build.branches-7-10-ec2-cabal-test]
   git = "refs/heads/topic/*"
 [build.branches-7-10-ec2-core-cabal-test]
   git = "refs/heads/topic/*"
