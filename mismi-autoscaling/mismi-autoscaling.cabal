@@ -63,15 +63,17 @@ test-suite test-io
   hs-source-dirs:      test
   build-depends:       base
                      , ambiata-disorder-core
+                     , ambiata-disorder-corpus
                      , ambiata-mismi-core
                      , ambiata-mismi-core-test
                      , ambiata-mismi-autoscaling
                      , ambiata-mismi-autoscaling-core
                      , ambiata-mismi-autoscaling-core-test
                      , ambiata-mismi-ec2-core
-                     , ambiata-twine
+                     , ambiata-mismi-iam-core
+                     , ambiata-p
+                     , ambiata-x-eithert
+                     , text                            == 1.2.*
+                     , transformers                    >= 0.3.1      && < 0.6
                      , QuickCheck                      >= 2.8.2      && < 2.9
                      , quickcheck-instances            == 0.3.*
-
-                     -- control
-                     , ambiata-x-aeson
