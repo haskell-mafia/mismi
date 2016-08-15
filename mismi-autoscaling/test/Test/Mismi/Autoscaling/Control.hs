@@ -2,10 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Test.Mismi.Autoscaling.Control where
 
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 
 import           Disorder.Core.IO
 
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
 import           Mismi
@@ -15,6 +16,9 @@ import           Mismi.EC2.Core.Data
 import           Mismi.IAM.Core.Data
 
 import           P
+
+import           System.Environment (lookupEnv)
+import           System.IO (IO)
 
 import           Test.Mismi.Autoscaling.Core.Arbitrary ()
 import           Test.Mismi
@@ -61,17 +65,29 @@ group' cn gn i =
    defaultAvailabilityZones
    []
 
--- TODO env vars for vars
-conf' :: ConfigurationName -> Configuration
+conf' :: MonadIO m => ConfigurationName -> m Configuration
 conf' cn =
   Configuration
-    cn
-    (ImageId "ami-bc3611df")
-    T2_Nano
-    [SecurityGroupName "ci.ci.node"]
-    (IamRole "ci.ci.node")
-    (UserData "something not empty")
-    OnDemand
+    <$> pure cn
+    <*> liftIO testImageId
+    <*> pure T2_Nano
+    <*> liftIO testSecurityGroup
+    <*> liftIO testIamRole
+    <*> pure (UserData "something not empty")
+    <*> pure OnDemand
+
+testIamRole :: IO IamRole
+testIamRole =
+  IamRole . T.pack . fromMaybe "ci.ci.node" <$> lookupEnv "AWS_TEST_IAM_ROLE"
+
+testSecurityGroup :: IO [SecurityGroupName]
+testSecurityGroup =
+  fmap (:[]) $ SecurityGroupName . T.pack . fromMaybe "ci.ci.node" <$>
+    lookupEnv "AWS_TEST_SECURITY_GROUP"
+
+testImageId :: IO ImageId
+testImageId =
+  ImageId . T.pack . fromMaybe "ami-bc3611df" <$> lookupEnv "AWS_TEST_IMAGE_ID"
 
 defaultAvailabilityZones :: NonEmpty AvailabilityZone
 defaultAvailabilityZones =

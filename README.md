@@ -31,17 +31,24 @@ Permissions required for testing.
 
 ## AWS Testing
 
+### Running tests
+
 Optional environment variables that can be used to disable testing on
 AWS resources, all variables default to 'true'.
 
-### Autoscaling
+- `AWS_TEST_AUTOSCALING`
+- `AWS_TEST_S3`
 
-`AWS_TEST_AUTOSCALING`
+### Resources
 
-### S3
+Resources that are used when running test are configurable via:
 
-`AWS_TEST_S3`
-
+```
+`AWS_TEST_SECURITY_GROUP` - defaults to "ci.ci.node"
+`AWS_TEST_IMAGE_ID` - defaults to "ami-bc3611df"
+`AWS_TEST_IAM_ROLE` - defaults to "ci.ci.node"
+`AWS_TEST_BUCKET` - defaults to "ambiata-dev-view"
+```
 
 ## Debugging
 
