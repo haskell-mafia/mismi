@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Test.Mismi (
     testAWS
+  , enableTests
   , runAWSDefaultRegion
   ) where
 
@@ -12,7 +13,9 @@ import           Disorder.Core.IO (testIO)
 import           Mismi
 
 import           P
+import           Prelude (String)
 
+import           System.Environment (lookupEnv)
 import           System.IO (IO)
 
 import           Test.Mismi.Arbitrary ()
@@ -31,3 +34,25 @@ runAWSDefaultRegion a = do
   r <- eitherT (const $ pure Sydney) pure getRegionFromEnv
   e <- discoverAWSEnvWithRegion r
   eitherT throwM pure $ runAWS e a
+
+-- Environment variable to lookup, tests to run when it is set to
+-- false and tests to run when when it is set to true (or missing).
+enableTests :: String -> [IO Bool]  -> [IO Bool] -> IO [IO Bool]
+enableTests k false true = do
+  d <- lookupEnv k
+  pure $ bool false true $
+    maybe
+      True
+      (\s ->
+        case s of
+          "true" ->
+            True
+          "1" ->
+            True
+          "false" ->
+            False
+          "0" ->
+            False
+          _ ->
+            True)
+      d

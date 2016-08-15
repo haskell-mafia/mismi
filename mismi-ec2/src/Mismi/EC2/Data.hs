@@ -6,11 +6,20 @@ module Mismi.EC2.Data (
   , toMismiInstanceType
   , fromMismiVirtualizationType
   , toMismiVirtualizationType
+  , fromMismiBlockDeviceMapping
   ) where
 
-import qualified Mismi.EC2.Amazonka as A
+import           Control.Lens ((.~))
 
+import qualified Mismi.EC2.Amazonka as A
 import           Mismi.EC2.Core.Data
+
+import           P
+
+fromMismiBlockDeviceMapping :: BlockDeviceMapping -> A.BlockDeviceMapping
+fromMismiBlockDeviceMapping (BlockDeviceMapping n v) =
+  A.blockDeviceMapping n
+    & A.bdmVirtualName .~ Just v
 
 fromMismiInstanceType :: MismiInstanceType -> A.InstanceType
 fromMismiInstanceType m =

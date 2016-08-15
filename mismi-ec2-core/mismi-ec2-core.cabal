@@ -15,6 +15,7 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , ambiata-p
+                     , base64-bytestring               == 1.0.*
                      , text                            == 1.2.*
 
   ghc-options:
@@ -26,6 +27,7 @@ library
 
   exposed-modules:
                        Mismi.EC2.Core.Data
+                       Mismi.EC2.Core.Device
 
 test-suite test
   type:                exitcode-stdio-1.0

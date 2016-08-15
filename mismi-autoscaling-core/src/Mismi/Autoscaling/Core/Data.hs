@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Mismi.Autoscaling.Core.Data (
     ConfigurationName (..)
+  , Configuration (..)
+  , AutoscalingMarket (..)
   , GroupName (..)
   , Group (..)
   , NonEmpty (..)
@@ -10,6 +12,9 @@ module Mismi.Autoscaling.Core.Data (
   , GroupTag (..)
   , EC2Tag (..)
   , Propagate (..)
+  , renderSpotPrice
+  , propagateToBool
+  , propagateFromBool
   , increaseInstances
   , decreaseInstances
   ) where
@@ -17,14 +22,39 @@ module Mismi.Autoscaling.Core.Data (
 import           Data.List.NonEmpty (NonEmpty (..))
 import           Data.Time (UTCTime)
 
-import           P
-
 import           Mismi.EC2.Core.Data
+import           Mismi.IAM.Core.Data
+
+import           P
 
 newtype ConfigurationName =
   ConfigurationName {
       renderConfigurationName :: Text
     } deriving (Eq, Show, Ord)
+
+data Configuration =
+  Configuration {
+      configurationName :: ConfigurationName
+    , configurationImageId :: ImageId
+    , configurationInstanceType :: MismiInstanceType
+    , configurationSecurityGroups :: [SecurityGroupName]
+    , configurationIam :: IamRole
+    , configurationUserData :: UserData
+    , configurationMarket :: AutoscalingMarket
+    } deriving (Eq, Show, Ord)
+
+data AutoscalingMarket =
+    OnDemand
+  | Spot !Text
+    deriving (Eq, Show, Ord)
+
+renderSpotPrice :: AutoscalingMarket -> Maybe Text
+renderSpotPrice a =
+  case a of
+    OnDemand ->
+      Nothing
+    Spot v ->
+      Just v
 
 newtype GroupName =
   GroupName {
@@ -46,10 +76,11 @@ data GroupResult =
       groupResultName :: GroupName
     , groupResultConfName :: ConfigurationName
     , groupResultCapacity :: DesiredInstances
-    , groupResultAvailabilityZones :: [AvailabilityZone]
+    , groupResultAvailabilityZones :: NonEmpty AvailabilityZone
     , groupResultLoadBalances :: [LoadBalancer]
     , groupResultInstances :: [InstanceId]
     , groupResultCreationTime :: UTCTime
+    , groupResultTags :: [GroupTag]
     } deriving (Eq, Show)
 
 newtype DesiredInstances =
@@ -68,6 +99,21 @@ data Propagate =
   | DontPropagate
     deriving (Eq, Show, Ord, Enum, Bounded)
 
+propagateToBool :: Propagate -> Bool
+propagateToBool p =
+  case p of
+    Propagate ->
+      True
+    DontPropagate ->
+      False
+
+propagateFromBool :: Bool -> Propagate
+propagateFromBool p =
+  case p of
+    True ->
+      Propagate
+    False ->
+      DontPropagate
 
 decreaseInstances :: DesiredInstances -> DesiredInstances
 decreaseInstances d =
