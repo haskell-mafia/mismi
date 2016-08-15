@@ -178,7 +178,13 @@
   git = "refs/heads/master"
 [build.dist-7-10-core-cabal-test]
   git = "refs/heads/master"
+[build.dist-7-10-ec2-cabal-test]
+  git = "refs/heads/master"
 [build.dist-7-10-ec2-core-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-autoscaling-cabal-test]
+  git = "refs/heads/master"
+[build.dist-7-10-autoscaling-core-cabal-test]
   git = "refs/heads/master"
 [build.dist-7-10-s3-core-cabal-test]
   git = "refs/heads/master"
@@ -193,7 +199,13 @@
   git = "refs/heads/topic/*"
 [build.branches-7-10-core-cabal-test]
   git = "refs/heads/topic/*"
+[build.branches-7-10-ec2-cabal-test]
+  git = "refs/heads/topic/*"
 [build.branches-7-10-ec2-core-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-autoscaling-cabal-test]
+  git = "refs/heads/topic/*"
+[build.branches-7-10-autoscaling-core-cabal-test]
   git = "refs/heads/topic/*"
 [build.branches-7-10-s3-core-cabal-test]
   git = "refs/heads/topic/*"

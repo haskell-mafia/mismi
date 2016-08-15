@@ -1,4 +1,4 @@
-name:                  ambiata-mismi-ec2-test
+name:                  ambiata-mismi-autoscaling-test
 version:               0.0.1
 cabal-version:         >= 1.8
 build-type:            Simple
@@ -6,6 +6,21 @@ build-type:            Simple
 library
   build-depends:
                        base
+                     , ambiata-disorder-core
+                     , ambiata-disorder-corpus
+                     , ambiata-mismi-core
+                     , ambiata-mismi-core-test
                      , ambiata-mismi-autoscaling
+                     , ambiata-mismi-autoscaling-core
+                     , ambiata-mismi-autoscaling-core-test
+                     , ambiata-mismi-ec2-core
+                     , ambiata-mismi-iam-core
+                     , ambiata-p
+                     , ambiata-x-eithert
+                     , text                            == 1.2.*
+                     , transformers                    >= 0.3.1      && < 0.6
+                     , QuickCheck                      >= 2.7        && < 2.9
+                     , quickcheck-instances            == 0.3.*
 
   exposed-modules:
+                     Test.Mismi.Autoscaling.Control
