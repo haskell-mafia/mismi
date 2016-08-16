@@ -33,7 +33,7 @@ library
                      , transformers                    >= 0.3.1      && < 0.6
                      , lens                            >= 4.8        && < 4.15
                      , unordered-containers            >= 0.2.5      && < 0.3
-                     , scientific                      == 0.3.4.*
+                     , scientific                      == 0.3.*
 
 
   ghc-options:
