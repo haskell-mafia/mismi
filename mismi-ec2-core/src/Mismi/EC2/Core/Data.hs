@@ -80,7 +80,7 @@ data EC2Market =
 data EC2Tag =
   EC2Tag {
       tagKey :: !Text
-    , tagVale :: !Text
+    , tagValue :: !Text
     } deriving (Eq, Show, Ord)
 
 -- | Mismi's view of spot instance types.
