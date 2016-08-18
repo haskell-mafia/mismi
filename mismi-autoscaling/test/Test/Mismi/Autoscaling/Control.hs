@@ -71,7 +71,7 @@ conf' cn =
     <$> pure cn
     <*> liftIO testImageId
     <*> pure T2_Nano
-    <*> liftIO testSecurityGroup
+    <*> ((:[]) <$> liftIO testSecurityGroup)
     <*> liftIO testIamRole
     <*> pure (UserData "something not empty")
     <*> pure OnDemand
@@ -80,9 +80,9 @@ testIamRole :: IO IamRole
 testIamRole =
   IamRole . T.pack . fromMaybe "ci.ci.node" <$> lookupEnv "AWS_TEST_IAM_ROLE"
 
-testSecurityGroup :: IO [SecurityGroupName]
+testSecurityGroup :: IO SecurityGroupName
 testSecurityGroup =
-  fmap (:[]) $ SecurityGroupName . T.pack . fromMaybe "ci.ci.node" <$>
+  SecurityGroupName . T.pack . fromMaybe "ci.ci.node" <$>
     lookupEnv "AWS_TEST_SECURITY_GROUP"
 
 testImageId :: IO ImageId
