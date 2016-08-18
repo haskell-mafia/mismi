@@ -110,3 +110,4 @@ Available commands:
   sync                     Sync between two prefixes.
   ls                       Stream a recursively list of objects on a prefix
 ```
+
