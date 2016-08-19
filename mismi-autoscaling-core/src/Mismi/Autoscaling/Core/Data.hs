@@ -38,13 +38,13 @@ newtype ConfigurationName =
 
 data Configuration =
   Configuration {
-      configurationName :: ConfigurationName
-    , configurationImageId :: ImageId
-    , configurationInstanceType :: MismiInstanceType
-    , configurationSecurityGroups :: [SecurityGroupName]
-    , configurationIam :: IamRole
-    , configurationUserData :: UserData
-    , configurationMarket :: AutoscalingMarket
+      configurationName :: !ConfigurationName
+    , configurationImageId :: !ImageId
+    , configurationInstanceType :: !MismiInstanceType
+    , configurationSecurityGroups :: ![SecurityGroupName]
+    , configurationIam :: !IamRole
+    , configurationUserData :: !UserData
+    , configurationMarket :: !AutoscalingMarket
     } deriving (Eq, Show, Ord)
 
 data AutoscalingMarket =
@@ -75,12 +75,12 @@ newtype GroupName =
 
 data Group =
   Group {
-      groupName :: GroupName
-    , groupConfigurationName :: ConfigurationName
-    , groupCapacity :: Capacity
-    , groupGroupTags :: [GroupTag]
-    , groupAvailabilityZones :: NonEmpty AvailabilityZone
-    , groupLoadBalancers :: [LoadBalancer]
+      groupName :: !GroupName
+    , groupConfigurationName :: !ConfigurationName
+    , groupCapacity :: !Capacity
+    , groupGroupTags :: ![GroupTag]
+    , groupAvailabilityZones :: !(NonEmpty AvailabilityZone)
+    , groupLoadBalancers :: ![LoadBalancer]
     } deriving (Eq, Show, Ord)
 
 data GroupResult =
