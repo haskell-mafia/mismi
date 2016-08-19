@@ -12,6 +12,7 @@ module Mismi.Autoscaling.Core.Data (
   , GroupTag (..)
   , EC2Tag (..)
   , Propagate (..)
+  , renderMarket
   , renderSpotPrice
   , propagateToBool
   , propagateFromBool
@@ -47,6 +48,14 @@ data AutoscalingMarket =
     OnDemand
   | Spot !Text
     deriving (Eq, Show, Ord)
+
+renderMarket :: AutoscalingMarket -> Text
+renderMarket m =
+  case m of
+    OnDemand ->
+      "ondemand"
+    Spot t ->
+      t
 
 renderSpotPrice :: AutoscalingMarket -> Maybe Text
 renderSpotPrice a =
