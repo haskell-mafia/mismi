@@ -42,9 +42,17 @@ instance Arbitrary Propagate where
   arbitrary =
     arbitraryBoundedEnum
 
+instance Arbitrary MinInstances where
+  arbitrary =
+    MinInstances <$> choose (0, 10)
+
 instance Arbitrary DesiredInstances where
   arbitrary =
     DesiredInstances <$> choose (0, 10)
+
+instance Arbitrary MaxInstances where
+  arbitrary =
+    MaxInstances <$> choose (0, 10)
 
 instance Arbitrary GroupTag where
   arbitrary =
@@ -80,3 +88,10 @@ instance Arbitrary AutoscalingMarket where
         pure OnDemand
       , (Spot . T.pack . show . (/ 10) . (fromIntegral :: Int -> Double)) <$> elements [1 .. 100]
       ]
+
+instance Arbitrary Capacity where
+  arbitrary =
+    Capacity
+      <$> arbitrary
+      <*> arbitrary
+      <*> arbitrary

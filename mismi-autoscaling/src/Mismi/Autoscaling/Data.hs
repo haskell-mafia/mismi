@@ -57,7 +57,10 @@ toGroupResult g = do
   GroupResult
     <$> pure gn
     <*> maybe (Left $ LaunchConfigurationMissing gn) (Right . ConfigurationName) (g ^. A.asgLaunchConfigurationName)
-    <*> pure (DesiredInstances $ g ^. A.asgDesiredCapacity)
+    <*> pure (Capacity
+      (MinInstances $ g ^. A.asgMinSize)
+      (DesiredInstances $ g ^. A.asgDesiredCapacity)
+      (MaxInstances $ g ^. A.asgMaxSize))
     <*> pure (fmap AvailabilityZone (g ^. A.asgAvailabilityZones))
     <*> pure (LoadBalancer <$> g ^. A.asgLoadBalancerNames)
     <*> pure (fmap (InstanceId . view A.iInstanceId) $ g ^. A.asgInstances)
