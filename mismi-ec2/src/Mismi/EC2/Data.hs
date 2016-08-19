@@ -7,9 +7,10 @@ module Mismi.EC2.Data (
   , fromMismiVirtualizationType
   , toMismiVirtualizationType
   , fromMismiBlockDeviceMapping
+  , toMismiTag
   ) where
 
-import           Control.Lens ((.~))
+import           Control.Lens ((.~), view)
 
 import qualified Mismi.EC2.Amazonka as A
 import           Mismi.EC2.Core.Data
@@ -266,3 +267,9 @@ toMismiVirtualizationType v =
       HVM
     A.Paravirtual ->
       Paravirtual
+
+toMismiTag :: A.Tag -> EC2Tag
+toMismiTag e =
+  EC2Tag
+    (view A.tagKey e)
+    (view A.tagValue e)
