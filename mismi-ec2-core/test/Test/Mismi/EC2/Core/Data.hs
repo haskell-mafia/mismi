@@ -15,5 +15,8 @@ import           Test.QuickCheck
 prop_virtualization v =
   parseVirtualization (renderVirtualization v) === Just v
 
+prop_instance_type v =
+  parseMismiInstanceType (renderMismiInstanceType v) === Just v
+
 return []
 tests = $quickCheckAll

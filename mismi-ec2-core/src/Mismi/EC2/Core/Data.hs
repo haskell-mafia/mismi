@@ -20,6 +20,8 @@ module Mismi.EC2.Core.Data (
   , renderVirtualizationAws
   , parseVirtualization
   , virutalizationFor
+  , renderMismiInstanceType
+  , parseMismiInstanceType
   ) where
 
 import qualified Data.ByteString.Base64 as Base64
@@ -303,3 +305,233 @@ virutalizationFor itype =
       HVM
     T2_Nano ->
       HVM
+
+renderMismiInstanceType :: MismiInstanceType -> Text
+renderMismiInstanceType m =
+  case m of
+    C1_Medium ->
+      "c1.medium"
+    C1_XLarge ->
+      "c1.xlarge"
+    C3_2XLarge ->
+      "c3.2xlarge"
+    C3_4XLarge ->
+      "c3.4xlarge"
+    C3_8XLarge ->
+      "c3.8xlarge"
+    C3_Large ->
+      "c3.large"
+    C3_XLarge ->
+      "c3.xlarge"
+    C4_2XLarge ->
+      "c4.2xlarge"
+    C4_4XLarge ->
+      "c4.4xlarge"
+    C4_8XLarge ->
+      "c4.8xlarge"
+    C4_Large ->
+      "c4.large"
+    C4_XLarge ->
+      "c4.xlarge"
+    CC1_4XLarge ->
+      "cc1.4xlarge"
+    CC2_8XLarge ->
+      "cc2.8xlarge"
+    CG1_4XLarge ->
+      "cg1.4xlarge"
+    CR1_8XLarge ->
+      "cr1.8xlarge"
+    D2_2XLarge ->
+      "d2.2xlarge"
+    D2_4XLarge ->
+      "d2.4xlarge"
+    D2_8XLarge ->
+      "d2.8xlarge"
+    D2_XLarge ->
+      "d2.xlarge"
+    G2_2XLarge ->
+      "g2.2xlarge"
+    G2_8XLarge ->
+      "g2.8xlarge"
+    HI1_4XLarge ->
+      "hi1.4xlarge"
+    HS1_8XLarge ->
+      "hs1.8xlarge"
+    I2_2XLarge ->
+      "i2.2xlarge"
+    I2_4XLarge ->
+      "i2.4xlarge"
+    I2_8XLarge ->
+      "i2.8xlarge"
+    I2_XLarge ->
+      "i2.xlarge"
+    M1_Large ->
+      "m1.large"
+    M1_Medium ->
+      "m1.medium"
+    M1_Small ->
+      "m1.small"
+    M1_XLarge ->
+      "m1.xlarge"
+    M2_2XLarge ->
+      "m2.2xlarge"
+    M2_4XLarge ->
+      "m2.4xlarge"
+    M2_XLarge ->
+      "m2.xlarge"
+    M3_2XLarge ->
+      "m3.2xlarge"
+    M3_Large ->
+      "m3.large"
+    M3_Medium ->
+      "m3.medium"
+    M3_XLarge ->
+      "m3.xlarge"
+    M4_Large ->
+      "m4.large"
+    M4_XLarge ->
+      "m4.xlarge"
+    M4_2XLarge ->
+      "m4.2xlarge"
+    M4_4XLarge ->
+      "m4.4xlarge"
+    M4_10XLarge ->
+      "m4.10xlarge"
+    R3_2XLarge ->
+      "r3.2xlarge"
+    R3_4XLarge ->
+      "r3.4xlarge"
+    R3_8XLarge ->
+      "r3.8xlarge"
+    R3_Large ->
+      "r3.large"
+    R3_XLarge ->
+      "r3.xlarge"
+    T1_Micro ->
+      "t1.micro"
+    T2_Large ->
+      "t2.large"
+    T2_Medium ->
+      "t2.medium"
+    T2_Micro ->
+      "t2.micro"
+    T2_Small ->
+      "t2.small"
+    T2_Nano ->
+      "t2.nano"
+
+parseMismiInstanceType :: Text -> Maybe MismiInstanceType
+parseMismiInstanceType m =
+  case m of
+    "c1.medium" ->
+      Just C1_Medium
+    "c1.xlarge" ->
+      Just C1_XLarge
+    "c3.2xlarge" ->
+      Just C3_2XLarge
+    "c3.4xlarge" ->
+      Just C3_4XLarge
+    "c3.8xlarge" ->
+      Just C3_8XLarge
+    "c3.large" ->
+      Just C3_Large
+    "c3.xlarge" ->
+      Just C3_XLarge
+    "c4.2xlarge" ->
+      Just C4_2XLarge
+    "c4.4xlarge" ->
+      Just C4_4XLarge
+    "c4.8xlarge" ->
+      Just C4_8XLarge
+    "c4.large" ->
+      Just C4_Large
+    "c4.xlarge" ->
+      Just C4_XLarge
+    "cc1.4xlarge" ->
+      Just CC1_4XLarge
+    "cc2.8xlarge" ->
+      Just CC2_8XLarge
+    "cg1.4xlarge" ->
+      Just CG1_4XLarge
+    "cr1.8xlarge" ->
+      Just CR1_8XLarge
+    "d2.2xlarge" ->
+      Just D2_2XLarge
+    "d2.4xlarge" ->
+      Just D2_4XLarge
+    "d2.8xlarge" ->
+      Just D2_8XLarge
+    "d2.xlarge" ->
+      Just D2_XLarge
+    "g2.2xlarge" ->
+      Just G2_2XLarge
+    "g2.8xlarge" ->
+      Just G2_8XLarge
+    "hi1.4xlarge" ->
+      Just HI1_4XLarge
+    "hs1.8xlarge" ->
+      Just HS1_8XLarge
+    "i2.2xlarge" ->
+      Just I2_2XLarge
+    "i2.4xlarge" ->
+      Just I2_4XLarge
+    "i2.8xlarge" ->
+      Just I2_8XLarge
+    "i2.xlarge" ->
+      Just I2_XLarge
+    "m1.large" ->
+      Just M1_Large
+    "m1.medium" ->
+      Just M1_Medium
+    "m1.small" ->
+      Just M1_Small
+    "m1.xlarge" ->
+      Just M1_XLarge
+    "m2.2xlarge" ->
+      Just M2_2XLarge
+    "m2.4xlarge" ->
+      Just M2_4XLarge
+    "m2.xlarge" ->
+      Just M2_XLarge
+    "m3.2xlarge" ->
+      Just M3_2XLarge
+    "m3.large" ->
+      Just M3_Large
+    "m3.medium" ->
+      Just M3_Medium
+    "m3.xlarge" ->
+      Just M3_XLarge
+    "m4.large" ->
+      Just M4_Large
+    "m4.xlarge" ->
+      Just M4_XLarge
+    "m4.2xlarge" ->
+      Just M4_2XLarge
+    "m4.4xlarge" ->
+      Just M4_4XLarge
+    "m4.10xlarge" ->
+      Just M4_10XLarge
+    "r3.2xlarge" ->
+      Just R3_2XLarge
+    "r3.4xlarge" ->
+      Just R3_4XLarge
+    "r3.8xlarge" ->
+      Just R3_8XLarge
+    "r3.large" ->
+      Just R3_Large
+    "r3.xlarge" ->
+      Just R3_XLarge
+    "t1.micro" ->
+      Just T1_Micro
+    "t2.large" ->
+      Just T2_Large
+    "t2.medium" ->
+      Just T2_Medium
+    "t2.micro" ->
+      Just T2_Micro
+    "t2.small" ->
+      Just T2_Small
+    "t2.nano" ->
+      Just T2_Nano
+    _ ->
+      Nothing
