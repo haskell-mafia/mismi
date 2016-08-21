@@ -6,6 +6,7 @@ module Test.Mismi.Autoscaling.Core.Arbitrary where
 import qualified Data.List.NonEmpty as N
 import qualified Data.Text as T
 
+import           Disorder.Core.Gen (genNonEmpty)
 import           Disorder.Corpus
 
 import           Mismi.Autoscaling.Core.Data
@@ -41,9 +42,17 @@ instance Arbitrary Propagate where
   arbitrary =
     arbitraryBoundedEnum
 
+instance Arbitrary MinInstances where
+  arbitrary =
+    MinInstances <$> choose (0, 10)
+
 instance Arbitrary DesiredInstances where
   arbitrary =
     DesiredInstances <$> choose (0, 10)
+
+instance Arbitrary MaxInstances where
+  arbitrary =
+    MaxInstances <$> choose (0, 10)
 
 instance Arbitrary GroupTag where
   arbitrary =
@@ -58,7 +67,7 @@ instance Arbitrary Group where
       <*> arbitrary
       <*> arbitrary
       <*> arbitrary
-      <*> (N.fromList <$> listOf1 arbitrary)
+      <*> genNonEmpty arbitrary
       <*> arbitrary
 
 instance Arbitrary GroupResult where
@@ -67,8 +76,22 @@ instance Arbitrary GroupResult where
       <$> arbitrary
       <*> arbitrary
       <*> arbitrary
-      <*> (N.fromList <$> listOf1 arbitrary)
+      <*> genNonEmpty arbitrary
       <*> arbitrary
       <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+
+instance Arbitrary AutoscalingMarket where
+  arbitrary =
+    oneof [
+        pure OnDemand
+      , (Spot . T.pack . show . (/ 10) . (fromIntegral :: Int -> Double)) <$> elements [1 .. 100]
+      ]
+
+instance Arbitrary Capacity where
+  arbitrary =
+    Capacity
+      <$> arbitrary
       <*> arbitrary
       <*> arbitrary

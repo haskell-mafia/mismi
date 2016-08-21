@@ -69,7 +69,7 @@ prop_group_set_capacity = once . testGroup $ \c g -> do
   createGroup $ group' c g 0
   setCapacity g (DesiredInstances 1)
   r <- runEitherT $ describeGroup g
-  pure $ (fmap . fmap) groupResultCapacity r === Right (Just $ DesiredInstances 1)
+  pure $ (fmap . fmap) (desiredCapacity . groupResultCapacity) r === Right (Just $ DesiredInstances 1)
 
 prop_update_tags = forAll ((,) <$> elements simpsons <*> elements boats) $ \(k, v) ->
   testGroup $ \c g -> do

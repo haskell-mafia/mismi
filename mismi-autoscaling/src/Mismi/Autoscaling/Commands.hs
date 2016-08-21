@@ -54,12 +54,12 @@ createGroup :: Group -> AWS ()
 createGroup g =
   continueIfExists . void . send $ A.createAutoScalingGroup
     (renderGroupName $ groupName g)
-    0
-    10
+    (minInstances . minCapacity $ groupCapacity g)
+    (maxInstances . maxCapacity $ groupCapacity g)
       & A.casgAvailabilityZones .~ Just (availabilityZone <$> groupAvailabilityZones g)
       & A.casgTags .~ (toTags (groupName g) (groupGroupTags g))
       & A.casgLaunchConfigurationName .~ Just (renderConfigurationName $ groupConfigurationName g)
-      & A.casgDesiredCapacity .~ Just (desiredInstances . minimumDesiredInstances $ groupDesiredInstances g)
+      & A.casgDesiredCapacity .~ Just (desiredInstances . minimumDesiredInstances . desiredCapacity $ groupCapacity g)
       & A.casgLoadBalancerNames .~ (loadBalancer <$> groupLoadBalancers g)
 
 describeGroups :: EitherT GroupResultError AWS [GroupResult]

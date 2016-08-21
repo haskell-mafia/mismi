@@ -60,7 +60,7 @@ group' cn gn i =
   Group
    gn
    cn
-   (DesiredInstances i)
+   (Capacity (MinInstances 0) (DesiredInstances i) (MaxInstances 10))
    [GroupTag (EC2Tag "environment" "test") Propagate]
    defaultAvailabilityZones
    []

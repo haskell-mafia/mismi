@@ -8,10 +8,14 @@ module Mismi.Autoscaling.Core.Data (
   , Group (..)
   , NonEmpty (..)
   , GroupResult (..)
+  , MinInstances (..)
   , DesiredInstances (..)
+  , MaxInstances (..)
+  , Capacity (..)
   , GroupTag (..)
   , EC2Tag (..)
   , Propagate (..)
+  , renderMarket
   , renderSpotPrice
   , propagateToBool
   , propagateFromBool
@@ -34,19 +38,27 @@ newtype ConfigurationName =
 
 data Configuration =
   Configuration {
-      configurationName :: ConfigurationName
-    , configurationImageId :: ImageId
-    , configurationInstanceType :: MismiInstanceType
-    , configurationSecurityGroups :: [SecurityGroupName]
-    , configurationIam :: IamRole
-    , configurationUserData :: UserData
-    , configurationMarket :: AutoscalingMarket
+      configurationName :: !ConfigurationName
+    , configurationImageId :: !ImageId
+    , configurationInstanceType :: !MismiInstanceType
+    , configurationSecurityGroups :: ![SecurityGroupName]
+    , configurationIam :: !IamRole
+    , configurationUserData :: !UserData
+    , configurationMarket :: !AutoscalingMarket
     } deriving (Eq, Show, Ord)
 
 data AutoscalingMarket =
     OnDemand
   | Spot !Text
     deriving (Eq, Show, Ord)
+
+renderMarket :: AutoscalingMarket -> Text
+renderMarket m =
+  case m of
+    OnDemand ->
+      "ondemand"
+    Spot t ->
+      t
 
 renderSpotPrice :: AutoscalingMarket -> Maybe Text
 renderSpotPrice a =
@@ -63,30 +75,48 @@ newtype GroupName =
 
 data Group =
   Group {
-      groupName :: GroupName
-    , groupConfigurationName :: ConfigurationName
-    , groupDesiredInstances :: DesiredInstances
-    , groupGroupTags :: [GroupTag]
-    , groupAvailabilityZones :: NonEmpty AvailabilityZone
-    , groupLoadBalancers :: [LoadBalancer]
+      groupName :: !GroupName
+    , groupConfigurationName :: !ConfigurationName
+    , groupCapacity :: !Capacity
+    , groupGroupTags :: ![GroupTag]
+    , groupAvailabilityZones :: !(NonEmpty AvailabilityZone)
+    , groupLoadBalancers :: ![LoadBalancer]
     } deriving (Eq, Show, Ord)
 
 data GroupResult =
   GroupResult {
-      groupResultName :: GroupName
-    , groupResultConfName :: ConfigurationName
-    , groupResultCapacity :: DesiredInstances
-    , groupResultAvailabilityZones :: NonEmpty AvailabilityZone
-    , groupResultLoadBalances :: [LoadBalancer]
-    , groupResultInstances :: [InstanceId]
-    , groupResultCreationTime :: UTCTime
-    , groupResultTags :: [GroupTag]
+      groupResultName :: !GroupName
+    , groupResultConfName :: !ConfigurationName
+    , groupResultCapacity :: !Capacity
+    , groupResultAvailabilityZones :: !(NonEmpty AvailabilityZone)
+    , groupResultLoadBalances :: ![LoadBalancer]
+    , groupResultInstances :: ![InstanceId]
+    , groupResultCreationTime :: !UTCTime
+    , groupResultTags :: ![GroupTag]
     } deriving (Eq, Show)
+
+newtype MinInstances =
+  MinInstances {
+      minInstances :: Int
+    } deriving (Eq, Show, Ord)
 
 newtype DesiredInstances =
   DesiredInstances {
       desiredInstances :: Int
     } deriving (Eq, Show, Ord)
+
+newtype MaxInstances =
+  MaxInstances {
+      maxInstances :: Int
+    } deriving (Eq, Show, Ord)
+
+data Capacity =
+  Capacity {
+      minCapacity :: !MinInstances
+    , desiredCapacity :: !DesiredInstances
+    , maxCapacity :: !MaxInstances
+    } deriving (Eq, Show, Ord)
+
 
 data GroupTag =
   GroupTag {
