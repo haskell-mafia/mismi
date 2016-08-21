@@ -6,8 +6,13 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.IO.Mismi.Autoscaling.Commands where
 
+import           Control.Monad.IO.Class (liftIO)
+
+import qualified Data.Text as T
+
 import           Disorder.Corpus
 
+import           Mismi (AWS)
 import           Mismi.Autoscaling.Core.Data
 import           Mismi.Autoscaling.Commands
 
@@ -16,6 +21,9 @@ import           P
 import           Test.Mismi.Autoscaling.Control
 import           Test.Mismi.Autoscaling.Core.Arbitrary ()
 import           Test.QuickCheck
+
+import           Twine.Data (seconds)
+import           Twine.Snooze (snooze)
 
 import           X.Control.Monad.Trans.Either
 
@@ -81,6 +89,33 @@ prop_update_tags = forAll ((,) <$> elements simpsons <*> elements boats) $ \(k, 
     m <- runEitherT $ describeGroup g
     let r = fmap (elem tag . groupResultTags) . join $ rightToMaybe m
     pure $ r === Just True
+
+prop_scale_in = once . testGroup $ \c g -> do
+  conf <- conf' c
+  createConfiguration conf
+  createGroup $ group' c g 1
+
+  -- Allow ec2 instance to start up
+  liftIO . snooze $ seconds 45
+
+  r <- describeOrFail g
+  let is = scalingInstanceId <$> groupResultInstances r
+  lockInstances g is
+  locked <- describeOrFail g
+  unlockInstances g is
+  unlocked <- describeOrFail g
+  let pro = fmap scalingInstanceProtected . groupResultInstances
+  pure $
+    (length is, pro locked, pro unlocked)
+    ===
+    (1, [ProtectedFromScaleIn], [NotProtectedFromScaleIn])
+
+describeOrFail :: GroupName -> AWS GroupResult
+describeOrFail g =
+  eitherT
+    (fail . T.unpack $ "GroupResultError [" <> renderGroupName g <> "]")
+    (fromMaybeM (fail . T.unpack $ "Unable to find autoscaling group [" <> renderGroupName g <> "]"))
+    (describeGroup g)
 
 return []
 tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 5 })

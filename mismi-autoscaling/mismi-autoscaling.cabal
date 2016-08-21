@@ -72,6 +72,7 @@ test-suite test-io
                      , ambiata-mismi-ec2-core
                      , ambiata-mismi-iam-core
                      , ambiata-p
+                     , ambiata-twine
                      , ambiata-x-eithert
                      , text                            == 1.2.*
                      , transformers                    >= 0.3.1      && < 0.6

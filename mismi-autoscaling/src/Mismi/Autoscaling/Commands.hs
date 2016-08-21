@@ -16,6 +16,8 @@ module Mismi.Autoscaling.Commands (
   , detachLoadBalancers
   , attachLoadBalancer
   , updateTags
+  , lockInstances
+  , unlockInstances
   ) where
 
 import           Control.Lens ((^.), (.~))
@@ -31,7 +33,8 @@ import           Mismi.Autoscaling.Core.Data
 import           Mismi.Autoscaling.Data
 import           Mismi.Autoscaling.Error
 import           Mismi.EC2.Data (fromMismiInstanceType)
-import           Mismi.EC2.Core.Data (LoadBalancer (..), AvailabilityZone (..), ImageId (..), SecurityGroupName (..), encodeUserData)
+import           Mismi.EC2.Core.Data (LoadBalancer (..), AvailabilityZone (..), InstanceId (..))
+import           Mismi.EC2.Core.Data (ImageId (..), SecurityGroupName (..), encodeUserData)
 import           Mismi.EC2.Core.Device (instanceDeviceMappings)
 import           Mismi.IAM.Core.Data (IamRole (..))
 
@@ -158,3 +161,21 @@ attachLoadBalancer n l = do
 updateTags :: GroupName -> [GroupTag] -> AWS ()
 updateTags g t =
   void . send $ A.createOrUpdateTags & A.coutTags .~ (toTags g t)
+
+lockInstances :: GroupName -> [InstanceId] -> AWS ()
+lockInstances n is =
+  setInstanceProtection n is ProtectedFromScaleIn
+
+unlockInstances :: GroupName -> [InstanceId] -> AWS ()
+unlockInstances n is =
+  setInstanceProtection n is NotProtectedFromScaleIn
+
+-- Can only set protection on instances that have the lifecycle state
+-- of 'InService', 'EnteringStandby' or 'Standby'.
+setInstanceProtection :: GroupName -> [InstanceId] -> ProtectedFromScaleIn -> AWS ()
+setInstanceProtection n is p =
+  when (not $ null is) . void . retry
+    (constantDelay 5000000 <> limitRetries 10) {- 5 seconds -}
+    [validationError] .
+    send $ A.setInstanceProtection (renderGroupName n) (protectedFromScaleInToBool p)
+      & A.sipInstanceIds .~ (fmap instanceId is)

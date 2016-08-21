@@ -70,7 +70,9 @@ conf' cn =
   Configuration
     <$> pure cn
     <*> liftIO testImageId
-    <*> pure T2_Nano
+    -- With the default test ami, t2.nano is not supported
+    -- https://aws.amazon.com/marketplace/pp?sku=6x5jmcajty9edm3f211pqjfn2
+    <*> pure T2_Micro
     <*> ((:[]) <$> liftIO testSecurityGroup)
     <*> liftIO testIamRole
     <*> pure (UserData "something not empty")

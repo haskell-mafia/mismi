@@ -3,7 +3,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Test.Mismi.Autoscaling.Core.Arbitrary where
 
-import qualified Data.List.NonEmpty as N
 import qualified Data.Text as T
 
 import           Disorder.Core.Gen (genNonEmpty)
@@ -37,6 +36,17 @@ genUniqueName = do
     , T.pack $ show n
     , m
     ]
+
+instance Arbitrary ScalingInstance where
+  arbitrary =
+    ScalingInstance
+      <$> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+
+instance Arbitrary ProtectedFromScaleIn where
+  arbitrary =
+    arbitraryBoundedEnum
 
 instance Arbitrary Propagate where
   arbitrary =
