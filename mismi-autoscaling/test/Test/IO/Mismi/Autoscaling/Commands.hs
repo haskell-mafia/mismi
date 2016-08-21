@@ -75,7 +75,7 @@ prop_group_set_capacity = once . testGroup $ \c g -> do
   conf <- conf' c
   createConfiguration conf
   createGroup $ group' c g 0
-  setCapacity g (DesiredInstances 1)
+  updateDesiredInstances g (DesiredInstances 1)
   r <- runEitherT $ describeGroup g
   pure $ (fmap . fmap) (desiredCapacity . groupResultCapacity) r === Right (Just $ DesiredInstances 1)
 
@@ -109,6 +109,17 @@ prop_scale_in = once . testGroup $ \c g -> do
     (length is, pro locked, pro unlocked)
     ===
     (1, [ProtectedFromScaleIn], [NotProtectedFromScaleIn])
+
+prop_update_min_max = once . testGroup $ \c g -> do
+  let
+    zeroCap = Capacity (MinInstances 0) (DesiredInstances 0) (MaxInstances 0)
+  conf <- conf' c
+  createConfiguration conf
+  createGroup $ groupWithCapacity' c g zeroCap
+  updateMinMaxInstances g (MinInstances 1) (MaxInstances 1)
+  z <- describeOrFail g
+  pure $ groupResultCapacity z ===
+    Capacity (MinInstances 1) (DesiredInstances 1) (MaxInstances 1)
 
 describeOrFail :: GroupName -> AWS GroupResult
 describeOrFail g =

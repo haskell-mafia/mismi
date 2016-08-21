@@ -145,7 +145,6 @@ data Capacity =
     , maxCapacity :: !MaxInstances
     } deriving (Eq, Show, Ord)
 
-
 data GroupTag =
   GroupTag {
       groupTag :: !EC2Tag

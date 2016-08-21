@@ -11,7 +11,8 @@ module Mismi.Autoscaling.Commands (
   , describeConfigurationRaw
   , deleteGroup
   , deleteConfiguration
-  , setCapacity
+  , updateDesiredInstances
+  , updateMinMaxInstances
   , describeLoadBalancers
   , detachLoadBalancers
   , attachLoadBalancer
@@ -127,10 +128,16 @@ deleteConfiguration cn =
     [resourceInUse]
     . send $ (A.deleteLaunchConfiguration $ renderConfigurationName cn)
 
-setCapacity :: GroupName -> DesiredInstances -> AWS ()
-setCapacity gn di =
+updateDesiredInstances :: GroupName -> DesiredInstances -> AWS ()
+updateDesiredInstances gn di =
   when (desiredInstances di >= 0) . void . send $
     A.setDesiredCapacity (renderGroupName gn) (desiredInstances di)
+
+updateMinMaxInstances :: GroupName -> MinInstances -> MaxInstances -> AWS ()
+updateMinMaxInstances g a b =
+  void . send $ A.updateAutoScalingGroup (renderGroupName g)
+    & A.uasgMinSize .~ Just (minInstances a)
+    & A.uasgMaxSize .~ Just (maxInstances b)
 
 describeLoadBalancers :: GroupName -> AWS [LoadBalancer]
 describeLoadBalancers n = do
