@@ -118,4 +118,4 @@ case "$MODE" in
 upgrade) shift; run_upgrade "$@" ;;
 *) exec_mafia "$@"
 esac
-# Version: de245376fd86c1ec9a5a451f096cb79bc8ae68f7
+# Version: 49650c3a0b6b42a6304b6e825d7c3359bcadf259
