@@ -8,6 +8,8 @@ module Mismi.Autoscaling.Core.Data (
   , Group (..)
   , NonEmpty (..)
   , GroupResult (..)
+  , ScalingInstance (..)
+  , ProtectedFromScaleIn (..)
   , MinInstances (..)
   , DesiredInstances (..)
   , MaxInstances (..)
@@ -17,6 +19,8 @@ module Mismi.Autoscaling.Core.Data (
   , Propagate (..)
   , renderMarket
   , renderSpotPrice
+  , protectedFromScaleInToBool
+  , protectedFromScaleInFromBool
   , propagateToBool
   , propagateFromBool
   , increaseInstances
@@ -90,10 +94,34 @@ data GroupResult =
     , groupResultCapacity :: !Capacity
     , groupResultAvailabilityZones :: !(NonEmpty AvailabilityZone)
     , groupResultLoadBalances :: ![LoadBalancer]
-    , groupResultInstances :: ![InstanceId]
+    , groupResultInstances :: ![ScalingInstance]
     , groupResultCreationTime :: !UTCTime
     , groupResultTags :: ![GroupTag]
     } deriving (Eq, Show)
+
+data ScalingInstance =
+  ScalingInstance {
+      scalingInstanceId :: !InstanceId
+    , scalingInstanceProtected :: !ProtectedFromScaleIn
+    , scalingInstanceAvailabilityZone:: !AvailabilityZone
+    } deriving (Eq, Show)
+
+data ProtectedFromScaleIn =
+    ProtectedFromScaleIn
+  | NotProtectedFromScaleIn
+    deriving (Eq, Show, Enum, Bounded)
+
+protectedFromScaleInToBool :: ProtectedFromScaleIn -> Bool
+protectedFromScaleInToBool p =
+  case p of
+    ProtectedFromScaleIn ->
+      True
+    NotProtectedFromScaleIn ->
+      False
+
+protectedFromScaleInFromBool :: Bool -> ProtectedFromScaleIn
+protectedFromScaleInFromBool =
+  bool NotProtectedFromScaleIn ProtectedFromScaleIn
 
 newtype MinInstances =
   MinInstances {
@@ -116,7 +144,6 @@ data Capacity =
     , desiredCapacity :: !DesiredInstances
     , maxCapacity :: !MaxInstances
     } deriving (Eq, Show, Ord)
-
 
 data GroupTag =
   GroupTag {

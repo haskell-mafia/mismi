@@ -57,10 +57,14 @@ testGroup f =
 
 group' :: ConfigurationName -> GroupName -> Int -> Group
 group' cn gn i =
+  groupWithCapacity' cn gn (Capacity (MinInstances 0) (DesiredInstances i) (MaxInstances 10))
+
+groupWithCapacity' :: ConfigurationName -> GroupName -> Capacity -> Group
+groupWithCapacity' cn gn cap =
   Group
    gn
    cn
-   (Capacity (MinInstances 0) (DesiredInstances i) (MaxInstances 10))
+   cap
    [GroupTag (EC2Tag "environment" "test") Propagate]
    defaultAvailabilityZones
    []
@@ -70,7 +74,8 @@ conf' cn =
   Configuration
     <$> pure cn
     <*> liftIO testImageId
-    <*> pure T2_Nano
+    -- With the default test ami, t2.nano is not supported
+    <*> pure T2_Micro
     <*> ((:[]) <$> liftIO testSecurityGroup)
     <*> liftIO testIamRole
     <*> pure (UserData "something not empty")

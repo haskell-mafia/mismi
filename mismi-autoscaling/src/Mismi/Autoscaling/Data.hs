@@ -63,7 +63,11 @@ toGroupResult g = do
       (MaxInstances $ g ^. A.asgMaxSize))
     <*> pure (fmap AvailabilityZone (g ^. A.asgAvailabilityZones))
     <*> pure (LoadBalancer <$> g ^. A.asgLoadBalancerNames)
-    <*> pure (fmap (InstanceId . view A.iInstanceId) $ g ^. A.asgInstances)
+    <*> pure (with (g ^. A.asgInstances) $ \i ->
+      ScalingInstance
+        (InstanceId $ view A.iInstanceId i)
+        (protectedFromScaleInFromBool $ view A.iProtectedFromScaleIn i)
+        (AvailabilityZone $ view A.iAvailabilityZone i))
     <*> pure (g ^. A.asgCreatedTime)
     <*> pure (fromTags (g ^. A.asgTags))
 
