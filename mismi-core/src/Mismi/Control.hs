@@ -168,13 +168,13 @@ onStatus_ r f m =
       Nothing ->
         throwM e
 
-handleServiceError :: (ServiceError -> Bool) -> a -> AWS a -> AWS a
+handleServiceError :: (ServiceError -> Bool) -> (ServiceError -> a) -> AWS a -> AWS a
 handleServiceError f pass action =
   action `catch` \(e :: Error) ->
     case e of
       ServiceError se ->
         if f se
-          then pure pass
+          then pure $ pass se
           else throwM e
       SerializeError _ ->
         throwM e

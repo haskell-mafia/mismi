@@ -18,6 +18,7 @@ library
                      , ambiata-p
                      , ambiata-twine
                      , ambiata-x-eithert
+                     , retry                           == 0.7.*
                      , text                            == 1.2.*
                      , transformers                    >= 0.3.1      && < 0.6
                      , QuickCheck                      >= 2.7        && < 2.9

@@ -11,6 +11,9 @@ module Mismi.Autoscaling.Data (
 
   , ConfigurationError (..)
   , toConfiguration
+
+  , InstanceProtectionError (..)
+  , parseProtectionError
   ) where
 
 import           Control.Lens ((^.), (.~), view)
@@ -98,3 +101,24 @@ toConfiguration a = do
          OnDemand
        Just v ->
          Spot v)
+
+data InstanceProtectionError =
+    InstanceProtectionInvalidState
+  | InstanceProtectionNotFound
+  | InstanceProtectionUnknownError Text
+  deriving (Eq, Show)
+
+-- Differentiating between the following:
+-- "The instance i-ef2f5d40 is not part of Auto Scaling group stewed.27197.animal."
+-- "The instance i-ef2f5d40 is not in InService or EnteringStandby or Standby."
+parseProtectionError :: Text -> InstanceProtectionError
+parseProtectionError t =
+  case T.isInfixOf "is not in InService or EnteringStandby or Standby" t of
+    True ->
+      InstanceProtectionInvalidState
+    False ->
+      case T.isInfixOf "is not part of Auto Scaling group" t of
+        True ->
+          InstanceProtectionNotFound
+        False ->
+          InstanceProtectionUnknownError t
