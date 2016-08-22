@@ -19,6 +19,7 @@ module Mismi.Autoscaling.Commands (
   , updateTags
   , lockInstances
   , unlockInstances
+  , InstanceProtectionError (..)
   ) where
 
 import           Control.Lens ((^.), (.~))
@@ -169,20 +170,20 @@ updateTags :: GroupName -> [GroupTag] -> AWS ()
 updateTags g t =
   void . send $ A.createOrUpdateTags & A.coutTags .~ (toTags g t)
 
-lockInstances :: GroupName -> [InstanceId] -> AWS ()
+lockInstances :: GroupName -> [InstanceId] -> EitherT InstanceProtectionError AWS ()
 lockInstances n is =
   setInstanceProtection n is ProtectedFromScaleIn
 
-unlockInstances :: GroupName -> [InstanceId] -> AWS ()
+unlockInstances :: GroupName -> [InstanceId] -> EitherT InstanceProtectionError AWS ()
 unlockInstances n is =
   setInstanceProtection n is NotProtectedFromScaleIn
 
+
 -- Can only set protection on instances that have the lifecycle state
 -- of 'InService', 'EnteringStandby' or 'Standby'.
-setInstanceProtection :: GroupName -> [InstanceId] -> ProtectedFromScaleIn -> AWS ()
+setInstanceProtection :: GroupName -> [InstanceId] -> ProtectedFromScaleIn -> EitherT InstanceProtectionError AWS ()
 setInstanceProtection n is p =
-  when (not $ null is) . void . retry
-    (constantDelay 5000000 <> limitRetries 10) {- 5 seconds -}
-    [validationError] .
-    send $ A.setInstanceProtection (renderGroupName n) (protectedFromScaleInToBool p)
-      & A.sipInstanceIds .~ (fmap instanceId is)
+  when (not $ null is) .
+    newEitherT . catchValidationErrorMessage (Left . parseProtectionError) . fmap Right .
+      void . send $ A.setInstanceProtection (renderGroupName n) (protectedFromScaleInToBool p)
+        & A.sipInstanceIds .~ (fmap instanceId is)

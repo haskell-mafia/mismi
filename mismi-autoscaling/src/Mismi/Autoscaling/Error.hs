@@ -6,6 +6,7 @@ module Mismi.Autoscaling.Error (
   , retry
   , continueIfExists
   , catchValidationError
+  , catchValidationErrorMessage
   , scalingInProgress
   , resourceInUse
   , alreadyExists
@@ -17,7 +18,7 @@ import           Control.Lens ((^.))
 import           Control.Monad.Catch (Handler (..))
 import           Control.Retry (RetryPolicyM, RetryStatus, recovering)
 
-import           Mismi.Amazonka (AWS, Error (..), ErrorCode, errorCode, serviceCode, serviceStatus)
+import           Mismi.Amazonka (AWS, Error (..), ErrorCode, errorCode, serviceCode, serviceStatus, serviceMessage, toText)
 import           Mismi.Control (handleServiceError)
 
 import           Network.HTTP.Types.Status (status400)
@@ -31,11 +32,17 @@ retry r ecs action =
 continueIfExists :: AWS () -> AWS ()
 continueIfExists =
   handleServiceError (\se ->
-    (se ^. serviceStatus == status400 && se ^. serviceCode == autoScalingErrorCode alreadyExists)) ()
+    (se ^. serviceStatus == status400 && se ^. serviceCode == autoScalingErrorCode alreadyExists)) $ const ()
 
 catchValidationError :: a -> AWS a -> AWS a
 catchValidationError f =
-  handleServiceError (\se -> (se ^. serviceStatus == status400 && se ^. serviceCode == autoScalingErrorCode validationError)) f
+  handleServiceError (\se -> (se ^. serviceStatus == status400 && se ^. serviceCode == autoScalingErrorCode validationError)) $ const f
+
+catchValidationErrorMessage :: (Text -> a) -> AWS a -> AWS a
+catchValidationErrorMessage f =
+  handleServiceError
+    (\se -> (se ^. serviceStatus == status400 && se ^. serviceCode == autoScalingErrorCode validationError))
+    (\se -> f (maybe "No service error message" toText $ se ^. serviceMessage))
 
 newtype AutoScalingError =
   AutoScalingError {

@@ -8,12 +8,15 @@ module Test.IO.Mismi.Autoscaling.Commands where
 
 import           Control.Monad.IO.Class (liftIO)
 
+import           Control.Retry (retrying, limitRetries, constantDelay)
+
 import qualified Data.Text as T
 
 import           Disorder.Corpus
 
 import           Mismi (AWS)
 import           Mismi.Autoscaling.Core.Data
+import           Mismi.EC2.Core.Data
 import           Mismi.Autoscaling.Commands
 
 import           P
@@ -90,25 +93,49 @@ prop_update_tags = forAll ((,) <$> elements simpsons <*> elements boats) $ \(k, 
     let r = fmap (elem tag . groupResultTags) . join $ rightToMaybe m
     pure $ r === Just True
 
+prop_scale_in_not_found = once . testGroup $ \c g -> do
+  conf <- conf' c
+  createConfiguration conf
+  createGroup $ group' c g 0
+  r <- runEitherT $ lockInstances g [InstanceId "i-ef2f5d40"]
+  pure $ r === Left InstanceProtectionNotFound
+
+prop_scale_in_invalid_state = once . testGroup $ \c g -> do
+  conf <- conf' c
+  createConfiguration conf
+  createGroup $ group' c g 1
+  -- Allow ec2 instance to partially start up
+  liftIO . snooze $ seconds 10
+  d <- describeOrFail g
+  let is = scalingInstanceId <$> groupResultInstances d
+  r <- runEitherT $ lockInstances g is
+  pure $ r === Left InstanceProtectionInvalidState
+
 prop_scale_in = once . testGroup $ \c g -> do
   conf <- conf' c
   createConfiguration conf
   createGroup $ group' c g 1
 
   -- Allow ec2 instance to start up
-  liftIO . snooze $ seconds 45
+  liftIO . snooze $ seconds 30
+
+  let retryX action =
+        retrying
+          (constantDelay 5000000 <> limitRetries 10) {- 5 seconds -}
+          (const $ return . isLeft)
+          (const action)
 
   r <- describeOrFail g
   let is = scalingInstanceId <$> groupResultInstances r
-  lockInstances g is
+  lock <- retryX . runEitherT $ lockInstances g is
   locked <- describeOrFail g
-  unlockInstances g is
+  unlock <- retryX . runEitherT $ unlockInstances g is
   unlocked <- describeOrFail g
   let pro = fmap scalingInstanceProtected . groupResultInstances
   pure $
-    (length is, pro locked, pro unlocked)
+    (length is, pro locked, pro unlocked, lock, unlock)
     ===
-    (1, [ProtectedFromScaleIn], [NotProtectedFromScaleIn])
+    (1, [ProtectedFromScaleIn], [NotProtectedFromScaleIn], Right (), Right ())
 
 prop_update_min_max = once . testGroup $ \c g -> do
   let
