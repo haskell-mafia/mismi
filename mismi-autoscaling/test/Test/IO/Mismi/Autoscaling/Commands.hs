@@ -128,14 +128,15 @@ prop_scale_in = once . testGroup $ \c g -> do
   r <- describeOrFail g
   let is = scalingInstanceId <$> groupResultInstances r
   lock <- retryX . runEitherT $ lockInstances g is
+  lock' <- retryX . runEitherT $ lockInstances g is
   locked <- describeOrFail g
   unlock <- retryX . runEitherT $ unlockInstances g is
   unlocked <- describeOrFail g
   let pro = fmap scalingInstanceProtected . groupResultInstances
   pure $
-    (length is, pro locked, pro unlocked, lock, unlock)
+    (length is, pro locked, pro unlocked, lock, lock', unlock)
     ===
-    (1, [ProtectedFromScaleIn], [NotProtectedFromScaleIn], Right (), Right ())
+    (1, [ProtectedFromScaleIn], [NotProtectedFromScaleIn], Right (), Right (), Right ())
 
 prop_update_min_max = once . testGroup $ \c g -> do
   let
