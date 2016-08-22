@@ -384,7 +384,7 @@ getObjectsRecursively (Address (Bucket b) (Key ky)) =
         else
           pure $ resp ^. A.lorsContents
 
--- Pair of list of prefixes and list of keys
+-- | Return a tuple of the prefixes and keys at the provided S3 Address.
 listObjects :: Address -> AWS ([Address], [Address])
 listObjects a =
   (\(p, k) -> (Address (bucket a) <$> p, Address (bucket a) <$> k)) <$> getObjects a

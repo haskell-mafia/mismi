@@ -112,16 +112,19 @@ combineKey (Key p1) (Key p2) =
     then Key $ p1 <> p2
     else Key $ p1 <> "/" <> p2
 
+-- | @withKey f address@ : Replace the 'Key' part of an 'Address' with a new
+--   'Key' resulting from the application of function @f@ to the old 'Key'.
 withKey :: (Key -> Key) -> Address -> Address
 withKey f (Address b k) =
   Address b $ f k
 
+-- | Get the prefix for a given key (eg. dirname "\/foo\/bar" == "foo").
 dirname :: Key -> Key
 dirname =
   Key . T.intercalate "/" . init . T.split (=='/') . unKey
 
--- | Get the basename for a given key (eg. basename "/foo/bar" == "bar").
---   Return 'Nothing' for the empty 'Key' _and_ when the name ends with a '/'.
+-- | Get the basename for a given key (eg. basename "\/foo\/bar" == "bar").
+--   Return 'Nothing' for the empty 'Key' _and_ when the name ends with a "/".
 basename :: Key -> Maybe Text
 basename =
   mfilter (not . T.null) . listToMaybe . reverse . T.split (== '/') . unKey
@@ -153,10 +156,12 @@ removeCommonPrefix prefix addr =
      else
        Nothing
 
+-- | Render an 'Address' to 'Text', including the "s3://" prefix.
 addressToText :: Address -> Text
 addressToText a =
   "s3://" <> unBucket (bucket a) <> "/" <> unKey (key a)
 
+-- | Parse an 'Address' from 'Text'. If the parse fails, 'Nothing' is returned.
 addressFromText :: Text -> Maybe Address
 addressFromText =
   rightToMaybe . AT.parseOnly s3Parser
