@@ -146,6 +146,9 @@ read a = do
   z <- liftIO . sequence $ (runResourceT . ($$+- sinkLbs)) <$> r
   pure $ fmap (T.concat . TL.toChunks . TL.decodeUtf8) z
 
+-- | WARNING : The returned @ResumableResource@ must be comsumed within the
+-- @AWS@ monad. Failure to do so can result in run time errors (recv on a bad
+-- file descriptor) when the @MonadResouce@ cleans up the socket.
 read' :: Address -> AWS (Maybe (ResumableSource (ResourceT IO) BS.ByteString))
 read' a = do
   r <- getObject' a
