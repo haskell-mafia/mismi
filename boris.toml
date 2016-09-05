@@ -211,8 +211,14 @@
 [build.branches-7-10-sqs-cabal-test]
   command = [["master", "build", "branches-7-10-cabal-test", "-C", "mismi-sqs"]]
 
-[build.reliability]
+[build.dist-reliability]
   command = [["bin/ci.reliability mismi-s3"]]
 
-[build.validate]
+[build.dist-validate]
   command = [["validate-respect"]]
+
+[build.all-submodules]
+  command = [["dangling-refs"]]
+
+[build.all-rebased]
+  command = [["rebased"]]
