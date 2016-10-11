@@ -20,7 +20,7 @@ import           Mismi.EC2.Data
 
 import qualified Network.AWS.EC2.Metadata as AWS
 import           Network.HTTP.Conduit (HttpException)
-import           Network.HTTP.Conduit (ManagerSettings (..), conduitManagerSettings)
+import           Network.HTTP.Conduit (ManagerSettings (..), tlsManagerSettings)
 import           Network.HTTP.Conduit (Manager, newManager)
 
 import           P
@@ -59,7 +59,7 @@ metadataErrorRender (MetadataParseError t) = "Error parsing metadata " <> t
 
 managerWithDefaultTimeout :: IO Manager
 managerWithDefaultTimeout =
-  newManager conduitManagerSettings {
+  newManager tlsManagerSettings {
     -- The default is normally 30 seconds
     managerResponseTimeout = Just 1000000 {- 1 second -}
   }
