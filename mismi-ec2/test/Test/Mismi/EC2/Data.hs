@@ -18,5 +18,8 @@ prop_instance_type v =
 prop_virtualization v =
   toMismiVirtualizationType (fromMismiVirtualizationType v) === v
 
+prop_tag e =
+  toMismiTag (fromMismiTag e) === e
+
 return []
 tests = $quickCheckAll
