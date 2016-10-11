@@ -8,6 +8,7 @@ module Mismi.EC2.Data (
   , toMismiVirtualizationType
   , fromMismiBlockDeviceMapping
   , toMismiTag
+  , fromMismiTag
   ) where
 
 import           Control.Lens ((.~), view)
@@ -273,3 +274,7 @@ toMismiTag e =
   EC2Tag
     (view A.tagKey e)
     (view A.tagValue e)
+
+fromMismiTag :: EC2Tag -> A.Tag
+fromMismiTag e =
+  A.tag (tagKey e) (tagValue e)
