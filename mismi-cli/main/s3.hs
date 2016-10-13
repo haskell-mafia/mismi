@@ -8,6 +8,8 @@ import           DependencyInfo_ambiata_mismi_cli
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
 
+import           Control.Lens (over, set)
+
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
 
@@ -16,8 +18,10 @@ import           Data.String (String)
 import           Data.Text.IO (putStrLn, hPutStrLn)
 import           Data.Text hiding (copy, isPrefixOf, filter)
 
+import           Mismi.Amazonka (serviceRetry, retryAttempts, exponentBase, configure)
 import qualified Mismi.OpenSSL as O
 import           Mismi.S3
+import           Mismi.S3.Amazonka (s3)
 
 import           Options.Applicative
 
@@ -96,7 +100,9 @@ main = do
 run :: Command -> IO ()
 run c = do
   e <- orDie O.renderRegionError O.discoverAWSEnv
-  orDie O.renderError . O.runAWS e $ case c of
+  let
+    e' = configure (over serviceRetry (set retryAttempts 10 . set exponentBase 0.6) s3) e
+  orDie O.renderError . O.runAWS e' $ case c of
     Upload s d m ->
       uploadWithModeOrFail m s d
     Download s d ->

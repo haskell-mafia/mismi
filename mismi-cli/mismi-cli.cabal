@@ -32,6 +32,7 @@ executable s3
                      , text
                      , resourcet
                      , bytestring                      == 0.10.*
+                     , lens                            >= 4.8        && < 4.15
 
 test-suite test-cli
   type:                exitcode-stdio-1.0
