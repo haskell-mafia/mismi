@@ -19,6 +19,7 @@ import           Data.Text.IO (putStrLn, hPutStrLn)
 import           Data.Text hiding (copy, isPrefixOf, filter)
 
 import           Mismi.Amazonka (serviceRetry, retryAttempts, exponentBase, configure)
+import qualified Mismi.Environment as C
 import qualified Mismi.OpenSSL as O
 import           Mismi.S3
 import           Mismi.S3.Amazonka (s3)
@@ -99,7 +100,13 @@ main = do
 
 run :: Command -> IO ()
 run c = do
-  e <- orDie O.renderRegionError O.discoverAWSEnv
+  openssl <- fmap (maybe False (\s -> s == "true" || s == "1")) $ lookupEnv "AWS_OPENSSL"
+
+  e <- case openssl of
+    True ->
+      orDie O.renderRegionError O.discoverAWSEnv
+    False ->
+      orDie C.renderRegionError C.discoverAWSEnv
   let
     e' = configure (over serviceRetry (set retryAttempts 10 . set exponentBase 0.6) s3) e
   orDie O.renderError . O.runAWS e' $ case c of
