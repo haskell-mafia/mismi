@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE CPP #-}
 module Mismi.EC2.Metadata (
     MetadataError (..)
   , fetchMetadata
@@ -20,8 +21,14 @@ import           Mismi.EC2.Data
 
 import qualified Network.AWS.EC2.Metadata as AWS
 import           Network.HTTP.Conduit (HttpException)
-import           Network.HTTP.Conduit (ManagerSettings (..), tlsManagerSettings)
+import           Network.HTTP.Conduit (ManagerSettings (..))
 import           Network.HTTP.Conduit (Manager, newManager)
+#if MIN_VERSION_http_conduit(2,1,8)
+import           Network.HTTP.Conduit (tlsManagerSettings)
+#else
+import           Network.HTTP.Conduit (conduitManagerSettings)
+#endif
+
 
 import           P
 
@@ -59,7 +66,11 @@ metadataErrorRender (MetadataParseError t) = "Error parsing metadata " <> t
 
 managerWithDefaultTimeout :: IO Manager
 managerWithDefaultTimeout =
+#if MIN_VERSION_http_conduit(2,1,8)
   newManager tlsManagerSettings {
+#else
+  newManager conduitManagerSettings {
+#endif
     -- The default is normally 30 seconds
     managerResponseTimeout = Just 1000000 {- 1 second -}
   }
