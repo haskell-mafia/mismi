@@ -19,7 +19,7 @@ module Mismi.EC2.Core.Data (
   , renderVirtualization
   , renderVirtualizationAws
   , parseVirtualization
-  , virutalizationFor
+  , virtualizationFor
   , renderMismiInstanceType
   , parseMismiInstanceType
   ) where
@@ -192,8 +192,8 @@ renderVirtualizationAws v =
     Paravirtual ->
       "paravirtual"
 
-virutalizationFor :: MismiInstanceType -> MismiVirtualizationType
-virutalizationFor itype =
+virtualizationFor :: MismiInstanceType -> MismiVirtualizationType
+virtualizationFor itype =
   case itype of
     C1_Medium ->
       Paravirtual
