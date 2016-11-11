@@ -57,7 +57,7 @@ instanceDeviceMappings HS1_8XLarge = devices4
 instanceDeviceMappings I2_XLarge = devices1
 instanceDeviceMappings I2_2XLarge = devices2
 instanceDeviceMappings I2_4XLarge = devices4
-instanceDeviceMappings I2_8XLarge = devices4
+instanceDeviceMappings I2_8XLarge = devices8
 
 -- Extra
 instanceDeviceMappings C4_Large = devices0
@@ -109,4 +109,16 @@ devices4 = [
   , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
   , BlockDeviceMapping "/dev/xvdd" "ephemeral2"
   , BlockDeviceMapping "/dev/xvde" "ephemeral3"
+  ]
+
+devices8 :: [BlockDeviceMapping]
+devices8 = [
+    BlockDeviceMapping "/dev/xvdb" "ephemeral0"
+  , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
+  , BlockDeviceMapping "/dev/xvdd" "ephemeral2"
+  , BlockDeviceMapping "/dev/xvde" "ephemeral3"
+  , BlockDeviceMapping "/dev/xvdf" "ephemeral4"
+  , BlockDeviceMapping "/dev/xvdg" "ephemeral5"
+  , BlockDeviceMapping "/dev/xvdh" "ephemeral6"
+  , BlockDeviceMapping "/dev/xvdi" "ephemeral7"
   ]
