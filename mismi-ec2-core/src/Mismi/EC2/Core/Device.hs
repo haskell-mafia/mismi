@@ -51,7 +51,7 @@ instanceDeviceMappings M2_2XLarge = devices2
 instanceDeviceMappings M2_4XLarge = devices2
 
 -- High Storage Density
-instanceDeviceMappings HS1_8XLarge = devices4
+instanceDeviceMappings HS1_8XLarge = devices24
 
 -- Storage Optimised
 instanceDeviceMappings I2_XLarge = devices1
@@ -73,9 +73,9 @@ instanceDeviceMappings CG1_4XLarge = devices2
 
 instanceDeviceMappings CR1_8XLarge = devices2
 
-instanceDeviceMappings D2_2XLarge = devices4
-instanceDeviceMappings D2_4XLarge = devices4
-instanceDeviceMappings D2_8XLarge = devices4
+instanceDeviceMappings D2_2XLarge = devices6
+instanceDeviceMappings D2_4XLarge = devices12
+instanceDeviceMappings D2_8XLarge = devices24
 instanceDeviceMappings D2_XLarge = devices4
 
 instanceDeviceMappings G2_2XLarge = devices1
@@ -111,6 +111,16 @@ devices4 = [
   , BlockDeviceMapping "/dev/xvde" "ephemeral3"
   ]
 
+devices6 :: [BlockDeviceMapping]
+devices6 = [
+    BlockDeviceMapping "/dev/xvdb" "ephemeral0"
+  , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
+  , BlockDeviceMapping "/dev/xvdd" "ephemeral2"
+  , BlockDeviceMapping "/dev/xvde" "ephemeral3"
+  , BlockDeviceMapping "/dev/xvdf" "ephemeral4"
+  , BlockDeviceMapping "/dev/xvdg" "ephemeral5"
+  ]
+
 devices8 :: [BlockDeviceMapping]
 devices8 = [
     BlockDeviceMapping "/dev/xvdb" "ephemeral0"
@@ -121,4 +131,48 @@ devices8 = [
   , BlockDeviceMapping "/dev/xvdg" "ephemeral5"
   , BlockDeviceMapping "/dev/xvdh" "ephemeral6"
   , BlockDeviceMapping "/dev/xvdi" "ephemeral7"
+  ]
+
+devices12 :: [BlockDeviceMapping]
+devices12 = [
+    BlockDeviceMapping "/dev/xvdb" "ephemeral0"
+  , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
+  , BlockDeviceMapping "/dev/xvdd" "ephemeral2"
+  , BlockDeviceMapping "/dev/xvde" "ephemeral3"
+  , BlockDeviceMapping "/dev/xvdf" "ephemeral4"
+  , BlockDeviceMapping "/dev/xvdg" "ephemeral5"
+  , BlockDeviceMapping "/dev/xvdh" "ephemeral6"
+  , BlockDeviceMapping "/dev/xvdi" "ephemeral7"
+  , BlockDeviceMapping "/dev/xvdj" "ephemeral8"
+  , BlockDeviceMapping "/dev/xvdk" "ephemeral9"
+  , BlockDeviceMapping "/dev/xvdl" "ephemeral10"
+  , BlockDeviceMapping "/dev/xvdm" "ephemeral11"
+  ]
+
+devices24 :: [BlockDeviceMapping]
+devices24 = [
+    BlockDeviceMapping "/dev/xvdb" "ephemeral0"
+  , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
+  , BlockDeviceMapping "/dev/xvdd" "ephemeral2"
+  , BlockDeviceMapping "/dev/xvde" "ephemeral3"
+  , BlockDeviceMapping "/dev/xvdf" "ephemeral4"
+  , BlockDeviceMapping "/dev/xvdg" "ephemeral5"
+  , BlockDeviceMapping "/dev/xvdh" "ephemeral6"
+  , BlockDeviceMapping "/dev/xvdi" "ephemeral7"
+  , BlockDeviceMapping "/dev/xvdj" "ephemeral8"
+  , BlockDeviceMapping "/dev/xvdk" "ephemeral9"
+  , BlockDeviceMapping "/dev/xvdl" "ephemeral10"
+  , BlockDeviceMapping "/dev/xvdm" "ephemeral11"
+  , BlockDeviceMapping "/dev/xvdn" "ephemeral12"
+  , BlockDeviceMapping "/dev/xvdo" "ephemeral13"
+  , BlockDeviceMapping "/dev/xvdp" "ephemeral14"
+  , BlockDeviceMapping "/dev/xvdq" "ephemeral15"
+  , BlockDeviceMapping "/dev/xvdr" "ephemeral16"
+  , BlockDeviceMapping "/dev/xvds" "ephemeral17"
+  , BlockDeviceMapping "/dev/xvdt" "ephemeral18"
+  , BlockDeviceMapping "/dev/xvdu" "ephemeral19"
+  , BlockDeviceMapping "/dev/xvdv" "ephemeral20"
+  , BlockDeviceMapping "/dev/xvdw" "ephemeral21"
+  , BlockDeviceMapping "/dev/xvdx" "ephemeral22"
+  , BlockDeviceMapping "/dev/xvdy" "ephemeral23"
   ]
