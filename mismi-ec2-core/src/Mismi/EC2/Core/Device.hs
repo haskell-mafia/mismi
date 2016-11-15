@@ -6,7 +6,7 @@ module Mismi.EC2.Core.Device (
 
 import           Mismi.EC2.Core.Data
 
--- http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html#StorageOnInstanceTypes
+-- http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html#instance-store-volumes
 instanceDeviceMappings :: MismiInstanceType -> [BlockDeviceMapping]
 instanceDeviceMappings T1_Micro = devices0
 instanceDeviceMappings T2_Nano = devices0
@@ -46,8 +46,8 @@ instanceDeviceMappings R3_4XLarge = devices1
 instanceDeviceMappings R3_8XLarge = devices2
 
 -- Memory Optimised - Previous Generation
-instanceDeviceMappings M2_XLarge = devices2
-instanceDeviceMappings M2_2XLarge = devices2
+instanceDeviceMappings M2_XLarge = devices1
+instanceDeviceMappings M2_2XLarge = devices1
 instanceDeviceMappings M2_4XLarge = devices2
 
 -- High Storage Density
@@ -67,7 +67,7 @@ instanceDeviceMappings C4_4XLarge = devices0
 instanceDeviceMappings C4_8XLarge = devices0
 
 instanceDeviceMappings CC1_4XLarge = devices0
-instanceDeviceMappings CC2_8XLarge = devices0
+instanceDeviceMappings CC2_8XLarge = devices4
 
 instanceDeviceMappings CG1_4XLarge = devices2
 
@@ -76,7 +76,7 @@ instanceDeviceMappings CR1_8XLarge = devices2
 instanceDeviceMappings D2_2XLarge = devices6
 instanceDeviceMappings D2_4XLarge = devices12
 instanceDeviceMappings D2_8XLarge = devices24
-instanceDeviceMappings D2_XLarge = devices4
+instanceDeviceMappings D2_XLarge = devices3
 
 instanceDeviceMappings G2_2XLarge = devices1
 instanceDeviceMappings G2_8XLarge = devices2
@@ -101,6 +101,13 @@ devices2 :: [BlockDeviceMapping]
 devices2 = [
     BlockDeviceMapping "/dev/xvdb" "ephemeral0"
   , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
+  ]
+
+devices3 :: [BlockDeviceMapping]
+devices3 = [
+    BlockDeviceMapping "/dev/xvdb" "ephemeral0"
+  , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
+  , BlockDeviceMapping "/dev/xvdd" "ephemeral2"
   ]
 
 devices4 :: [BlockDeviceMapping]
