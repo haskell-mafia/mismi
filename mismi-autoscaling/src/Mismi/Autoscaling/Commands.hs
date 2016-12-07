@@ -66,6 +66,7 @@ createGroup g =
       & A.casgLaunchConfigurationName .~ Just (renderConfigurationName $ groupConfigurationName g)
       & A.casgDesiredCapacity .~ Just (desiredInstances . minimumDesiredInstances . desiredCapacity $ groupCapacity g)
       & A.casgLoadBalancerNames .~ (loadBalancer <$> groupLoadBalancers g)
+      & A.casgNewInstancesProtectedFromScaleIn .~ Just True
 
 describeGroups :: EitherT GroupResultError AWS [GroupResult]
 describeGroups =
