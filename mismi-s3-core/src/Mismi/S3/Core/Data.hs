@@ -1,7 +1,10 @@
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric #-}
 module Mismi.S3.Core.Data (
     WriteMode (..)
   , SyncMode (..)
@@ -10,6 +13,8 @@ module Mismi.S3.Core.Data (
   , Key (..)
   , ReadGrant (..)
   , WriteResult (..)
+  , Bytes (..)
+  , Sized (..)
   , (//)
   , combineKey
   , dirname
@@ -23,15 +28,19 @@ module Mismi.S3.Core.Data (
   , s3Parser
   ) where
 
-import           Data.Attoparsec.Text hiding (parse, Fail)
-import qualified Data.Attoparsec.Text as AT
+import           Data.Attoparsec.Text (Parser)
+import           Data.Attoparsec.Text (string, manyTill, takeWhile, anyChar, char)
+import           Data.Attoparsec.Text (parseOnly, endOfInput)
 import qualified Data.Text as T
 import           Data.List (init, zipWith)
-import           Data.String
+import           Data.String (String)
 
 import           GHC.Generics (Generic)
 
 import           P
+
+import           X.Text.Show (gshowsPrec)
+
 
 data WriteResult =
     WriteOk
@@ -72,16 +81,24 @@ foldSyncMode f o s m = case m of
 newtype Bucket =
   Bucket {
       unBucket :: Text
-    } deriving (Eq, Show, Ord, Generic)
+    } deriving (Eq, Ord, Generic)
 
 instance NFData Bucket
+
+instance Show Bucket where
+  showsPrec =
+    gshowsPrec
 
 newtype Key =
   Key {
       unKey :: Text
-    } deriving (Eq, Show, Ord, Generic)
+    } deriving (Eq, Ord, Generic)
 
 instance NFData Key
+
+instance Show Key where
+  showsPrec =
+    gshowsPrec
 
 data Address =
   Address {
@@ -91,16 +108,43 @@ data Address =
 
 instance NFData Address
 
+instance Show Address where
+  showsPrec =
+    gshowsPrec
+
 newtype ReadGrant =
   ReadGrant {
       readGrant :: Text
-    } deriving (Eq, Show, Generic)
+    } deriving (Eq, Generic)
 
 instance NFData ReadGrant
 
-instance Show Address where
-  show (Address b k) =
-    "Address (" <> show b <> ") (" <> show k <> ")"
+instance Show ReadGrant where
+  showsPrec =
+    gshowsPrec
+
+newtype Bytes =
+  Bytes {
+      unBytes :: Int64
+    } deriving (Eq, Ord, Enum, Num, Real, Integral, Generic)
+
+instance NFData Bytes
+
+instance Show Bytes where
+  showsPrec =
+    gshowsPrec
+
+data Sized a =
+  Sized {
+      sizedBytes :: !Bytes
+    , sizedValue :: !a
+    } deriving (Eq, Ord, Generic, Functor, Foldable, Traversable)
+
+instance NFData a => NFData (Sized a)
+
+instance Show a => Show (Sized a) where
+  showsPrec =
+    gshowsPrec
 
 (//) :: Key -> Key -> Key
 (//) =
@@ -164,7 +208,7 @@ addressToText a =
 -- | Parse an 'Address' from 'Text'. If the parse fails, 'Nothing' is returned.
 addressFromText :: Text -> Maybe Address
 addressFromText =
-  rightToMaybe . AT.parseOnly s3Parser
+  rightToMaybe . parseOnly s3Parser
 
 s3Parser :: Parser Address
 s3Parser =

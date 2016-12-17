@@ -7,6 +7,8 @@ import           DependencyInfo_ambiata_mismi_cli
 
 import           Data.Conduit
 import qualified Data.Conduit.List as DC
+import           Data.Map (Map)
+import qualified Data.Map.Strict as Map
 
 import           Control.Lens (over, set)
 
@@ -14,9 +16,10 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString as BS
+import qualified Data.List as List
 import           Data.String (String)
-import           Data.Text.IO (putStrLn, hPutStrLn)
-import           Data.Text hiding (copy, isPrefixOf, filter)
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
 import           Mismi.Amazonka (serviceRetry, retryAttempts, exponentBase, configure)
 import qualified Mismi.Environment as C
@@ -26,22 +29,24 @@ import           Mismi.S3.Amazonka (s3)
 
 import           Options.Applicative
 
-import           P
+import           P hiding (All)
 
-import           System.IO hiding (putStrLn, hPutStrLn)
+import           System.IO
 import           System.Environment (lookupEnv)
 import           System.Exit
 import           System.FilePath
 import           System.Posix.Signals
 import           System.Posix.Process
 
+import           Text.Printf (printf)
+
 import           X.Control.Monad.Trans.Either.Exit
 import           X.Control.Monad.Trans.Either (EitherT, eitherT, runEitherT, firstEitherT)
 import           X.Options.Applicative
 
 data Recursive =
-    Recursive
-  | NotRecursive
+    NotRecursive
+  | Recursive
     deriving (Eq, Show)
 
 rec :: a -> a -> Recursive -> a
@@ -51,6 +56,17 @@ rec notrecursive recursive r =
       notrecursive
     Recursive ->
       recursive
+
+data Detail =
+    All
+  | Summary
+    deriving (Eq, Show)
+
+data UnitPrefix =
+    NoPrefix
+  | IEC
+  | Metric
+    deriving (Eq, Show)
 
 data Command =
     Upload FilePath Address WriteMode
@@ -62,14 +78,14 @@ data Command =
   | Write Address Text WriteMode
   | Read Address
   | Cat Address
-  | Size Address
+  | Size Address Recursive Detail UnitPrefix
   | Sync Address Address SyncMode Int
   | List Address Recursive
   deriving (Eq, Show)
 
 data Force =
-    Force
-  | NotForce
+    NotForce
+  | Force
     deriving (Eq, Show)
 
 parseForce :: Maybe String -> Force
@@ -90,9 +106,9 @@ main = do
   f <- lookupEnv "AWS_FORCE"
   dispatch (mismi $ parseForce f) >>= \case
       VersionCommand ->
-        putStrLn ("s3: " <> pack buildInfoVersion) >> exitSuccess
+        T.putStrLn ("s3: " <> T.pack buildInfoVersion) >> exitSuccess
       DependencyCommand ->
-        mapM (putStrLn . pack)  dependencyInfo >> exitSuccess
+        mapM (T.putStrLn . T.pack)  dependencyInfo >> exitSuccess
       RunCommand DryRun c ->
         print c >> exitSuccess
       RunCommand RealRun c ->
@@ -125,26 +141,149 @@ run c = do
     Write a t w ->
       writeWithModeOrFail w a t
     Read a ->
-      read a >>= \md -> liftIO $ maybe exitFailure pure md >>= putStrLn
+      read a >>= \md -> liftIO $ maybe exitFailure pure md >>= T.putStrLn
     Cat a ->
       read' a >>= \md -> liftIO $ maybe exitFailure pure md >>= runResourceT . ($$+- DC.mapM_ (liftIO . BS.putStr))
-    Size a ->
-      getSize a >>= liftIO . maybe exitFailure (putStrLn . pack . show)
+    Size a NotRecursive _ u ->
+      size a >>= liftIO . maybe exitFailure (T.putStrLn . renderSize u)
+    Size a Recursive d u ->
+      sizeRecursive a d u
     Sync s d m f ->
       renderExit renderSyncError $ syncWithMode m s d f
     List a rq ->
-      rec (list' a) (listRecursively' a) rq $$ DC.mapM_ (liftIO . putStrLn . addressToText)
+      rec (list' a) (listRecursively' a) rq $$ DC.mapM_ (liftIO . T.putStrLn . addressToText)
+
+sizeRecursive :: Address -> Detail -> UnitPrefix -> AWS ()
+sizeRecursive root d p =
+  case d of
+    All ->
+      sizeRecursively' root $$ DC.mapM_ (liftIO . T.putStrLn . renderSizedAddress p)
+    Summary -> do
+      bytes <- sizeRecursively' root $$ DC.map sizedBytes =$= DC.fold (+) 0
+      liftIO . T.putStrLn $ renderSizedAddress p (Sized bytes root)
+
+renderSizedAddress :: UnitPrefix -> Sized Address -> Text
+renderSizedAddress p (Sized bytes address) =
+  let
+    separator =
+      case p of
+        NoPrefix ->
+          "\t"
+        IEC ->
+          " "
+        Metric ->
+          " "
+  in
+    renderSize p bytes <> separator <> addressToText address
+
+renderSize :: UnitPrefix -> Bytes -> Text
+renderSize p bytes =
+  case p of
+    NoPrefix ->
+      T.pack (show $ unBytes bytes)
+    IEC ->
+      renderUnit iec bytes
+    Metric ->
+      renderUnit metric bytes
+
+iec :: Scale Bytes
+iec =
+  mkScale "B" [
+    -- The threshold here is not obvious. The cutoff is lower than you might
+    -- expect. This is so that we only ever render a maximum of 3 characters
+    -- for a value: e.g. 1000-1023 MiB are rendered as 1.0 GiB
+      Suffix (1000 * pow 1024 0) (pow 1024 1) "KiB"
+    , Suffix (1000 * pow 1024 1) (pow 1024 2) "MiB"
+    , Suffix (1000 * pow 1024 2) (pow 1024 3) "GiB"
+    , Suffix (1000 * pow 1024 3) (pow 1024 4) "TiB"
+    , Suffix (1000 * pow 1024 4) (pow 1024 5) "PiB"
+    , Suffix (1000 * pow 1024 5) (pow 1024 6) "EiB"
+    ]
+
+metric :: Scale Bytes
+metric =
+  mkScale "B" [
+      Suffix (pow 1000 1) (pow 1000 1) "kB"
+    , Suffix (pow 1000 2) (pow 1000 2) "MB"
+    , Suffix (pow 1000 3) (pow 1000 3) "GB"
+    , Suffix (pow 1000 4) (pow 1000 4) "TB"
+    , Suffix (pow 1000 5) (pow 1000 5) "PB"
+    , Suffix (pow 1000 6) (pow 1000 6) "EB"
+    ]
+
+pow :: Bytes -> Int64 -> Bytes
+pow b p =
+  b ^ p
+
+data Scale a =
+  Scale {
+      scaleOne :: Suffix a
+    , scaleTable :: Map a (Suffix a)
+    } deriving (Show)
+
+data Suffix a =
+  Suffix {
+      suffixThreshold :: a
+    , suffixMagnitude :: a
+    , suffixText :: Text
+    } deriving (Show)
+
+mapText :: (Text -> Text) -> Suffix a -> Suffix a
+mapText f (Suffix t m x) =
+  Suffix t m (f x)
+
+mkScale :: (Ord a, Num a) => Text -> [Suffix a] -> Scale a
+mkScale one0 table0 =
+  let
+    len =
+      List.maximum .
+      fmap T.length $
+      one0 : fmap suffixText table0
+
+    one =
+      T.justifyLeft len ' ' one0
+
+    table =
+      fmap (\s -> (suffixThreshold s, s)) $
+      fmap (mapText $ T.justifyLeft len ' ') table0
+  in
+    Scale (Suffix 1 1 one) $
+    Map.fromList table
+
+lookupSuffix :: Ord a => a -> Scale a -> Suffix a
+lookupSuffix n scale =
+  case Map.splitLookup n $ scaleTable scale of
+    (xs, Nothing, _) ->
+      fromMaybe
+        (scaleOne scale)
+        (fmap fst $ Map.maxView xs)
+    (_, Just x, _) ->
+      x
+
+renderUnit :: Scale Bytes -> Bytes -> Text
+renderUnit scale n0 =
+  let
+    suffix =
+      lookupSuffix n0 scale
+
+    n :: Double
+    n =
+      fromIntegral n0 / fromIntegral (suffixMagnitude suffix)
+  in
+    if suffixMagnitude suffix == 1 || n >= 10 then
+      T.pack (printf "%3.0f" n) <> " " <> suffixText suffix
+    else
+      T.pack (printf "%3.1f" n) <> " " <> suffixText suffix
 
 renderExit :: MonadIO m => (e -> Text) -> EitherT e m a -> m a
 renderExit f =
-  eitherT (\e -> liftIO $ (hPutStrLn stderr $ f e) >> exitFailure) return
-
+  eitherT (\e -> liftIO $ (T.hPutStrLn stderr $ f e) >> exitFailure) return
 
 optAppendFileName :: FilePath -> Key -> FilePath
 optAppendFileName f k = fromMaybe f $ do
   fp <- valueOrEmpty (hasTrailingPathSeparator f || takeFileName f == ".") (takeDirectory f)
   bn <- basename k
-  pure . combine fp $ unpack bn
+  pure . combine fp $ T.unpack bn
 
 mismi :: Force -> Parser (SafeCommand Command)
 mismi f =
@@ -181,12 +320,12 @@ commandP' f = subparser $
               (Cat <$> address')
   <> command' "size"
               "Get the size of an address."
-              (Size <$> address')
+              (Size <$> address' <*> recursive' <*> detail' <*> prefix')
   <> command' "sync"
               "Sync between two prefixes."
               (Sync <$> address' <*> address' <*> syncMode' <*> fork')
   <> command' "ls"
-              "Stream a recursively list of objects on a prefixe"
+              "Stream a recursively list of objects on a prefix."
               (List <$> address' <*> recursive')
 
 recursive' :: Parser Recursive
@@ -195,6 +334,31 @@ recursive' =
        short 'r'
     <> long "recursive"
     <> help "Recursively list"
+
+prefix' :: Parser UnitPrefix
+prefix' =
+  iec' <|> metric' <|> pure NoPrefix
+
+iec' :: Parser UnitPrefix
+iec' =
+  flag' IEC $
+       short 'h'
+    <> long "iec"
+    <> help "Human-readable output, using IEC unit prefixes, i.e. 1024^n"
+
+metric' :: Parser UnitPrefix
+metric' =
+  flag' Metric $
+       short 'm'
+    <> long "metric"
+    <> help "Human-readable output, using metric unit prefixes, i.e. 1000^n"
+
+detail' :: Parser Detail
+detail' =
+  flag All Summary $
+       short 's'
+    <> long "summary"
+    <> help "Display only the combined total for a prefix."
 
 address' :: Parser Address
 address' = argument (pOption s3Parser) $
@@ -209,7 +373,7 @@ filepath' = strArgument $
   <> action "file"
 
 text' :: Parser Text
-text' = pack <$> (strArgument $
+text' = T.pack <$> (strArgument $
      metavar "STRING"
   <> help "Data to write to S3 address.")
 
@@ -250,12 +414,12 @@ addressCompleter = mkCompleter $ \s -> do
     go s = do
       e <- forget O.discoverAWSEnv
       forget $ O.runAWS e $ do
-        x <- case addressFromText (pack s) of
+        x <- case addressFromText (T.pack s) of
           Nothing ->
             pure []
           Just a ->
             let a' = withKey dirname a
-            in  fmap (unpack . addressToText) <$> list a'
+            in  fmap (T.unpack . addressToText) <$> list a'
         let x' = filter (isPrefixOf s) x
         pure x'
     forget = firstEitherT (const ())
