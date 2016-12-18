@@ -36,11 +36,11 @@ testAWS' f = testAWS $ do
 testSize :: IO Int
 testSize = do
   view <- lookupEnv "TEST_RELIABILITY_SIZE"
-  let size = maybe 10 P.read view
-  pure size
+  let x = maybe 10 P.read view
+  pure x
 
 getMaxSuccess :: IO Int
 getMaxSuccess = do
   view <- lookupEnv "TEST_RELIABILITY_SUCCESS"
-  let size = maybe 5 P.read view
-  pure size
+  let x = maybe 5 P.read view
+  pure x

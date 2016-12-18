@@ -9,6 +9,9 @@ module Mismi.S3.Commands (
   , exists
   , existsPrefix
   , getSize
+  , size
+  , sizeRecursively
+  , sizeRecursively'
   , delete
   , read
   , read'
@@ -81,6 +84,7 @@ import           Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, addU
 
 import           Mismi.Amazonka (Env, send, paginate)
 import           Mismi.Control
+import           Mismi.S3.Core.Data
 import           Mismi.S3.Data
 import           Mismi.S3.Internal
 import qualified Mismi.S3.Patch.Network as N
@@ -130,7 +134,43 @@ existsPrefix (Address (Bucket b) (Key k)) =
 
 getSize :: Address -> AWS (Maybe Int)
 getSize a =
-  headObject a >>= pure . maybe Nothing (^. A.horsContentLength)
+  size a >>= pure . fmap fromIntegral
+{-# DEPRECATED getSize "Use Mismi.S3.Commands.size instead" #-}
+
+size :: Address -> AWS (Maybe Bytes)
+size a =
+  headObject a >>= pure . fmap (Bytes . fromIntegral) . maybe Nothing (^. A.horsContentLength)
+
+sizeRecursively :: Address -> AWS [Sized Address]
+sizeRecursively prefix =
+  sizeRecursively' prefix $$ DC.consume
+
+sizeRecursively' :: Address -> Source AWS (Sized Address)
+sizeRecursively' (Address b (Key k)) =
+  let
+    cmd =
+      A.listObjects (BucketName $ unBucket b)
+        & A.loPrefix .~ Just k
+  in
+    paginate cmd =$=
+    DC.mapFoldable (takeObjectSizes b)
+
+takeObjectSizes :: Bucket -> ListObjectsResponse -> [Sized Address]
+takeObjectSizes b lors =
+  with (lors ^. A.lorsContents) $ \o ->
+    let
+      ObjectKey k =
+        o ^. A.oKey
+
+      bytes =
+        Bytes $ fromIntegral (o ^. A.oSize)
+        -- We shouldn't need this fromIntegral but amazonka incorrectly uses
+        -- an Int instead of Int64 for sizes, we don't want to propagate this
+        -- mistake.
+        --
+        -- See https://github.com/brendanhay/amazonka/issues/320
+    in
+      Sized bytes $ Address b (Key k)
 
 delete :: Address -> AWS ()
 delete =
@@ -162,15 +202,15 @@ copyWithMode :: WriteMode -> Address -> Address -> EitherT CopyError AWS ()
 copyWithMode mode s d = do
   unlessM (lift $ exists s) . left $ CopySourceMissing s
   when (mode == Fail) . whenM (lift $ exists d) . left $ CopyDestinationExists $ d
-  size' <- lift $ getSize s
-  size <- fromMaybeM (left $ CopySourceSize s) size'
+  sz' <- lift $ getSize s
+  sz <- fromMaybeM (left $ CopySourceSize s) sz'
   let chunk = 100 * 1024 * 1024 -- 100 mb
       big = 1024 * 1024 * 1024 -- 1 gb
-  case size < big of
+  case sz < big of
     True ->
       lift $ copySingle s d
     False ->
-      copyMultipart s d size chunk 100
+      copyMultipart s d sz chunk 100
 
 copySingle :: Address -> Address -> AWS ()
 copySingle (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key dk)) =
@@ -178,11 +218,11 @@ copySingle (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key dk)) =
      & A.coServerSideEncryption .~ Just sse & A.coMetadataDirective .~ Just Copy
 
 copyMultipart :: Address -> Address -> Int -> Int -> Int -> EitherT CopyError AWS ()
-copyMultipart source dest size chunk fork = do
+copyMultipart source dest sz chunk fork = do
   e <- ask
   mpu <- lift $ createMultipartUpload dest -- target
 
-  let chunks = calculateChunksCapped size chunk 4096
+  let chunks = calculateChunksCapped sz chunk 4096
 
   r <- liftIO $
     consume (forM_ chunks . writeQueue) fork $ multipartCopyWorker e mpu source dest
@@ -445,11 +485,11 @@ downloadWithMode mode a f = do
   when (mode == Fail) . whenM (liftIO $ doesFileExist f) . left $ DownloadDestinationExists f
   liftIO $ createDirectoryIfMissing True (takeDirectory f)
 
-  size' <- lift $ getSize a
-  size <- maybe (left $ DownloadSourceMissing a) right size'
+  sz' <- lift $ getSize a
+  sz <- maybe (left $ DownloadSourceMissing a) right sz'
 
-  if (size > 200 * 1024 * 1024)
-    then multipartDownload a f size 100 100
+  if (sz > 200 * 1024 * 1024)
+    then multipartDownload a f sz 100 100
     else downloadSingle a f
 
 downloadWithModeOrFail :: WriteMode -> Address -> FilePath -> AWS ()
@@ -463,12 +503,12 @@ downloadSingle a f = do
     runResourceT . ($$+- sinkFile p) $ r ^. A.gorsBody ^. to _streamBody
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> EitherT DownloadError AWS ()
-multipartDownload source destination size chunk fork = bimapEitherT MultipartError id $ do
+multipartDownload source destination sz chunk fork = bimapEitherT MultipartError id $ do
   e <- ask
-  let chunks = calculateChunks size (fromInteger $ chunk * 1024 * 1024)
+  let chunks = calculateChunks sz (fromInteger $ chunk * 1024 * 1024)
   void . withFileSafe destination $ \f -> do
     liftIO $ withFile f WriteMode $ \h ->
-      hSetFileSize h (toInteger size)
+      hSetFileSize h (toInteger sz)
 
     newEitherT . liftIO .
       consume (\q -> mapM (writeQueue q) chunks) fork $ \(o, c, _) ->

@@ -16,7 +16,6 @@ executable s3
   ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      gen
   build-depends:       base                            >= 3          && < 5
-                     , exceptions
                      , ambiata-mismi-core
                      , ambiata-mismi-openssl
                      , ambiata-mismi-s3
@@ -24,15 +23,17 @@ executable s3
                      , ambiata-p
                      , ambiata-x-optparse
                      , ambiata-x-eithert
-                     , filepath
-                     , optparse-applicative            >= 0.11 && < 0.13
-                     , transformers
-                     , conduit
-                     , unix
-                     , text
-                     , resourcet
                      , bytestring                      == 0.10.*
+                     , conduit
+                     , containers                      == 0.5.*
+                     , exceptions
+                     , filepath
                      , lens                            >= 4.8        && < 4.15
+                     , optparse-applicative            >= 0.11 && < 0.13
+                     , resourcet
+                     , text
+                     , transformers
+                     , unix
 
 test-suite test-cli
   type:                exitcode-stdio-1.0

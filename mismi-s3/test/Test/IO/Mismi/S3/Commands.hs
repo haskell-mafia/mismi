@@ -104,13 +104,19 @@ prop_getObjs = forAll ((,) <$> elements muppets <*> choose (1000, 1500)) $ \(m, 
 prop_size d = testAWS $ do
   a <- newAddress
   writeOrFail a d
-  i <- getSize a
-  pure $ i === (Just . BS.length $ T.encodeUtf8 d)
+  i <- size a
+  pure $ i === (Just . fromIntegral . BS.length $ T.encodeUtf8 d)
 
 prop_size_failure = testAWS $ do
   a <- newAddress
-  i <- getSize a
+  i <- size a
   pure $ i === Nothing
+
+prop_size_recursively d = testAWS $ do
+  a <- newAddress
+  writeOrFail a d
+  r <- sizeRecursively (a { key = dirname $ key a })
+  pure $ r === [Sized (fromIntegral . BS.length $ T.encodeUtf8 d) a]
 
 prop_copy t = testAWS $ do
   a <- newAddress
@@ -329,12 +335,12 @@ prop_download_multipart = forAll ((,,) <$> arbitrary <*> elements colours <*> el
     liftIO . D.createDirectoryIfMissing True $ F.takeDirectory o
     liftIO $ withFile t WriteMode $ \h ->
       replicateM_ 1000 (LBS.hPut h (LBS.fromChunks . return $ (BS.concat . L.replicate 10000 $ bs)))
-    size <- liftIO . withFile t ReadMode $ hFileSize
+    sz <- liftIO . withFile t ReadMode $ hFileSize
     uploadOrFail t a
 
     let ten :: Int = 10
 
-    r <- runEitherT $ multipartDownload a o (fromInteger size) (toInteger ten) 100
+    r <- runEitherT $ multipartDownload a o (fromInteger sz) (toInteger ten) 100
     b <- liftIO $ LBS.readFile t
 
     let b' = sha1 b
