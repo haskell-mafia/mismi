@@ -142,7 +142,15 @@ data MismiInstanceType =
   | R3_8XLarge
   | R3_Large
   | R3_XLarge
+  | R4_16XLarge
+  | R4_2XLarge
+  | R4_4XLarge
+  | R4_8XLarge
+  | R4_Large
+  | R4_XLarge
   | T1_Micro
+  | T2_2XLarge
+  | T2_XLarge
   | T2_Large
   | T2_Medium
   | T2_Micro
@@ -293,8 +301,24 @@ virtualizationFor itype =
       HVM
     R3_XLarge ->
       HVM
+    R4_16XLarge ->
+      HVM
+    R4_2XLarge ->
+      HVM
+    R4_4XLarge ->
+      HVM
+    R4_8XLarge ->
+      HVM
+    R4_Large ->
+      HVM
+    R4_XLarge ->
+      HVM
     T1_Micro ->
       Paravirtual
+    T2_2XLarge ->
+      HVM
+    T2_XLarge ->
+      HVM
     T2_Large ->
       HVM
     T2_Medium ->
@@ -407,8 +431,24 @@ renderMismiInstanceType m =
       "r3.large"
     R3_XLarge ->
       "r3.xlarge"
+    R4_16XLarge ->
+      "r4.16xlarge"
+    R4_2XLarge ->
+      "r4.2xlarge"
+    R4_4XLarge ->
+      "r4.4xlarge"
+    R4_8XLarge ->
+      "r4.8xlarge"
+    R4_Large ->
+      "r4.large"
+    R4_XLarge ->
+      "r4.xlarge"
     T1_Micro ->
       "t1.micro"
+    T2_2XLarge ->
+      "t2.2xlarge"
+    T2_XLarge ->
+      "t2.xlarge"
     T2_Large ->
       "t2.large"
     T2_Medium ->
@@ -521,8 +561,24 @@ parseMismiInstanceType m =
       Just R3_Large
     "r3.xlarge" ->
       Just R3_XLarge
+    "r4.16xlarge" ->
+      Just R4_16XLarge
+    "r4.2xlarge" ->
+      Just R4_2XLarge
+    "r4.4xlarge" ->
+      Just R4_4XLarge
+    "r4.8xlarge" ->
+      Just R4_8XLarge
+    "r4.large" ->
+      Just R4_Large
+    "r4.xlarge" ->
+      Just R4_XLarge
     "t1.micro" ->
       Just T1_Micro
+    "t2.2xlarge" ->
+      Just T2_2XLarge
+    "t2.xlarge" ->
+      Just T2_XLarge
     "t2.large" ->
       Just T2_Large
     "t2.medium" ->
