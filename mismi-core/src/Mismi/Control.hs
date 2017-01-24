@@ -128,6 +128,7 @@ configureRetries i e = e & envRetryCheck .~ err
       FailedConnectionException _ _ -> True
       FailedConnectionException2 _ _ _ _ -> True
       TlsException _ -> True
+      ResponseBodyTooShort _ _ -> True
       _ -> (e ^. envRetryCheck) c v
 
 handle404 :: AWS a -> AWS (Maybe a)
