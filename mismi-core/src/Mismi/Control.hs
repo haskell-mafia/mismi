@@ -1,5 +1,5 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
 module Mismi.Control (
@@ -128,7 +128,9 @@ configureRetries i e = e & envRetryCheck .~ err
       FailedConnectionException _ _ -> True
       FailedConnectionException2 _ _ _ _ -> True
       TlsException _ -> True
+#if MIN_VERSION_http_client(0, 4, 31)
       ResponseBodyTooShort _ _ -> True
+#endif
       _ -> (e ^. envRetryCheck) c v
 
 handle404 :: AWS a -> AWS (Maybe a)
