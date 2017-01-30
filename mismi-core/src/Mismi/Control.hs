@@ -58,6 +58,8 @@ import           System.IO
 
 import           X.Control.Monad.Trans.Either
 
+import qualified Debug.Trace as Debug
+
 runAWST :: Env -> (Error -> e) -> EitherT e AWS a -> EitherT e IO a
 runAWST e err action =
   runAWSTWith (runAWS e) err action
@@ -122,14 +124,15 @@ configureRetries :: Int -> Env -> Env
 configureRetries i e = e & envRetryCheck .~ err
   where
     err c _ | c >= i = False
-    err c v = case v of
+    err c v = case Debug.trace ("Inside retry: " <> show v) v of
       NoResponseDataReceived -> True
       StatusCodeException s _ _ -> s == status500
       FailedConnectionException _ _ -> True
       FailedConnectionException2 _ _ _ _ -> True
       TlsException _ -> True
 #if MIN_VERSION_http_client(0, 4, 31)
-      ResponseBodyTooShort _ _ -> True
+      ResponseBodyTooShort _ _ ->
+        Debug.trace "Retry ResponseBodyTooShort" True
 #endif
 #if MIN_VERSION_http_client(0, 4, 24)
       TlsExceptionHostPort _ _ _ -> True
