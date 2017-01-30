@@ -131,6 +131,9 @@ configureRetries i e = e & envRetryCheck .~ err
 #if MIN_VERSION_http_client(0, 4, 31)
       ResponseBodyTooShort _ _ -> True
 #endif
+#if MIN_VERSION_http_client(0, 4, 24)
+      TlsExceptionHostPort _ _ _ -> True
+#endif
       _ -> (e ^. envRetryCheck) c v
 
 handle404 :: AWS a -> AWS (Maybe a)
