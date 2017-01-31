@@ -33,6 +33,8 @@
   command = [["master", "build", "dist-7-10", "-C", "mismi-s3-core"]]
 [build.dist-7-10-s3]
   command = [["master", "build", "dist-7-10", "-C", "mismi-s3"]]
+[build.dist-7-10-s3-reliability]
+  command = [["master", "build", "dist-7-10-relaibility", "-C", "mismi-s3"]]
 [build.dist-7-10-sqs-core]
   command = [["master", "build", "dist-7-10", "-C", "mismi-sqs-core"]]
 [build.dist-7-10-sqs]
@@ -210,9 +212,6 @@
   command = [["master", "build", "branches-7-10-cabal-test", "-C", "mismi-sqs-core"]]
 [build.branches-7-10-sqs-cabal-test]
   command = [["master", "build", "branches-7-10-cabal-test", "-C", "mismi-sqs"]]
-
-[build.dist-reliability]
-  command = [["bin/ci.reliability mismi-s3"]]
 
 [build.dist-validate]
   command = [["validate-respect"]]
