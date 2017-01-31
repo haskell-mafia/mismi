@@ -17,6 +17,7 @@ library
                      , ambiata-p
                      , ambiata-mismi-ec2-core
                      , ambiata-mismi-iam-core
+                     , blaze-markup                    >= 0.7        && < 0.8
                      , semigroups                      >= 0.16       && < 0.19
                      , text                            == 1.2.*
                      , time                            >= 1.4        && < 1.7
