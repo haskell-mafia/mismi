@@ -34,7 +34,7 @@
 [build.dist-7-10-s3]
   command = [["master", "build", "dist-7-10", "-C", "mismi-s3"]]
 [build.dist-7-10-s3-reliability]
-  command = [["master", "build", "dist-7-10-relaibility", "-C", "mismi-s3"]]
+  command = [["master", "build", "dist-7-10-reliability", "-C", "mismi-s3"]]
 [build.dist-7-10-sqs-core]
   command = [["master", "build", "dist-7-10", "-C", "mismi-sqs-core"]]
 [build.dist-7-10-sqs]
