@@ -28,12 +28,16 @@ module Mismi.Control (
   , setRetry
   , configureRetries
   , handleServiceError
+  , withRetries
+  , withRetriesOf
   ) where
 
-import           Control.Lens ((.~), (^.), (^?), over)
+import           Control.Lens ((.~), (^.), (^?), over, to, view)
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
+import           Control.Monad.Trans.Resource (MonadResource)
+import           Control.Retry (RetryPolicyM, fullJitterBackoff, recovering, rsIterNumber)
 
 import qualified Data.ByteString.Lazy as BL
 import           Data.ByteString.Builder
@@ -48,6 +52,7 @@ import           Network.AWS.Data
 import           Network.AWS.Error
 
 import           Network.HTTP.Client (HttpException (..))
+import qualified Network.HTTP.Conduit as Conduit (HttpException (..))
 import           Network.HTTP.Types.Status
 
 import           Network.HTTP.Client.Internal (mResponseTimeout)
@@ -118,6 +123,65 @@ setRetry :: Int -> AWS a -> AWS a
 setRetry =
   local . configureRetries
 
+withRetries :: (MonadCatch m, MonadResource m, MonadReader r m, HasEnv r) => m (Either Error a) -> m (Either Error a)
+withRetries =
+  withRetriesOf (fullJitterBackoff 500000)
+
+withRetriesOf :: (MonadCatch m, MonadResource m, MonadReader r m, HasEnv r) => RetryPolicyM m -> m a -> m a
+withRetriesOf policy action = do
+  e  <- view environment
+  let
+
+    check s v =
+      Handler $ \(e :: HttpException) ->
+        case e of
+          NoResponseDataReceived ->
+            True
+          StatusCodeException s _ _ ->
+            s == status500
+          FailedConnectionException _ _ ->
+            True
+          FailedConnectionException2 _ _ _ _ ->
+            True
+          TlsException _ ->
+            True
+          InternalIOException _ ->
+            True
+          HandshakeFailed ->
+            True
+          ResponseBodyTooShort _ _ ->
+            True
+#if MIN_VERSION_http_client(0, 4, 24)
+          TlsExceptionHostPort _ _ _ ->
+            True
+#endif
+          _ ->
+            False
+
+    check2 s v =
+      Handler $ \(e :: Conduit.HttpException) ->
+        case e of
+          HttpExceptionRequest _ ResponseTimeout ->
+            True
+          HttpExceptionRequest _ ConnectionTimeout ->
+            True
+          HttpExceptionRequest _ (ConnectionFailure _) ->
+            True
+          HttpExceptionRequest _ (InternalException _) ->
+            True
+          HttpExceptionRequest _ NoResponseDataReceived ->
+            True
+          HttpExceptionRequest _ (ResponseBodyTooShort _ _) ->
+            True
+          HttpExceptionRequest _ (ConnectionClosed _ _) ->
+            True
+          _ ->
+            False
+
+  recovering policy [check, check2] $ \_ ->
+    action
+
+
 configureRetries :: Int -> Env -> Env
 configureRetries i e = e & envRetryCheck .~ err
   where
@@ -128,9 +192,8 @@ configureRetries i e = e & envRetryCheck .~ err
       FailedConnectionException _ _ -> True
       FailedConnectionException2 _ _ _ _ -> True
       TlsException _ -> True
-#if MIN_VERSION_http_client(0, 4, 31)
+      HandshakeFailed -> True
       ResponseBodyTooShort _ _ -> True
-#endif
 #if MIN_VERSION_http_client(0, 4, 24)
       TlsExceptionHostPort _ _ _ -> True
 #endif
