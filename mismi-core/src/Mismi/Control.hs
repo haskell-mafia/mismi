@@ -28,12 +28,15 @@ module Mismi.Control (
   , setRetry
   , configureRetries
   , handleServiceError
+  , withRetries
+  , withRetriesOf
   ) where
 
 import           Control.Lens ((.~), (^.), (^?), over)
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
+import           Control.Retry (RetryPolicyM, fullJitterBackoff, recovering, rsIterNumber)
 
 import qualified Data.ByteString.Lazy as BL
 import           Data.ByteString.Builder
@@ -118,19 +121,57 @@ setRetry :: Int -> AWS a -> AWS a
 setRetry =
   local . configureRetries
 
+withRetries :: (MonadCatch m, MonadMask m, MonadIO m) => Int -> m a -> m a
+withRetries =
+  withRetriesOf (fullJitterBackoff 500000)
+
+withRetriesOf :: (MonadCatch m, MonadMask m, MonadIO m) => RetryPolicyM m -> Int -> m a -> m a
+withRetriesOf policy n action = do
+  let
+    condition s =
+      Handler $ \(e :: HttpException) ->
+        pure $ if rsIterNumber s > n then False else case e of
+          NoResponseDataReceived ->
+            True
+          StatusCodeException status _ _ ->
+            status == status500 || status == status503
+          FailedConnectionException _ _ ->
+            True
+          FailedConnectionException2 _ _ _ _ ->
+            True
+          TlsException _ ->
+            True
+          InternalIOException _ ->
+            True
+          HandshakeFailed ->
+            True
+          ResponseTimeout ->
+            True
+          ResponseBodyTooShort _ _ ->
+            True
+#if MIN_VERSION_http_client(0, 4, 24)
+          TlsExceptionHostPort _ _ _ ->
+            True
+#endif
+          _ ->
+            False
+
+  recovering policy [condition] $ \_ ->
+    action
+
+
 configureRetries :: Int -> Env -> Env
 configureRetries i e = e & envRetryCheck .~ err
   where
     err c _ | c >= i = False
     err c v = case v of
       NoResponseDataReceived -> True
-      StatusCodeException s _ _ -> s == status500
+      StatusCodeException s _ _ -> s == status500 || s == status503
       FailedConnectionException _ _ -> True
       FailedConnectionException2 _ _ _ _ -> True
       TlsException _ -> True
-#if MIN_VERSION_http_client(0, 4, 31)
+      HandshakeFailed -> True
       ResponseBodyTooShort _ _ -> True
-#endif
 #if MIN_VERSION_http_client(0, 4, 24)
       TlsExceptionHostPort _ _ _ -> True
 #endif

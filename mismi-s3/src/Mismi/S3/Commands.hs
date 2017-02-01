@@ -181,7 +181,7 @@ getObject' =
   handle404 . send . f' A.getObject
 
 read :: Address -> AWS (Maybe Text)
-read a = do
+read a = withRetries 5 $ do
   r <- read' a
   z <- liftIO . sequence $ (runResourceT . ($$+- sinkLbs)) <$> r
   pure $ fmap (T.concat . TL.toChunks . TL.decodeUtf8) z
@@ -499,7 +499,7 @@ downloadWithModeOrFail m a f =
 downloadSingle :: Address -> FilePath -> EitherT DownloadError AWS ()
 downloadSingle a f = do
   r <- (lift $ getObject' a) >>= maybe (left $ DownloadSourceMissing a) right
-  liftIO . withFileSafe f $ \p ->
+  liftIO . withRetries 5 . withFileSafe f $ \p ->
     runResourceT . ($$+- sinkFile p) $ r ^. A.gorsBody ^. to _streamBody
 
 multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> EitherT DownloadError AWS ()
@@ -515,7 +515,7 @@ multipartDownload source destination sz chunk fork = bimapEitherT MultipartError
         runEitherT . runAWS e $ downloadWithRange source o (o + c) f
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
-downloadWithRange a start end dest = do
+downloadWithRange a start end dest = withRetries 5 $ do
   r <- send $ f' A.getObject a &
     A.goRange .~ (Just $ bytesRange start end)
 
