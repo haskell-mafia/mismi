@@ -313,10 +313,10 @@ commandP' f = subparser $
               "Write to an address."
               (Write <$> address' <*> text' <*> writeMode' f)
   <> command' "read"
-              "Read from an address."
+              "Read text from an address and print it with a line terminator."
               (Read <$> address')
   <> command' "cat"
-              "cat from an address."
+              "Read raw data from an address and write it to stdout."
               (Cat <$> address')
   <> command' "size"
               "Get the size of an address."
