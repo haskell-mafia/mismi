@@ -130,52 +130,48 @@ withRetriesOf policy n action = do
   let
     condition s =
       Handler $ \(e :: HttpException) ->
-        pure $ if rsIterNumber s > n then False else case e of
-          NoResponseDataReceived ->
-            True
-          StatusCodeException status _ _ ->
-            status == status500 || status == status503
-          FailedConnectionException _ _ ->
-            True
-          FailedConnectionException2 _ _ _ _ ->
-            True
-          TlsException _ ->
-            True
-          InternalIOException _ ->
-            True
-          HandshakeFailed ->
-            True
-          ResponseTimeout ->
-            True
-          ResponseBodyTooShort _ _ ->
-            True
-#if MIN_VERSION_http_client(0, 4, 24)
-          TlsExceptionHostPort _ _ _ ->
-            True
-#endif
-          _ ->
-            False
+        pure $
+          if rsIterNumber s > n
+            then False
+            else checkException e False
 
   recovering policy [condition] $ \_ ->
     action
-
 
 configureRetries :: Int -> Env -> Env
 configureRetries i e = e & envRetryCheck .~ err
   where
     err c _ | c >= i = False
-    err c v = case v of
-      NoResponseDataReceived -> True
-      StatusCodeException s _ _ -> s == status500 || s == status503
-      FailedConnectionException _ _ -> True
-      FailedConnectionException2 _ _ _ _ -> True
-      TlsException _ -> True
-      HandshakeFailed -> True
-      ResponseBodyTooShort _ _ -> True
+    err c v =
+      checkException v $ (e ^. envRetryCheck) c v
+
+checkException :: HttpException -> Bool -> Bool
+checkException v f =
+  case v of
+    NoResponseDataReceived ->
+      True
+    StatusCodeException status _ _ ->
+      status == status500 || status == status503
+    FailedConnectionException _ _ ->
+      True
+    FailedConnectionException2 _ _ _ _ ->
+      True
+    TlsException _ ->
+      True
+    InternalIOException _ ->
+      True
+    HandshakeFailed ->
+      True
+    ResponseTimeout ->
+      True
+    ResponseBodyTooShort _ _ ->
+      True
 #if MIN_VERSION_http_client(0, 4, 24)
-      TlsExceptionHostPort _ _ _ -> True
+    TlsExceptionHostPort _ _ _ ->
+      True
 #endif
-      _ -> (e ^. envRetryCheck) c v
+    _ ->
+      f
 
 handle404 :: AWS a -> AWS (Maybe a)
 handle404 =
