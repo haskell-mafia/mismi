@@ -140,7 +140,8 @@ run c = do
       rec (delete a) (listRecursively' a $$ DC.mapM_ delete) r
     Write a t w ->
       writeWithModeOrFail w a t
-    Read a ->
+    Read a -> do
+      liftIO $ T.hPutStrLn stderr "Warning: `s3 read` is deprecated. Use `s3 cat` instead."
       read a >>= \md -> liftIO $ maybe exitFailure pure md >>= T.putStrLn
     Cat a ->
       read' a >>= \md -> liftIO $ maybe exitFailure pure md >>= runResourceT . ($$+- DC.mapM_ (liftIO . BS.putStr))
@@ -312,9 +313,9 @@ commandP' f = subparser $
   <> command' "write"
               "Write to an address."
               (Write <$> address' <*> text' <*> writeMode' f)
-  <> command' "read"
-              "Read from an address."
-              (Read <$> address')
+  <> (internal <> command' "read"
+              "Read from an address. (Deprecated in favour of `s3 cat`.)"
+              (Read <$> address'))
   <> command' "cat"
               "cat from an address."
               (Cat <$> address')
