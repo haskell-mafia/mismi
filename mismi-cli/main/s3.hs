@@ -317,7 +317,7 @@ commandP' f = subparser $
               "Read from an address. (Deprecated in favour of `s3 cat`.)"
               (Read <$> address'))
   <> command' "cat"
-              "cat from an address."
+              "Read raw data from an address and write it to stdout."
               (Cat <$> address')
   <> command' "size"
               "Get the size of an address."
