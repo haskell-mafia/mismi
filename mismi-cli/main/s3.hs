@@ -5,18 +5,16 @@
 import           BuildInfo_ambiata_mismi_cli
 import           DependencyInfo_ambiata_mismi_cli
 
-import           Data.Conduit
-import qualified Data.Conduit.List as DC
-import           Data.Map (Map)
-import qualified Data.Map.Strict as Map
-
 import           Control.Lens (over, set)
-
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString as BS
+import           Data.Conduit
+import qualified Data.Conduit.List as DC
 import qualified Data.List as List
+import           Data.Map (Map)
+import qualified Data.Map.Strict as Map
 import           Data.String (String)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
