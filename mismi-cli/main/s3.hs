@@ -5,18 +5,16 @@
 import           BuildInfo_ambiata_mismi_cli
 import           DependencyInfo_ambiata_mismi_cli
 
-import           Data.Conduit
-import qualified Data.Conduit.List as DC
-import           Data.Map (Map)
-import qualified Data.Map.Strict as Map
-
 import           Control.Lens (over, set)
-
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Resource
 
 import qualified Data.ByteString as BS
+import           Data.Conduit
+import qualified Data.Conduit.List as DC
 import qualified Data.List as List
+import           Data.Map (Map)
+import qualified Data.Map.Strict as Map
 import           Data.String (String)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -140,7 +138,8 @@ run c = do
       rec (delete a) (listRecursively' a $$ DC.mapM_ delete) r
     Write a t w ->
       writeWithModeOrFail w a t
-    Read a ->
+    Read a -> do
+      liftIO $ T.hPutStrLn stderr "Warning: `s3 read` is deprecated. Use `s3 cat` instead."
       read a >>= \md -> liftIO $ maybe exitFailure pure md >>= T.putStrLn
     Cat a ->
       read' a >>= \md -> liftIO $ maybe exitFailure pure md >>= runResourceT . ($$+- DC.mapM_ (liftIO . BS.putStr))
@@ -312,11 +311,11 @@ commandP' f = subparser $
   <> command' "write"
               "Write to an address."
               (Write <$> address' <*> text' <*> writeMode' f)
-  <> command' "read"
-              "Read from an address."
-              (Read <$> address')
+  <> (internal <> command' "read"
+              "Read from an address. (Deprecated in favour of `s3 cat`.)"
+              (Read <$> address'))
   <> command' "cat"
-              "cat from an address."
+              "Read raw data from an address and write it to stdout."
               (Cat <$> address')
   <> command' "size"
               "Get the size of an address."
