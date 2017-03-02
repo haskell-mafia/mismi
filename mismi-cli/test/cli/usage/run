@@ -1,0 +1,22 @@
+#!/bin/sh -eu
+
+. $(dirname $0)/../core/runner.sh
+
+banner usage
+############
+
+EXPECTED=$(dirname $0)/expected
+
+$MISMI --help > ${TEST}/usage
+
+if diff -q ${TEST}/usage ${EXPECTED}; then
+    echo "PASSED [usage]"
+else
+    echo "Test case [usage] failed:"
+    echo "======="
+    echo ""
+    diff ${TEST}/usage ${EXPECTED}
+    echo ""
+    echo "======="
+    exit_cleanup
+fi

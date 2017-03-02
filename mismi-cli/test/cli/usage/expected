@@ -1,0 +1,18 @@
+Usage: s3 ((-v|--version) | COMMAND)
+
+Available options:
+  -v,--version             Version information
+  -h,--help                Show this help text
+
+Available commands:
+  upload                   Upload a file to s3.
+  download                 Download a file from s3.
+  copy                     Copy a file from an S3 address to another S3 address.
+  move                     Move an S3 address to another S3 address
+  exists                   Check if an address exists.
+  delete                   Delete an address.
+  write                    Write to an address.
+  cat                      Read raw data from an address and write it to stdout.
+  size                     Get the size of an address.
+  sync                     Sync between two prefixes.
+  ls                       Stream a recursively list of objects on a prefix.
