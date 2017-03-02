@@ -286,7 +286,7 @@ optAppendFileName f k = fromMaybe f $ do
 
 mismi :: Force -> Parser (SafeCommand Command)
 mismi f =
-  safeCommand (commandP' f)
+  safeCommand (commandP' f <|> deprecatedCommandP')
 
 commandP' :: Force -> Parser Command
 commandP' f = subparser $
@@ -311,9 +311,6 @@ commandP' f = subparser $
   <> command' "write"
               "Write to an address."
               (Write <$> address' <*> text' <*> writeMode' f)
-  <> (internal <> command' "read"
-              "Read from an address. (Deprecated in favour of `s3 cat`.)"
-              (Read <$> address'))
   <> command' "cat"
               "Read raw data from an address and write it to stdout."
               (Cat <$> address')
@@ -326,6 +323,14 @@ commandP' f = subparser $
   <> command' "ls"
               "Stream a recursively list of objects on a prefix."
               (List <$> address' <*> recursive')
+
+deprecatedCommandP' :: Parser Command
+deprecatedCommandP' = subparser $
+  internal <> command'
+    "read"
+    "Read from an address. (Deprecated in favour of `s3 cat`.)"
+    (Read <$> address')
+
 
 recursive' :: Parser Recursive
 recursive' =
