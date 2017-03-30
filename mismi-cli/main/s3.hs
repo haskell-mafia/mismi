@@ -69,7 +69,8 @@ data UnitPrefix =
 data Command =
     Upload FilePath Address WriteMode
   | Download Address FilePath
-  | Copy Address Address
+  | Copy Address Address WriteMode
+  | Concat [Address] Address WriteMode Int
   | Move Address Address
   | Exists Address
   | Delete Address Recursive
@@ -128,8 +129,10 @@ run c = do
       uploadWithModeOrFail m s d
     Download s d ->
       renderExit renderDownloadError . download s . optAppendFileName d $ key s
-    Copy s d ->
-      renderExit renderCopyError $ copy s d
+    Copy s d m ->
+      renderExit renderCopyError $ copyWithMode m s d
+    Concat ss d m f ->
+      renderExit renderConcatError $ concatMultipart m f ss d
     Move s d ->
       renderExit renderCopyError $ move s d
     Exists a ->
@@ -298,7 +301,10 @@ commandP' f = subparser $
               (Download <$> address' <*> filepath')
   <> command' "copy"
               "Copy a file from an S3 address to another S3 address."
-              (Copy <$> address' <*> address')
+              (Copy <$> address' <*> address' <*> writeMode' f)
+  <> command' "concat"
+              "Concatenate many files together into one S3 address."
+              (Concat <$> some address' <*> outputAddress' <*> writeMode' f <*> fork')
   <> command' "move"
               "Move an S3 address to another S3 address"
               (Move <$> address' <*> address')
@@ -367,6 +373,13 @@ detail' =
 address' :: Parser Address
 address' = argument (pOption s3Parser) $
      metavar "S3URI"
+  <> help "An s3 uri, i.e. s3://bucket/prefix/key"
+  <> completer addressCompleter
+
+outputAddress' :: Parser Address
+outputAddress' = option (pOption s3Parser) $
+     long "output"
+  <> metavar "S3URI"
   <> help "An s3 uri, i.e. s3://bucket/prefix/key"
   <> completer addressCompleter
 

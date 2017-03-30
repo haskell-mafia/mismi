@@ -118,6 +118,50 @@ prop_size_recursively d = testAWS $ do
   r <- sizeRecursively (a { key = dirname $ key a })
   pure $ r === [Sized (fromIntegral . BS.length $ T.encodeUtf8 d) a]
 
+prop_concat =
+  once . testAWS $ do
+    a <- newAddress
+    b <- newAddress
+    c <- newAddress
+    f <- newFilePath
+    let
+      s = f </> T.unpack "fred"
+      d = f </> T.unpack "down"
+      bs10k = BS.concat $ L.replicate 10000 "fred"
+    liftIO $ withFile s WriteMode $ \h ->
+      replicateM_ 1000 (BS.hPut h bs10k)
+    uploadOrFail s a
+    uploadOrFail s b
+
+    eitherT (fail . show . renderConcatError) pure $ concatMultipart Fail 1 [a, b] c
+
+    eitherT (fail . show) pure $ download c d
+    s' <- liftIO $ LBS.readFile s
+    d' <- liftIO $ LBS.readFile d
+    pure $ (sha1 (LBS.concat [s', s']) === sha1 d')
+
+prop_concat_empty_input =
+  testAWS $ do
+    a <- newAddress
+    r <- runEitherT $ concatMultipart Fail 1 [] a
+    pure $ case r of
+      Left NoInputFiles ->
+        property True
+      _ ->
+        failWith "concat didn't fail correctly"
+
+prop_concat_empty_input_files =
+  testAWS $ do
+    a <- newAddress
+    b <- newAddress
+    writeOrFail a ""
+    r <- runEitherT $ concatMultipart Fail 1 [a] b
+    pure $ case r of
+      Left NoInputFilesWithData ->
+        property True
+      _ ->
+        failWith "concat didn't fail correctly"
+
 prop_copy t = testAWS $ do
   a <- newAddress
   b <- newAddress
@@ -134,7 +178,7 @@ prop_copy_missing = testAWS $ do
     Left (CopySourceMissing b) ->
       a === b
     _ ->
-      failWith "Copy didn't failure correctly"
+      failWith "Copy didn't fail correctly"
 
 prop_copy_overwrite t t' = testAWS $ do
   a <- newAddress

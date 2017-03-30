@@ -8,6 +8,7 @@ Available commands:
   upload                   Upload a file to s3.
   download                 Download a file from s3.
   copy                     Copy a file from an S3 address to another S3 address.
+  concat                   Concatenate many files together into one S3 address.
   move                     Move an S3 address to another S3 address
   exists                   Check if an address exists.
   delete                   Delete an address.

@@ -15,6 +15,7 @@ module Mismi.S3.Commands (
   , delete
   , read
   , read'
+  , concatMultipart
   , copy
   , copyWithMode
   , copyMultipart
@@ -75,6 +76,7 @@ import           Data.Conduit (awaitForever)
 import           Data.Conduit.Binary (sinkFile, sinkLbs)
 import qualified Data.Conduit.List as DC
 
+import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -194,6 +196,66 @@ read' a = do
   r <- getObject' a
   pure $ fmap (^. A.gorsBody . to _streamBody) r
 
+concatMultipart :: WriteMode -> Int -> [Address] -> Address -> EitherT ConcatError AWS ()
+concatMultipart mode fork inputs dest = do
+  when (mode == Fail) .
+    whenM (lift $ exists dest) .
+      left $ ConcatDestinationExists $ dest
+
+  when (null inputs) $
+    left NoInputFiles
+
+  things <- fmap (join . catMaybes) . forM inputs $ \input -> do
+    r <- lift $ size input
+    case r of
+      Nothing ->
+        left $ ConcatSourceMissing input
+      Just x ->
+        let
+          s = fromIntegral $ unBytes x
+          chunk = 1024 * 1024 * 1024 -- 1 gb
+          big = 5 * 1024 * 1024 -- 5 gb
+        in
+          case s == 0 of
+            True ->
+              pure Nothing
+            False ->
+              case s < big of
+                True ->
+                  pure $ Just [(input, 0, s)]
+                False ->
+                  let
+                    chunks = calculateChunksCapped s chunk 4096
+                  in
+                    pure . Just $ (\(a, b, _) -> (input, a, b)) <$> chunks
+
+  when (null things) $
+    left NoInputFilesWithData
+
+  e <- ask
+  mpu <- lift $ createMultipartUpload dest
+
+  let
+    (is, bs, ls) = L.unzip3 things
+    chunks = L.zip4 is bs ls [1..]
+
+  rs <- liftIO $
+    consume (forM_ chunks . writeQueue) fork $ multipartCopyWorker e mpu dest
+
+  let
+    abort =
+      lift $ abortMultipart' dest mpu
+
+  case rs of
+    Left f ->
+      abort >>
+        (left $ ConcatCopyError f)
+
+    Right prts ->
+      flip onException abort $
+        void . send $ f' A.completeMultipartUpload dest mpu &
+          A.cMultipartUpload .~ pure (A.completedMultipartUpload & A.cmuParts .~ sortPartResponse (snd prts))
+
 copy :: Address -> Address -> EitherT CopyError AWS ()
 copy s d =
   copyWithMode Overwrite s d
@@ -204,8 +266,9 @@ copyWithMode mode s d = do
   when (mode == Fail) . whenM (lift $ exists d) . left $ CopyDestinationExists $ d
   sz' <- lift $ getSize s
   sz <- fromMaybeM (left $ CopySourceSize s) sz'
-  let chunk = 100 * 1024 * 1024 -- 100 mb
-      big = 1024 * 1024 * 1024 -- 1 gb
+  let
+    chunk = 100 * 1024 * 1024 -- 100 mb
+    big = 1024 * 1024 * 1024 -- 1 gb
   case sz < big of
     True ->
       lift $ copySingle s d
@@ -222,10 +285,12 @@ copyMultipart source dest sz chunk fork = do
   e <- ask
   mpu <- lift $ createMultipartUpload dest -- target
 
-  let chunks = calculateChunksCapped sz chunk 4096
+  let
+    chunks = calculateChunksCapped sz chunk 4096
+    things = (\(o, c, i) -> (source, o, c, i)) <$> chunks
 
   r <- liftIO $
-    consume (forM_ chunks . writeQueue) fork $ multipartCopyWorker e mpu source dest
+    consume (forM_ things . writeQueue) fork $ multipartCopyWorker e mpu dest
 
   let abort =
         lift $ abortMultipart' dest mpu
@@ -248,13 +313,16 @@ sortPartResponse prts =
      l = (\(PartResponse i etag) -> A.completedPart i etag) <$> z
  in NEL.nonEmpty l
 
-multipartCopyWorker :: Env -> Text -> Address -> Address -> (Int, Int, Int) -> IO (Either Error PartResponse)
-multipartCopyWorker e mpu source dest (o, c, i) = do
-  let sb = unBucket $ bucket source
-      sk = unKey $ key source
-      db = unBucket $ bucket dest
-      dk = unKey $ key dest
-      req = A.uploadPartCopy (BucketName db) (sb <> "/" <> sk) (ObjectKey dk) i mpu & A.upcCopySourceRange .~ (Just $ bytesRange o (o + c - 1))
+multipartCopyWorker :: Env -> Text -> Address -> (Address, Int, Int, Int) -> IO (Either Error PartResponse)
+multipartCopyWorker e mpu dest (source, o, c, i) = do
+  let
+    sb = unBucket $ bucket source
+    sk = unKey $ key source
+    db = unBucket $ bucket dest
+    dk = unKey $ key dest
+    req =
+      A.uploadPartCopy (BucketName db) (sb <> "/" <> sk) (ObjectKey dk) i mpu
+        & A.upcCopySourceRange .~ (Just $ bytesRange o (o + c - 1))
 
   r <- runEitherT . runAWS e $ send req
   case r of
