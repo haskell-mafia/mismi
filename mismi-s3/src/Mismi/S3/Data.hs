@@ -14,6 +14,7 @@ module Mismi.S3.Data (
   , S3Error (..)
   , ErrorType (..)
   , DownloadError (..)
+  , ConcatError (..)
   , CopyError (..)
   , UploadError (..)
   , SyncError (..)
@@ -32,6 +33,7 @@ module Mismi.S3.Data (
   , s3Parser
   , s3ErrorRender
   , renderDownloadError
+  , renderConcatError
   , renderCopyError
   , renderUploadError
   , renderSyncError
@@ -59,7 +61,8 @@ import           Twine.Parallel (RunError (..), renderRunError)
 
 
 data PartResponse =
-  PartResponse !Int !ETag
+    PartResponse !Int !ETag
+    deriving (Eq, Show)
 
 data S3Error =
     SourceMissing ErrorType Address
@@ -123,6 +126,28 @@ renderDownloadError d =
       "Can not download to a target that already exists [" <> T.pack f <> "]"
     MultipartError r ->
       "Multipart download error: " <> renderRunError r renderError
+
+data ConcatError =
+    ConcatSourceMissing Address
+  | ConcatDestinationExists Address
+  | ConcatCopyError (RunError Error)
+  | NoInputFiles
+  | NoInputFilesWithData
+    deriving Show
+
+renderConcatError :: ConcatError -> Text
+renderConcatError e =
+  case e of
+    ConcatSourceMissing a ->
+      "Can not concat objects when the source object does not exist [" <> addressToText a <> "]"
+    ConcatDestinationExists a ->
+      "Can not concat objects when the destination object already exists [" <> addressToText a <> "]"
+    ConcatCopyError a ->
+      renderRunError a ((<>) "Multipart concat failed on a worker: " . renderError)
+    NoInputFiles ->
+      "Can not concat with no input keys."
+    NoInputFilesWithData ->
+      "Can not concat with no input keys with data."
 
 data CopyError =
     CopySourceMissing Address
