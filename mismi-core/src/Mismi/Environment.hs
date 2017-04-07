@@ -21,7 +21,7 @@ import           Control.Lens ((.~))
 import           Control.Monad.Catch (MonadThrow(..), Handler(..))
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Trans.AWS (Credentials(..), Region(..))
-import           Control.Monad.Trans.AWS (Env, newEnv, envLogger)
+import           Control.Monad.Trans.AWS (Env, newEnv, envLogger, envRegion)
 import           Control.Monad.Trans.AWS (Logger, LogLevel(..), newLogger)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Retry (RetryPolicyM, recovering, constantDelay, limitRetries)
@@ -101,8 +101,8 @@ discoverAWSEnvRetry retry = do
 discoverAWSEnvWithRegionRetry :: RetryPolicyM IO -> Region -> IO Env
 discoverAWSEnvWithRegionRetry rpol r = do
   d <- getDebugging
-  e <- recovering rpol [(\_ -> Handler catchAuthError)] $ \_ -> newEnv r Discover
-  pure $ setDebugging d e
+  e <- recovering rpol [(\_ -> Handler catchAuthError)] $ \_ -> newEnv Discover
+  pure $ setDebugging d (e & envRegion .~ r)
 
 catchAuthError :: AuthError -> IO Bool
 -- MDS sometimes has transient failures.
