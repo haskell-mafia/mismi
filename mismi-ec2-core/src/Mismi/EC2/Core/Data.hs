@@ -137,6 +137,7 @@ data MismiInstanceType =
   | M4_4XLarge
   | M4_Large
   | M4_XLarge
+  | M4_16XLarge
   | R3_2XLarge
   | R3_4XLarge
   | R3_8XLarge
@@ -148,6 +149,13 @@ data MismiInstanceType =
   | T2_Micro
   | T2_Nano
   | T2_Small
+  | P2_XLarge
+  | P2_8XLarge
+  | P2_16XLarge
+  | X1_16XLarge
+  | X1_32XLarge
+  | F1_2XLarge
+  | F1_16XLarge
     deriving (Eq, Show, Ord, Enum, Bounded)
 
 
@@ -283,6 +291,8 @@ virtualizationFor itype =
       HVM
     M4_10XLarge ->
       HVM
+    M4_16XLarge ->
+      HVM
     R3_2XLarge ->
       HVM
     R3_4XLarge ->
@@ -305,6 +315,21 @@ virtualizationFor itype =
       HVM
     T2_Nano ->
       HVM
+    P2_XLarge ->
+      HVM
+    P2_8XLarge ->
+      HVM
+    P2_16XLarge ->
+      HVM
+    X1_16XLarge ->
+      HVM
+    X1_32XLarge ->
+      HVM
+    F1_2XLarge ->
+      HVM -- Guess
+    F1_16XLarge ->
+      HVM -- Guess
+
 
 renderMismiInstanceType :: MismiInstanceType -> Text
 renderMismiInstanceType m =
@@ -397,6 +422,8 @@ renderMismiInstanceType m =
       "m4.4xlarge"
     M4_10XLarge ->
       "m4.10xlarge"
+    M4_16XLarge ->
+      "m4.16xlarge"
     R3_2XLarge ->
       "r3.2xlarge"
     R3_4XLarge ->
@@ -419,6 +446,20 @@ renderMismiInstanceType m =
       "t2.small"
     T2_Nano ->
       "t2.nano"
+    P2_XLarge ->
+      "p2.xlarge"
+    P2_8XLarge ->
+      "p2.8xlarge"
+    P2_16XLarge ->
+      "p2.16xlarge"
+    X1_16XLarge ->
+      "x1.16xlarge"
+    X1_32XLarge ->
+      "x1.32xlarge"
+    F1_2XLarge ->
+      "f1.2xLarge"
+    F1_16XLarge ->
+      "f1.16xlarge"
 
 parseMismiInstanceType :: Text -> Maybe MismiInstanceType
 parseMismiInstanceType m =
@@ -511,6 +552,8 @@ parseMismiInstanceType m =
       Just M4_4XLarge
     "m4.10xlarge" ->
       Just M4_10XLarge
+    "m4.16xlarge" ->
+      Just M4_16XLarge
     "r3.2xlarge" ->
       Just R3_2XLarge
     "r3.4xlarge" ->
@@ -533,5 +576,19 @@ parseMismiInstanceType m =
       Just T2_Small
     "t2.nano" ->
       Just T2_Nano
+    "p2.xlarge" ->
+      Just P2_XLarge
+    "p2.8xlarge" ->
+      Just P2_8XLarge
+    "p2.16xlarge" ->
+      Just P2_16XLarge
+    "x1.16xlarge" ->
+      Just X1_16XLarge
+    "x1.32xlarge" ->
+      Just X1_32XLarge
+    "f1.2xLarge" ->
+      Just F1_2XLarge
+    "f1.16xlarge" ->
+      Just F1_16XLarge
     _ ->
       Nothing

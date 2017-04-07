@@ -84,10 +84,22 @@ instanceDeviceMappings G2_8XLarge = devices2
 instanceDeviceMappings HI1_4XLarge = devices2
 
 instanceDeviceMappings M4_10XLarge = devices0
+instanceDeviceMappings M4_16XLarge = devices0
 instanceDeviceMappings M4_2XLarge = devices0
 instanceDeviceMappings M4_4XLarge = devices0
 instanceDeviceMappings M4_XLarge = devices0
 instanceDeviceMappings M4_Large = devices0
+
+instanceDeviceMappings P2_XLarge = devices0
+instanceDeviceMappings P2_8XLarge = devices0
+instanceDeviceMappings P2_16XLarge = devices0
+
+instanceDeviceMappings X1_16XLarge = devices24
+instanceDeviceMappings X1_32XLarge = devices24
+
+instanceDeviceMappings F1_2XLarge = devices0
+instanceDeviceMappings F1_16XLarge = devices0
+
 
 devices0 :: [BlockDeviceMapping]
 devices0 = []

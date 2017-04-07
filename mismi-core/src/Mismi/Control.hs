@@ -60,8 +60,6 @@ import           Network.HTTP.Client (HttpException (..), HttpExceptionContent (
 import           Network.HTTP.Client.Internal (mResponseTimeout)
 import           Network.HTTP.Types.Status
 
-import           Network.HTTP.Types.Status
-
 import           P
 
 import           System.IO

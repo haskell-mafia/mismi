@@ -38,7 +38,7 @@ createQueue q v = do
   res <- handleExists . send $ A.createQueue (renderQueueName q) &
            cqAttributes .~
              (M.fromList . maybeToList
-                $ ((VisibilityTimeout,) <$> ((T.pack . show) <$> v)))
+                $ ((QANVisibilityTimeout,) <$> ((T.pack . show) <$> v)))
   maybe
     (throwM . Invariant $ "Failed to create new queue: " <> (pack . show) q)
     (pure . QueueUrl)
