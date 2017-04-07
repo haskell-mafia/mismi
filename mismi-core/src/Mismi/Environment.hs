@@ -15,10 +15,11 @@ module Mismi.Environment (
   , discoverAWSEnvRetry
   , discoverAWSEnvWithRegionRetry
   , catchAuthError
+  , newMismiEnv
   ) where
 
 import           Control.Lens ((.~))
-import           Control.Monad.Catch (MonadThrow(..), Handler(..))
+import           Control.Monad.Catch (MonadCatch(..), MonadThrow(..), Handler(..))
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Trans.AWS (Credentials(..), Region(..))
 import           Control.Monad.Trans.AWS (Env, newEnv, envLogger, envRegion)
@@ -101,8 +102,14 @@ discoverAWSEnvRetry retry = do
 discoverAWSEnvWithRegionRetry :: RetryPolicyM IO -> Region -> IO Env
 discoverAWSEnvWithRegionRetry rpol r = do
   d <- getDebugging
-  e <- recovering rpol [(\_ -> Handler catchAuthError)] $ \_ -> newEnv Discover
-  pure $ setDebugging d (e & envRegion .~ r)
+  e <- recovering rpol [(\_ -> Handler catchAuthError)] $ \_ -> newMismiEnv r Discover
+  pure $ setDebugging d e
+
+
+newMismiEnv :: (Applicative m, MonadIO m, MonadCatch m) => Region -> Credentials -> m Env
+newMismiEnv r c = do
+  e <- newEnv c
+  pure $ e & envRegion .~ r
 
 catchAuthError :: AuthError -> IO Bool
 -- MDS sometimes has transient failures.
