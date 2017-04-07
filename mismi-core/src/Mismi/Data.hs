@@ -37,6 +37,12 @@ fromMismiRegion r =
       GovCloudFIPS
     SaoPauloRegion ->
       SaoPaulo
+    OhioRegion ->
+      Ohio
+    SeoulRegion ->
+      Seoul
+    MumbaiRegion ->
+      Mumbai
 
 toMismiRegion :: Region -> MismiRegion
 toMismiRegion r =
@@ -65,3 +71,9 @@ toMismiRegion r =
       GovCloudFIPSRegion
     SaoPaulo ->
       SaoPauloRegion
+    Ohio ->
+      OhioRegion
+    Seoul ->
+      SeoulRegion
+    Mumbai ->
+      MumbaiRegion
