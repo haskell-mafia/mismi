@@ -157,14 +157,14 @@ detachLoadBalancers :: GroupName -> AWS ()
 detachLoadBalancers n = do
   l <- describeLoadBalancers n
   when (not . null $ l) $
-    void . send $ A.detachLoadBalancers
-      & A.dAutoScalingGroupName .~ Just (renderGroupName n)
+    void . send $ A.detachLoadBalancers (renderGroupName n)
+      & A.dAutoScalingGroupName .~ (renderGroupName n)
       & A.dLoadBalancerNames .~ fmap loadBalancer l
 
 attachLoadBalancer :: GroupName -> LoadBalancer -> AWS ()
 attachLoadBalancer n l = do
-  void . send $ A.attachLoadBalancers
-    & A.albAutoScalingGroupName .~ Just (renderGroupName n)
+  void . send $ A.attachLoadBalancers (renderGroupName n)
+    & A.albAutoScalingGroupName .~ (renderGroupName n)
     & A.albLoadBalancerNames .~ [loadBalancer l]
 
 updateTags :: GroupName -> [GroupTag] -> AWS ()

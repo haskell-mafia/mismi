@@ -136,6 +136,24 @@ fromMismiInstanceType m =
       A.T2_Nano
     T2_Small ->
       A.T2_Small
+    F1_16XLarge ->
+      A.F1_16XLarge
+    F1_2XLarge ->
+      A.F1_2XLarge
+    M4_16XLarge ->
+      A.M4_16XLarge
+    P2_16XLarge ->
+      A.P2_16XLarge
+    P2_8XLarge ->
+      A.P2_8XLarge
+    P2_XLarge ->
+      A.P2_XLarge
+    X1_16XLarge ->
+      A.X1_16XLarge
+    X1_32XLarge ->
+      A.X1_32XLarge
+
+
 
 toMismiInstanceType :: A.InstanceType -> MismiInstanceType
 toMismiInstanceType i =
@@ -250,7 +268,22 @@ toMismiInstanceType i =
       T2_Nano
     A.T2_Small ->
       T2_Small
-
+    A.F1_16XLarge ->
+      F1_16XLarge
+    A.F1_2XLarge ->
+      F1_2XLarge
+    A.M4_16XLarge ->
+      M4_16XLarge
+    A.P2_16XLarge ->
+      P2_16XLarge
+    A.P2_8XLarge ->
+      P2_8XLarge
+    A.P2_XLarge ->
+      P2_XLarge
+    A.X1_16XLarge ->
+      X1_16XLarge
+    A.X1_32XLarge ->
+      X1_32XLarge
 
 fromMismiVirtualizationType :: MismiVirtualizationType -> A.VirtualizationType
 fromMismiVirtualizationType v =
