@@ -65,7 +65,7 @@ import           Control.Arrow ((***))
 import           Control.Lens ((.~), (^.), to, view)
 import           Control.Monad.Catch (throwM, onException)
 import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Trans.Resource (ResourceT, runResourceT)
+import           Control.Monad.Trans.Resource (ResourceT, allocate, runResourceT)
 import           Control.Monad.Reader (ask)
 import           Control.Monad.IO.Class (liftIO)
 
@@ -588,13 +588,12 @@ downloadWithRange a start end dest = withRetries 5 $ do
     A.goRange .~ (Just $ bytesRange start end)
 
   -- write to file
-  liftIO $ do
-    fd <- openFd dest WriteOnly Nothing defaultFileFlags
-    void $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
+  liftIO . runResourceT $ do
+    fd <- snd <$> allocate (openFd dest WriteOnly Nothing defaultFileFlags) closeFd
+    void . liftIO $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
     let source = r ^. A.gorsBody ^. to _streamBody
     let sink = awaitForever $ liftIO . UBS.fdWrite fd
-    runResourceT $ source $$+- sink
-    closeFd fd
+    source $$+- sink
 
 
 listMultipartParts :: Address -> Text -> AWS [Part]
