@@ -24,7 +24,7 @@ library
                      , amazonka-autoscaling            >= 1.3.6      && < 1.5
                      , conduit                         == 1.2.*
                      , exceptions                      >= 0.6        && < 0.9
-                     , lens                            >= 4.8        && < 4.15
+                     , lens                            >= 4.8        && < 4.16
                      , http-types                      == 0.8.*
                      , retry                           == 0.7.*
                      , text                            == 1.2.*
