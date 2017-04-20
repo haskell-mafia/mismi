@@ -80,6 +80,7 @@ import qualified Data.Conduit.List as DC
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
@@ -588,23 +589,33 @@ multipartDownload source destination sz chunk fork = bimapEitherT MultipartError
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange a start end dest = withRetries 5 $ do
+  liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "start"]
   -- Use a timeout of ten minutes. Arrivied at empirically. With a timeout of 5
   -- minutes this was triggering too often. Want this to be the last resort.
   res <- timeout (10 * 60 * 1000 * 1000) $ do
+          liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "about-to-send"]
           r <- send $ f' A.getObject a &
             A.goRange .~ (Just $ bytesRange start end)
-
+          liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "sent"]
           -- write to file
           liftIO . runResourceT $ do
+            liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "open"]
             fd <- snd <$> allocate (openFd dest WriteOnly Nothing defaultFileFlags) closeFd
+            liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "seek"]
             void . liftIO $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
             let source = r ^. A.gorsBody ^. to _streamBody
             let sink = awaitForever $ liftIO . UBS.fdWrite fd
+            liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "sinking"]
             source $$+- sink
+            liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "sunk"]
 
   case res of
-    Just () -> pure ()
-    Nothing -> liftIO $ ioError (userError "downloadWithRange timeout")
+    Just () -> do
+      liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "done"]
+      pure ()
+    Nothing -> do
+      liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "timedout"]
+      liftIO $ ioError (userError "downloadWithRange timeout")
 
 
 listMultipartParts :: Address -> Text -> AWS [Part]
