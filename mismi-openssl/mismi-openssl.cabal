@@ -24,7 +24,7 @@ library
                      , HsOpenSSL                       == 0.11.*
                      , http-client                     == 0.4.*
                      , http-client-openssl             == 0.2.*
-                     , lens                            >= 4.8        && < 4.15
+                     , lens                            >= 4.8        && < 4.16
                      , retry                           == 0.7.*
                      , transformers                    >= 0.3.1      && < 0.6
                      , text                            == 1.2.*

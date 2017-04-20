@@ -28,7 +28,7 @@ executable s3
                      , containers                      == 0.5.*
                      , exceptions
                      , filepath
-                     , lens                            >= 4.8        && < 4.15
+                     , lens                            >= 4.8        && < 4.16
                      , optparse-applicative            >= 0.11 && < 0.13
                      , resourcet
                      , text

@@ -44,7 +44,7 @@ library
                      , unix                            == 2.7.*
                      , async                           >= 2.0        && < 2.2
                      , retry                           == 0.7.*
-                     , lens                            >= 4.8        && < 4.15
+                     , lens                            >= 4.8        && < 4.16
                      , SafeSemaphore                   == 0.10.*
                      , unix-bytestring                 == 0.3.7.*
                      , time                            >= 1.4        && < 1.7
