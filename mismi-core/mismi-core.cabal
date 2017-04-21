@@ -60,6 +60,7 @@ library
                        Mismi.Control
                        Mismi.Data
                        Mismi.Environment
+                       Mismi.Stats
 
 test-suite test
   type:                exitcode-stdio-1.0

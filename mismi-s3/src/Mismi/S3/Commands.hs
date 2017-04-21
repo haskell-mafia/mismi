@@ -86,6 +86,7 @@ import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, addUTCTime)
 
 import           Mismi.Amazonka (Env, send, paginate)
+import           Mismi.Stats
 import           Mismi.Control
 import           Mismi.S3.Core.Data
 import           Mismi.S3.Data
@@ -578,6 +579,7 @@ multipartDownload :: Address -> FilePath -> Int -> Integer -> Int -> EitherT Dow
 multipartDownload source destination sz chunk fork = bimapEitherT MultipartError id $ do
   e <- ask
   let chunks = calculateChunks sz (fromInteger $ chunk * 1024 * 1024)
+  liftIO $ initStats sz (length chunks) fork (fromInteger $ chunk * 1024 * 1024)
   void . withFileSafe destination $ \f -> do
     liftIO $ withFile f WriteMode $ \h ->
       hSetFileSize h (toInteger sz)
@@ -585,6 +587,7 @@ multipartDownload source destination sz chunk fork = bimapEitherT MultipartError
     newEitherT . liftIO .
       consume (\q -> mapM (writeQueue q) chunks) fork $ \(o, c, _) ->
         runEitherT . runAWS e $ downloadWithRange source o (o + c) f
+  liftIO $ reportStats =<< finalizeStats
 
 downloadWithRange :: Address -> Int -> Int -> FilePath -> AWS ()
 downloadWithRange a start end dest = withRetries 5 $ do

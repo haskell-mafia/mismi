@@ -45,6 +45,7 @@ import           Data.Text as T
 import           Data.Text.Encoding as T
 
 import           Mismi.Environment
+import           Mismi.Stats
 
 import           Network.AWS hiding (runAWS)
 import qualified Network.AWS as A
@@ -129,14 +130,16 @@ withRetriesOf :: (MonadCatch m, MonadMask m, MonadIO m) => RetryPolicyM m -> Int
 withRetriesOf policy n action = do
   let
     httpCondition s =
-      Handler $ \(e :: HttpException) ->
+      Handler $ \(e :: HttpException) -> do
+        liftIO logHttpException
         pure $
           if rsIterNumber s > n
             then False
             else checkException e False
 
     ioCondition s =
-      Handler $ \(_ :: IOException) ->
+      Handler $ \(_ :: IOException) -> do
+        liftIO logIOException
         pure $ rsIterNumber s < n
 
   recovering policy [httpCondition, ioCondition] $ \_ ->
