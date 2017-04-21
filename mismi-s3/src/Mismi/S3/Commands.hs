@@ -598,7 +598,7 @@ downloadWithRange a start end dest = withRetries 5 $ do
             A.goRange .~ (Just $ bytesRange start end)
 
           -- write to file
-          liftIO . runResourceT $ do
+          lift $ do
             fd <- snd <$> allocate (openFd dest WriteOnly Nothing defaultFileFlags) closeFd
             void . liftIO $ fdSeek fd AbsoluteSeek (fromInteger . toInteger $ start)
             let source = r ^. A.gorsBody ^. to _streamBody
