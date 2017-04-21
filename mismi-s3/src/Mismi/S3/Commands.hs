@@ -598,7 +598,7 @@ downloadWithRange a start end dest = withRetries 5 $ do
             A.goRange .~ (Just $ bytesRange start end)
           liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "sent"]
           -- write to file
-          liftIO . runResourceT $ do
+          lift $ do
             liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "open"]
             fd <- snd <$> allocate (openFd dest WriteOnly Nothing defaultFileFlags) closeFd
             liftIO . T.putStrLn . mconcat $ [T.pack . show $ start, "/", T.pack . show $ end, ":", "seek"]
