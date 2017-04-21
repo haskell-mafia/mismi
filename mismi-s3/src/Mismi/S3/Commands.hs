@@ -562,7 +562,7 @@ downloadWithMode mode a f = do
   sz <- maybe (left $ DownloadSourceMissing a) right sz'
 
   if (sz > 200 * 1024 * 1024)
-    then multipartDownload a f sz 100 100
+    then multipartDownload a f sz 100 20
     else downloadSingle a f
 
 downloadWithModeOrFail :: WriteMode -> Address -> FilePath -> AWS ()

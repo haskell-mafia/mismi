@@ -67,7 +67,7 @@ reportStats s = do
     [ "File size : ", show (downloadSize s), "\n"
     , "Chunk count : ", show (chunkCount s), "\n"
     , "Concurrency : ", show (concurrency s), "\n"
-    , "Max chunks zie : " , show (maxChunkSize s), "\n"
+    , "Max chunk size : " , show (maxChunkSize s), "\n"
     , "HTTP Retries : ", show (httpExceptionRetryCount s), "\n"
     , "IO Retries : ", show (ioExceptionRetryCount s), "\n"
     , "Duration : ", show duration, "\n"
