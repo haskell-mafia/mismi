@@ -561,7 +561,13 @@ downloadWithMode mode a f = do
   sz <- maybe (left $ DownloadSourceMissing a) right sz'
 
   if (sz > 200 * 1024 * 1024)
-    then multipartDownload a f sz 100 100
+    then -- Originally had a concurrecy of 100 (instead of 5). Tested a number of
+         -- values between 2 and 100 and found empirically that 5 gave the fastest
+         -- downloads (less than 10% better), but significantly reduced the
+         -- likelihood of triggering the S3 rate limiter (by a factor of 20)
+         -- which in turn reduces the liklehood of `IOExceptions` and hung
+         -- threads.
+         multipartDownload a f sz 100 5
     else downloadSingle a f
 
 downloadWithModeOrFail :: WriteMode -> Address -> FilePath -> AWS ()
