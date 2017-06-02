@@ -15,8 +15,9 @@ import           Test.QuickCheck.Instances ()
 
 
 instance Arbitrary InstanceId where
-  arbitrary =
-    InstanceId <$> elements muppets
+  arbitrary = do
+    x <- vectorOf 8 . elements $ ['a'..'f'] <> ['0'..'9']
+    pure . InstanceId $ "i-" <> T.pack x
 
 instance Arbitrary LoadBalancer where
   arbitrary =
