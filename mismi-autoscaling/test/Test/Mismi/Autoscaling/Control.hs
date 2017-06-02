@@ -92,7 +92,7 @@ testSecurityGroup =
 
 testImageId :: IO ImageId
 testImageId =
-  ImageId . T.pack . fromMaybe "ami-bc3611df" <$> lookupEnv "AWS_TEST_IMAGE_ID"
+  ImageId . T.pack . fromMaybe "ami-a1abbfc2" <$> lookupEnv "AWS_TEST_IMAGE_ID"
 
 defaultAvailabilityZones :: NonEmpty AvailabilityZone
 defaultAvailabilityZones =

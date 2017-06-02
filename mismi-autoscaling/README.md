@@ -27,6 +27,6 @@ mismi-autoscaling
 
 ```
 `AWS_TEST_SECURITY_GROUP` - defaults to "ci.ci.node"
-`AWS_TEST_IMAGE_ID` - defaults to "ami-bc3611df"
+`AWS_TEST_IMAGE_ID` - defaults to "ami-a1abbfc2"
 `AWS_TEST_IAM_ROLE` - defaults to "ci.ci.node"
 ```
