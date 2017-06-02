@@ -14,6 +14,8 @@ instanceDeviceMappings T2_Micro = devices0
 instanceDeviceMappings T2_Small = devices0
 instanceDeviceMappings T2_Medium = devices0
 instanceDeviceMappings T2_Large = devices0
+instanceDeviceMappings T2_XLarge = devices0
+instanceDeviceMappings T2_2XLarge = devices0
 
 -- General Purpose - Current Generation
 instanceDeviceMappings M3_Medium = devices1
@@ -44,6 +46,14 @@ instanceDeviceMappings R3_XLarge = devices1
 instanceDeviceMappings R3_2XLarge = devices1
 instanceDeviceMappings R3_4XLarge = devices1
 instanceDeviceMappings R3_8XLarge = devices2
+
+-- Memory Optimised - Current Generation
+instanceDeviceMappings R4_Large = devices0
+instanceDeviceMappings R4_XLarge = devices0
+instanceDeviceMappings R4_2XLarge = devices0
+instanceDeviceMappings R4_4XLarge = devices0
+instanceDeviceMappings R4_8XLarge = devices0
+instanceDeviceMappings R4_16XLarge = devices0
 
 -- Memory Optimised - Previous Generation
 instanceDeviceMappings M2_XLarge = devices1

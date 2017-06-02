@@ -124,8 +124,24 @@ fromMismiInstanceType m =
       A.R3_Large
     R3_XLarge ->
       A.R3_XLarge
+    R4_16XLarge ->
+      A.R4_16XLarge
+    A.R4_2XLarge ->
+      R4_2XLarge
+    R4_4xlarge ->
+      A.R4_4XLarge
+    R4_8XLarge ->
+      A.R4_8XLarge
+    R4_Large ->
+      A.R4_Large
+    R4_XLarge ->
+      A.R4_XLarge
     T1_Micro ->
       A.T1_Micro
+    T2_2XLarge ->
+      A.T2_2XLarge
+    T2_XLarge ->
+      A.T2_XLarge
     T2_Large ->
       A.T2_Large
     T2_Medium ->
@@ -238,8 +254,24 @@ toMismiInstanceType i =
       R3_Large
     A.R3_XLarge ->
       R3_XLarge
+    A.R4_16XLarge ->
+      R4_16XLarge
+    A.R4_2XLarge ->
+      R4_2XLarge
+    A.R4_4XLarge ->
+      R4_4XLarge
+    A.R4_8XLarge ->
+      R4_8XLarge
+    A.R4_Large ->
+      R4_Large
+    A.R4_XLarge ->
+      R4_XLarge
     A.T1_Micro ->
       T1_Micro
+    A.T2_2XLarge ->
+      T2_2XLarge
+    A.T2_XLarge ->
+      T2_XLarge
     A.T2_Large ->
       T2_Large
     A.T2_Medium ->
