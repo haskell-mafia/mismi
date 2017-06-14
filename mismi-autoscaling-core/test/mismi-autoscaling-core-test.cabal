@@ -15,7 +15,7 @@ library
                      , semigroups                      >= 0.16       && < 0.19
                      , text
                      , time
-                     , QuickCheck                      >= 2.7        && < 2.9
+                     , QuickCheck                      >= 2.7        && < 2.10
                      , quickcheck-instances            == 0.3.*
 
 

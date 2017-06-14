@@ -22,7 +22,7 @@ library
                      , amazonka-cloudwatch-logs        >= 1.3.6      && < 1.5
                      , bytestring                      == 0.10.*
                      -- FIX for conduit-extra https://github.com/snoyberg/conduit/pull/261
-                     , conduit-extra                   == 1.1.11 
+                     , conduit-extra                   == 1.1.11
                      , exceptions                      == 0.8.*
                      , http-client                     >= 0.4.18     && < 0.5
                      , mtl                             >= 2.2.1      && < 2.3
@@ -48,5 +48,5 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-mismi-core
                      , ambiata-mismi-cloudwatch-logs
-                     , QuickCheck                      >= 2.8.2      && < 2.9
+                     , QuickCheck                      >= 2.7        && < 2.10
                      , quickcheck-instances            == 0.3.*
