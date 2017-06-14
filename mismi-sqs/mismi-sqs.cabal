@@ -67,7 +67,7 @@ test-suite test
                      , exceptions
                      , text
                      , transformers
-                     , QuickCheck                      >= 2.8.2      && < 2.9
+                     , QuickCheck                      >= 2.7        && < 2.10
                      , quickcheck-instances            == 0.3.*
 
 test-suite test-io
@@ -90,5 +90,5 @@ test-suite test-io
                      , lens
                      , text
                      , transformers
-                     , QuickCheck                      >= 2.8.2      && < 2.9
+                     , QuickCheck                      >= 2.7        && < 2.10
                      , quickcheck-instances            == 0.3.*

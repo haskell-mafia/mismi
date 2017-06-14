@@ -41,5 +41,5 @@ test-suite test
                      , ambiata-mismi-sqs-core
                      , ambiata-p
                      , text
-                     , QuickCheck                      >= 2.8.2      && < 2.9
+                     , QuickCheck                      >= 2.7        && < 2.10
                      , quickcheck-instances            == 0.3.*
