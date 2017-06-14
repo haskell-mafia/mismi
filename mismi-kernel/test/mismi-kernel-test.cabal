@@ -9,7 +9,7 @@ library
                      , ambiata-mismi-kernel
                      , ambiata-p
                      , text                            == 1.2.*
-                     , QuickCheck                      >= 2.7        && < 2.9
+                     , QuickCheck                      >= 2.7        && < 2.10
                      , quickcheck-instances            == 0.3.*
 
   exposed-modules:
