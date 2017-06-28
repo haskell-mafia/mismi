@@ -171,6 +171,15 @@ prop_copy t = testAWS $ do
   b' <- read b
   pure $ a' === b'
 
+prop_copy_escape t = testAWS $ do
+  a <- fmap (withKey ((Key "%%~") //)) newAddress
+  b <- newAddress
+  writeOrFail a t
+  eitherT (fail . T.unpack . renderCopyError) pure $ copy a b
+  a' <- read a
+  b' <- read b
+  pure $ a' === b'
+
 prop_copy_missing = testAWS $ do
   a <- newAddress
   r <- runEitherT $ copy a a
