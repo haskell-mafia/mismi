@@ -103,6 +103,7 @@ import           Network.AWS.S3 (MetadataDirective (..))
 import           Network.AWS.S3 (MultipartUpload, Part)
 import           Network.AWS.S3 (Object, ObjectKey (..))
 import qualified Network.AWS.S3 as A
+import           Network.URI (escapeURIString, isUnescapedInURI)
 
 import           P
 
@@ -281,8 +282,10 @@ copyWithMode mode s d = do
 
 copySingle :: Address -> Address -> AWS ()
 copySingle (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key dk)) =
-  void . send $ A.copyObject (BucketName b) (sb <> "/" <> sk) (ObjectKey dk)
+  void . send $ A.copyObject (BucketName b) (escape $ sb <> "/" <> sk) (ObjectKey dk)
      & A.coServerSideEncryption .~ Just sse & A.coMetadataDirective .~ Just Copy
+  where
+    escape = T.pack . escapeURIString isUnescapedInURI . T.unpack
 
 copyMultipart :: Address -> Address -> Int -> Int -> Int -> EitherT CopyError AWS ()
 copyMultipart source dest sz chunk fork = do
