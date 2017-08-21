@@ -383,11 +383,15 @@ uploadWithMode m f a = do
     True ->
       lift $ uploadSingle f a
     False ->
+      -- Originally had a concurrency of 100 (instead of 5).
+      --
+      -- Based on the reasoning behind downloadWithMode choosing 5
+      -- as it's concurrency default.
       case s > 1024 * 1024 * 1024 of
         True ->
-          multipartUpload f a s (2 * chunk) 100
+          multipartUpload f a s (2 * chunk) 5
         False ->
-          multipartUpload f a s chunk 100
+          multipartUpload f a s chunk 5
 
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
