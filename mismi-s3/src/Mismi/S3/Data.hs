@@ -133,6 +133,7 @@ data ConcatError =
   | ConcatCopyError (RunError Error)
   | NoInputFiles
   | NoInputFilesWithData
+  | ConcatSourceTooSmall Address Int
     deriving Show
 
 renderConcatError :: ConcatError -> Text
@@ -148,6 +149,13 @@ renderConcatError e =
       "Can not concat with no input keys."
     NoInputFilesWithData ->
       "Can not concat with no input keys with data."
+    ConcatSourceTooSmall a s ->
+      T.intercalate " " [
+          "Source file"
+        , addressToText a
+        , "(" <> renderIntegral s <> ") bytes"
+        , "is too small to use as part of a multipart upload."
+        ]
 
 data CopyError =
     CopySourceMissing Address

@@ -217,6 +217,7 @@ concatMultipart mode fork inputs dest = do
       Just x ->
         let
           s = fromIntegral $ unBytes x
+          minChunk = 5 * 1024 * 1024 -- 5 MiB
           chunk = 1024 * 1024 * 1024 -- 1 gb
           big = 5 * 1024 * 1024 -- 5 gb
         in
@@ -224,14 +225,18 @@ concatMultipart mode fork inputs dest = do
             True ->
               pure Nothing
             False ->
-              case s < big of
+              case s < minChunk of
                 True ->
-                  pure $ Just [(input, 0, s)]
+                  left $ ConcatSourceTooSmall input s
                 False ->
-                  let
-                    chunks = calculateChunksCapped s chunk 4096
-                  in
-                    pure . Just $ (\(a, b, _) -> (input, a, b)) <$> chunks
+                  case s < big of
+                    True ->
+                      pure $ Just [(input, 0, s)]
+                    False ->
+                      let
+                        chunks = calculateChunksCapped s chunk 4096
+                      in
+                        pure . Just $ (\(a, b, _) -> (input, a, b)) <$> chunks
 
   when (null things) $
     left NoInputFilesWithData
