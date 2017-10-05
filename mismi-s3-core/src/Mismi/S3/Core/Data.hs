@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -31,6 +32,7 @@ module Mismi.S3.Core.Data (
 import           Data.Attoparsec.Text (Parser)
 import           Data.Attoparsec.Text (string, manyTill, takeWhile, anyChar, char)
 import           Data.Attoparsec.Text (parseOnly, endOfInput)
+import           Data.Data (Data, Typeable)
 import qualified Data.Text as T
 import           Data.List (init, zipWith)
 import           Data.String (String)
@@ -81,7 +83,7 @@ foldSyncMode f o s m = case m of
 newtype Bucket =
   Bucket {
       unBucket :: Text
-    } deriving (Eq, Ord, Generic)
+    } deriving (Eq, Ord, Generic, Data, Typeable)
 
 instance NFData Bucket
 
@@ -92,7 +94,7 @@ instance Show Bucket where
 newtype Key =
   Key {
       unKey :: Text
-    } deriving (Eq, Ord, Generic)
+    } deriving (Eq, Ord, Generic, Data, Typeable)
 
 instance NFData Key
 
@@ -104,7 +106,7 @@ data Address =
   Address {
       bucket :: !Bucket
     , key :: !Key
-    } deriving (Eq, Ord, Generic)
+    } deriving (Eq, Ord, Generic, Data, Typeable)
 
 instance NFData Address
 
