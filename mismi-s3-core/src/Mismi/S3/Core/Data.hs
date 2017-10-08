@@ -11,6 +11,7 @@ module Mismi.S3.Core.Data (
   , SyncMode (..)
   , Bucket (..)
   , Address (..)
+  , Location (..)
   , Key (..)
   , ReadGrant (..)
   , WriteResult (..)
@@ -24,6 +25,9 @@ module Mismi.S3.Core.Data (
   , basename
   , addressFromText
   , addressToText
+
+  , locationToText
+  , locationFromText
   , removeCommonPrefix
   , withKey
   , s3Parser
@@ -40,6 +44,8 @@ import           Data.String (String)
 import           GHC.Generics (Generic)
 
 import           P
+
+import           System.IO (FilePath)
 
 import           X.Text.Show (gshowsPrec)
 
@@ -111,6 +117,17 @@ data Address =
 instance NFData Address
 
 instance Show Address where
+  showsPrec =
+    gshowsPrec
+
+data Location =
+    LocalLocation !FilePath
+  | S3Location !Address
+  deriving (Eq, Ord, Generic, Data, Typeable)
+
+instance NFData Location
+
+instance Show Location where
   showsPrec =
     gshowsPrec
 
@@ -211,6 +228,19 @@ addressToText a =
 addressFromText :: Text -> Maybe Address
 addressFromText =
   rightToMaybe . parseOnly s3Parser
+
+locationToText :: Location -> Text
+locationToText loc =
+  case loc of
+    LocalLocation fp -> T.pack fp
+    S3Location a -> addressToText a
+
+-- | Parse a location. If it parses as a valid s3 address, it gets parsed as an
+-- 'S3Location' otherwise it is assumed to be a 'FilePath' on the local
+-- filesystem.
+locationFromText :: Text -> Location
+locationFromText loc =
+  maybe (LocalLocation $ T.unpack loc) S3Location $ addressFromText loc
 
 s3Parser :: Parser Address
 s3Parser =
