@@ -69,7 +69,7 @@ data UnitPrefix =
 
 data Command =
     Upload FilePath Address WriteMode
-  | Download Address FilePath
+  | Download Recursive Address FilePath
   | Copy Address Address WriteMode
   | Concat [Address] Address WriteMode Int
   | Move Address Address
@@ -128,8 +128,10 @@ run c = do
   orDie O.renderError . O.runAWS e' $ case c of
     Upload s d m ->
       uploadWithModeOrFail m s d
-    Download s d ->
+    Download NotRecursive s d ->
       renderExit renderDownloadError . download s . optAppendFileName d $ key s
+    Download Recursive s d ->
+      renderExit renderDownloadError $ downloadRecursive s d
     Copy s d m ->
       renderExit renderCopyError $ copyWithMode m s d
     Concat ss d m f ->
@@ -164,6 +166,7 @@ sizeRecursive root d p =
     Summary -> do
       bytes <- sizeRecursively' root $$ DC.map sizedBytes =$= DC.fold (+) 0
       liftIO . T.putStrLn $ renderSizedAddress p (Sized bytes root)
+
 
 renderSizedAddress :: UnitPrefix -> Sized Address -> Text
 renderSizedAddress p (Sized bytes address) =
@@ -299,7 +302,7 @@ commandP' f = XOA.subparser $
               (Upload <$> filepath' <*> address' <*> writeMode' f)
   <> command' "download"
               "Download a file from s3."
-              (Download <$> address' <*> filepath')
+              (Download <$> recursive' <*> address' <*> filepath')
   <> command' "copy"
               "Copy a file from an S3 address to another S3 address."
               (Copy <$> address' <*> address' <*> writeMode' f)
