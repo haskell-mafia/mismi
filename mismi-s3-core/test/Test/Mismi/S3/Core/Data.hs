@@ -36,6 +36,10 @@ prop_parse_bucket :: Bucket -> Property
 prop_parse_bucket b =
   addressFromText ("s3://" <> unBucket b) === Just (Address b (Key ""))
 
+prop_parse_location :: Location -> Property
+prop_parse_location loc =
+  locationFromText (locationToText loc) === loc
+
 prop_sorted :: [Address] -> Property
 prop_sorted addresses =
   fmap addressToText (L.sort addresses) === L.sort (fmap addressToText addresses)
