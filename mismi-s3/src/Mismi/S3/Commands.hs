@@ -54,6 +54,7 @@ module Mismi.S3.Commands (
   , listRecursively'
   , sync
   , syncWithMode
+  , syncWithMode'
   , createMultipartUpload
   , grantReadAccess
   , hoistUploadError
@@ -707,3 +708,9 @@ worker input output mode env f = runEitherT . runAWST env SyncAws $ do
     (liftCopy $ copyWithMode Overwrite f out)
     (ifM (lift $ exists out) (right ()) cp)
     mode
+
+syncWithMode' :: SyncMode -> Location -> Location -> Int -> EitherT SyncError AWS ()
+syncWithMode' mode source dest fork =
+  case (source, dest) of
+    (S3Location src, S3Location dst) -> syncWithMode mode src dst fork
+    (_, _) -> left $ SyncLocation source dest

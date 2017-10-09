@@ -191,12 +191,17 @@ renderUploadError e =
     MultipartUploadError a ->
       renderRunError a ((<>) "Multipart upload failed on a worker: " . renderError)
 
-newtype SyncError =
-  SyncError (RunError SyncWorkerError)
+data SyncError =
+    SyncError (RunError SyncWorkerError)
+  | SyncLocation Location Location
 
 renderSyncError :: SyncError -> Text
-renderSyncError (SyncError r) =
-  renderRunError r renderSyncWorkerError
+renderSyncError se =
+  case se of
+    SyncError r ->
+      renderRunError r renderSyncWorkerError
+    SyncLocation s d -> T.concat
+      ["Not able to syn between ", locationToText s, " and ", locationToText d, "."]
 
 data SyncWorkerError =
    SyncInvariant Address Address
