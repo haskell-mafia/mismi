@@ -41,6 +41,10 @@ module Mismi.S3.Commands (
   , downloadWithModeOrFail
   , downloadSingle
   , downloadWithRange
+  , downloadRecursive
+  , downloadRecursiveOrFail
+  , downloadRecursiveWithMode
+  , downloadRecursiveWithModeOrFail
   , multipartDownload
   , listMultipartParts
   , listMultiparts
@@ -63,12 +67,13 @@ module Mismi.S3.Commands (
 import           Control.Arrow ((***))
 
 import           Control.Exception (ioError)
+import qualified Control.Exception as CE
 import           Control.Lens ((.~), (^.), to, view)
 import           Control.Monad.Catch (throwM, onException)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Resource (ResourceT, allocate, runResourceT)
 import           Control.Monad.Reader (ask)
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 
 import qualified Data.ByteString as BS
 import           Data.Conduit (Conduit, Source, ResumableSource)
@@ -108,9 +113,11 @@ import           P
 
 import           System.IO (IO, IOMode (..), SeekMode (..))
 import           System.IO (hFileSize, hSetFileSize, withFile)
+import           System.IO.Error (IOError)
 import           System.Directory (createDirectoryIfMissing, doesFileExist)
-import           System.FilePath (FilePath, takeDirectory)
+import           System.FilePath (FilePath, (</>), takeDirectory)
 import           System.Posix.IO (OpenMode(..), openFd, closeFd, fdSeek, defaultFileFlags)
+import           System.Posix.Files (getFileStatus, isDirectory)
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
 import           System.Timeout.Lifted (timeout)
@@ -119,7 +126,8 @@ import           System.IO.Error (userError)
 import           Twine.Data.Queue (writeQueue)
 import           Twine.Parallel (RunError (..), consume)
 
-import           X.Control.Monad.Trans.Either (EitherT, eitherT, left, right, bimapEitherT, runEitherT, newEitherT)
+import           X.Control.Monad.Trans.Either (EitherT, eitherT, left, right, bimapEitherT, hoistMaybe
+                                                , runEitherT, newEitherT)
 
 import qualified X.Data.Conduit.Binary as XB
 
@@ -549,6 +557,10 @@ hoistDownloadError e =
       throwM $ SourceMissing DownloadError a
     DownloadDestinationExists f ->
       throwM $ DestinationFileExists f
+    DownloadDestinationNotDirectory f ->
+      throwM $ DestinationNotDirectory f
+    DownloadInvariant a b ->
+      throwM $ Invariant (renderDownloadError $ DownloadInvariant a b)
     MultipartError (WorkerError a) ->
       throwM a
     MultipartError (BlowUpError a) ->
@@ -622,6 +634,37 @@ downloadWithRange a start end dest = withRetries 5 $ do
     Just () -> pure ()
     Nothing -> liftIO $ ioError (userError "downloadWithRange timeout")
 
+downloadRecursiveWithMode :: WriteMode -> Address -> FilePath -> EitherT DownloadError AWS ()
+downloadRecursiveWithMode mode src dest = do
+  -- Check if the destination already exists and is not a directory.
+  es <- tryIO $ getFileStatus dest
+  case es of
+    Left _ -> pure ()
+    Right st -> unless (isDirectory st) . left $ DownloadDestinationNotDirectory dest
+  -- Real business starts here.
+  addrs <- lift $ listRecursively src
+  mapM_ drWorker addrs
+  where
+    tryIO :: MonadIO m => IO a -> m (Either IOError a)
+    tryIO = liftIO . CE.try
+
+    drWorker :: Address -> EitherT DownloadError AWS ()
+    drWorker addr = do
+      fpdest <- hoistMaybe (DownloadInvariant addr src) $
+                    ((</>) dest) . T.unpack . unKey <$> removeCommonPrefix src addr
+      downloadWithMode mode addr fpdest
+
+downloadRecursive :: Address -> FilePath -> EitherT DownloadError AWS ()
+downloadRecursive =
+  downloadRecursiveWithMode Fail
+
+downloadRecursiveOrFail :: Address -> FilePath -> AWS ()
+downloadRecursiveOrFail a f =
+  eitherT hoistDownloadError pure $ downloadRecursive a f
+
+downloadRecursiveWithModeOrFail :: WriteMode -> Address -> FilePath -> AWS ()
+downloadRecursiveWithModeOrFail m a f =
+  eitherT hoistDownloadError pure $ downloadRecursiveWithMode m a f
 
 listMultipartParts :: Address -> Text -> AWS [Part]
 listMultipartParts a uploadId = do
