@@ -13,30 +13,30 @@ module Mismi.S3.Internal (
   , withFileSafe
   ) where
 
-import           Control.Concurrent
+import           Control.Concurrent (Chan, readChan, threadDelay, writeChan)
 
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
+import           Control.Monad.Catch (MonadCatch, onException)
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 
-import           Data.Conduit
+import           Data.Conduit (Source, ($$))
 import qualified Data.Conduit.List as DC
 
 import qualified Data.Text as T
-import           Data.UUID
-import           Data.UUID.V4
+import           Data.UUID (toString)
+import           Data.UUID.V4 (nextRandom)
 
 import           P
 
 import           Mismi (AWS, rawRunAWS)
 import           Mismi.Amazonka (Env)
 import           Mismi.S3.Data
-import           Network.AWS.S3
+import           Network.AWS.S3 (BucketName (..), ObjectKey (..))
 
-import           System.Directory
-import           System.IO
-import           System.FilePath
+import           System.Directory (renameFile, removeFile)
+import           System.IO (IO)
+import           System.FilePath (FilePath, takeDirectory, takeFileName)
 
-import           Twine.Data
+import           Twine.Data (Queue, writeQueue)
 
 
 f' :: (BucketName -> ObjectKey -> a) -> Address -> a
