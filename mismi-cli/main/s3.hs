@@ -68,7 +68,7 @@ data UnitPrefix =
     deriving (Eq, Show)
 
 data Command =
-    Upload FilePath Address WriteMode
+    Upload Recursive FilePath Address WriteMode
   | Download Recursive Address FilePath
   | Copy Address Address WriteMode
   | Concat [Address] Address WriteMode Int
@@ -126,8 +126,10 @@ run c = do
   let
     e' = configure (over serviceRetry (set retryAttempts 10 . set exponentBase 0.6) s3) e
   orDie O.renderError . O.runAWS e' $ case c of
-    Upload s d m ->
+    Upload NotRecursive s d m ->
       uploadWithModeOrFail m s d
+    Upload Recursive s d m ->
+      uploadRecursiveWithModeOrFail m s d
     Download NotRecursive s d ->
       renderExit renderDownloadError . download s . optAppendFileName d $ key s
     Download Recursive s d ->
@@ -299,7 +301,7 @@ commandP' :: Force -> Parser Command
 commandP' f = XOA.subparser $
      command' "upload"
               "Upload a file to s3."
-              (Upload <$> filepath' <*> address' <*> writeMode' f)
+              (Upload <$> recursive' <*> filepath' <*> address' <*> writeMode' f)
   <> command' "download"
               "Download a file from s3."
               (Download <$> recursive' <*> address' <*> filepath')
