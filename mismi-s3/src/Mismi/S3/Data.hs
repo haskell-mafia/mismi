@@ -41,10 +41,10 @@ module Mismi.S3.Data (
   , sse
   ) where
 
-import           Control.Exception.Base
+import           Control.Exception (Exception)
 
 import qualified Data.Text as T
-import           Data.Typeable
+import           Data.Typeable (Typeable)
 
 import           P
 
@@ -52,7 +52,11 @@ import           Mismi (Error, renderError)
                  -- Just for compatibility, would be good to not do
                  -- this at some point but for now we import everything
                  -- and keep current export list.
-import           Mismi.S3.Core.Data
+import           Mismi.S3.Core.Data (Address (..), Bucket (..), Key (..), ReadGrant (..)
+                                    , SyncMode (..), WriteMode (..), WriteResult (..), (//)
+                                    , addressFromText, addressToText, basename, combineKey
+                                    , dirname, foldSyncMode, foldWriteMode, removeCommonPrefix
+                                    , s3Parser, withKey)
 import           Network.AWS.S3 (ETag, ServerSideEncryption (..))
 
 import           System.FilePath (FilePath)
