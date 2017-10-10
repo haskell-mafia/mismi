@@ -24,6 +24,9 @@ module Mismi.S3.Commands (
   , uploadOrFail
   , uploadWithMode
   , uploadWithModeOrFail
+  , uploadRecursive
+  , uploadRecursiveWithMode
+  , uploadRecursiveWithModeOrFail
   , multipartUpload
   , uploadSingle
   , write
@@ -67,6 +70,7 @@ import           Control.Exception (ioError)
 import qualified Control.Exception as CE
 import           Control.Lens ((.~), (^.), to, view)
 import           Control.Monad.Catch (throwM, onException)
+import           Control.Monad.Extra (concatMapM)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Resource (ResourceT, allocate, runResourceT)
 import           Control.Monad.Reader (ask)
@@ -111,7 +115,7 @@ import           P
 import           System.IO (IO, IOMode (..), SeekMode (..))
 import           System.IO (hFileSize, hSetFileSize, withFile)
 import           System.IO.Error (IOError)
-import           System.Directory (createDirectoryIfMissing, doesFileExist)
+import           System.Directory (createDirectoryIfMissing, doesFileExist, listDirectory)
 import           System.FilePath (FilePath, (</>), takeDirectory)
 import           System.Posix.IO (OpenMode(..), openFd, closeFd, fdSeek, defaultFileFlags)
 import           System.Posix.Files (getFileStatus, isDirectory)
@@ -362,6 +366,10 @@ upload :: FilePath -> Address -> EitherT UploadError AWS ()
 upload =
   uploadWithMode Fail
 
+uploadRecursive :: FilePath -> Address -> EitherT UploadError AWS ()
+uploadRecursive =
+  uploadRecursiveWithMode Fail
+
 uploadOrFail :: FilePath -> Address -> AWS ()
 uploadOrFail f a =
   eitherT hoistUploadError pure $ upload f a
@@ -370,6 +378,10 @@ uploadWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
 uploadWithModeOrFail w f a =
   eitherT hoistUploadError pure $ uploadWithMode w f a
 
+uploadRecursiveWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
+uploadRecursiveWithModeOrFail w f a =
+  eitherT hoistUploadError pure $ uploadRecursiveWithMode w f a
+
 hoistUploadError :: UploadError -> AWS ()
 hoistUploadError e =
   case e of
@@ -377,6 +389,8 @@ hoistUploadError e =
       throwM $ SourceFileMissing f
     UploadDestinationExists a ->
       throwM $ DestinationAlreadyExists a
+    UploadSourceNotDirectory f ->
+      throwM $ SourceNotDirectory f
     MultipartUploadError (WorkerError a) ->
       throwM $ a
     MultipartUploadError (BlowUpError a) ->
@@ -450,6 +464,42 @@ multipartUploadWorker e mpu file a (o, c, i) =
       Right z -> do
         m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ z ^. A.uprsETag
         pure $! Right $! PartResponse i m
+
+
+-- Erik
+uploadRecursiveWithMode :: WriteMode -> FilePath -> Address -> EitherT UploadError AWS ()
+uploadRecursiveWithMode m src (Address buck ky) = do
+  es <- tryIO $ getFileStatus src
+  case es of
+    Left _ -> left $ UploadSourceMissing src
+    Right st -> unless (isDirectory st) . left $ UploadSourceNotDirectory src
+  files <- liftIO $ listRecursivelyLocal src
+  let prefixLen = L.length (src </> "a") - 1
+      outputAddrs = fmap (\fp -> Address buck (ky // Key (T.pack $ L.drop prefixLen fp))) files
+  mapM_ (uncurry (uploadWithMode m)) $ L.zip files outputAddrs
+
+-- | Like `listRecursively` but for the local filesystem.
+listRecursivelyLocal :: MonadIO m => FilePath -> m [FilePath]
+listRecursivelyLocal topdir = do
+  entries <- liftIO $ listDirectory topdir
+  (dirs, files) <- liftIO $ partitionM isDir $ fmap (topdir </>) entries
+  others <- concatMapM listRecursivelyLocal dirs
+  pure $ files <> others
+  where
+    isDir :: MonadIO m => FilePath -> m Bool
+    isDir fpath =
+      isDirectory <$> liftIO (getFileStatus fpath)
+
+
+partitionM :: Monad m => (a -> m Bool) -> [a] -> m ([a], [a])
+partitionM pred input =
+  pworker ([], []) input
+  where
+    pworker (acct, accf) [] = pure (acct, accf)
+    pworker (acct, accf) (x:xs) =
+      ifM (pred x)
+        (pworker (x : acct, accf) xs)
+        (pworker (acct, x : accf) xs)
 
 
 write :: Address -> Text -> AWS WriteResult
@@ -642,9 +692,6 @@ downloadRecursive src dest = do
   addrs <- lift $ listRecursively src
   mapM_ drWorker addrs
   where
-    tryIO :: MonadIO m => IO a -> m (Either IOError a)
-    tryIO = liftIO . CE.try
-
     drWorker :: Address -> EitherT DownloadError AWS ()
     drWorker addr = do
       fpdest <- hoistMaybe (DownloadInvariant addr src) $
@@ -736,3 +783,6 @@ worker input output mode env f = runEitherT . runAWST env SyncAws $ do
     (liftCopy $ copyWithMode Overwrite f out)
     (ifM (lift $ exists out) (right ()) cp)
     mode
+
+tryIO :: MonadIO m => IO a -> m (Either IOError a)
+tryIO = liftIO . CE.try
