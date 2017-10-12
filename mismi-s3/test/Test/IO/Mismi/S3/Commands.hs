@@ -516,6 +516,30 @@ prop_download_recursive = once . testAWS $ do
 
   pure $ a === name1 .&&. c == name2 .&&. e == name3
 
+prop_upload_recursive :: Property
+prop_upload_recursive = once . testAWS $ do
+  let name1 = "first name"
+      name2 = "second name"
+      name3 = "third name"
+  tmpdir <- newFilePath
+  liftIO $ do
+    D.createDirectoryIfMissing True (tmpdir </> "b")
+    D.createDirectoryIfMissing True (tmpdir </> "c" </> "d")
+
+    T.writeFile (tmpdir </> "a") name1
+    T.writeFile (tmpdir </> "b" </> "c") name2
+    T.writeFile (tmpdir </> "c" </> "d" </> "e") name3
+
+  addr <- withKey (// Key "top") <$> newAddress
+
+  eitherT (fail . show) pure $ uploadRecursive tmpdir addr
+
+  a <- read (withKey (// Key "a") addr)
+  c <- read (withKey (// Key "b/c") addr)
+  e <- read (withKey (// Key "c/d/e") addr)
+
+  pure $ a === Just name1 .&&. c == Just name2 .&&. e == Just name3
+
 ----------
 -- HELPERS
 ----------
