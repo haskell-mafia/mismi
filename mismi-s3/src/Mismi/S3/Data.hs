@@ -74,6 +74,8 @@ data S3Error =
   | DestinationAlreadyExists Address
   | DestinationDoesNotExist Address
   | DestinationFileExists FilePath
+  | DestinationNotDirectory FilePath
+  | DestinationMissing FilePath
   | AccessDenied Address
   | Invariant Text
   | Target Address Address
@@ -94,6 +96,10 @@ s3ErrorRender s3err = "[Mismi internal error] - " <> case s3err of
     "Can not upload to an address that already exists [" <> addressToText a <> "]"
   DestinationFileExists f ->
     "Can not download to a target that already exists [" <> T.pack f <> "]"
+  DestinationNotDirectory f ->
+    "Expecting destination " <> T.pack f <> " to be a directory."
+  DestinationMissing f ->
+    "Download destination directory " <> T.pack f <> " does not exist."
   DestinationDoesNotExist a ->
     "This address does not exist [" <> addressToText a <> "]"
   AccessDenied a ->
@@ -118,6 +124,8 @@ renderErrorType e = case e of
 data DownloadError =
     DownloadSourceMissing Address
   | DownloadDestinationExists FilePath
+  | DownloadDestinationNotDirectory FilePath
+  | DownloadInvariant Address Address
   | MultipartError (RunError Error)
   deriving Show
 
@@ -128,6 +136,12 @@ renderDownloadError d =
       "Can not download when the source object does not exist [" <> addressToText a <> "]"
     DownloadDestinationExists f ->
       "Can not download to a target that already exists [" <> T.pack f <> "]"
+    DownloadDestinationNotDirectory f ->
+      "Destination for a recursive download, " <> T.pack f <> " is not a directory."
+    DownloadInvariant a b ->
+      "Remove common prefix invariant: " <>
+      "[" <> addressToText b <> "] is not a common prefix of " <>
+      "[" <> addressToText a <> "]"
     MultipartError r ->
       "Multipart download error: " <> renderRunError r renderError
 
