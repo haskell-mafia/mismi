@@ -76,6 +76,7 @@ data S3Error =
   | DestinationFileExists FilePath
   | DestinationNotDirectory FilePath
   | DestinationMissing FilePath
+  | SourceNotDirectory FilePath
   | AccessDenied Address
   | Invariant Text
   | Target Address Address
@@ -100,6 +101,8 @@ s3ErrorRender s3err = "[Mismi internal error] - " <> case s3err of
     "Expecting destination " <> T.pack f <> " to be a directory."
   DestinationMissing f ->
     "Download destination directory " <> T.pack f <> " does not exist."
+  SourceNotDirectory f ->
+    "Recursive upload source " <> T.pack f <> " must be a directory."
   DestinationDoesNotExist a ->
     "This address does not exist [" <> addressToText a <> "]"
   AccessDenied a ->
@@ -196,6 +199,7 @@ renderCopyError e =
 data UploadError =
     UploadSourceMissing FilePath
   | UploadDestinationExists Address
+  | UploadSourceNotDirectory FilePath
   | MultipartUploadError (RunError Error)
   deriving Show
 
@@ -206,6 +210,8 @@ renderUploadError e =
       "Can not upload when the source file does not exist [" <> T.pack f <> "]"
     UploadDestinationExists a ->
       "Can not upload when the destination object already exists [" <> addressToText a <> "]"
+    UploadSourceNotDirectory f ->
+      "Recursive upload source " <> T.pack f <> " must be a directory."
     MultipartUploadError a ->
       renderRunError a ((<>) "Multipart upload failed on a worker: " . renderError)
 
