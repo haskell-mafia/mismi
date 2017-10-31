@@ -129,8 +129,12 @@ data DownloadError =
   | DownloadDestinationExists FilePath
   | DownloadDestinationNotDirectory FilePath
   | DownloadInvariant Address Address
+  | DownloadAws Error
+  | DownloadRunError (RunError DownloadError)
   | MultipartError (RunError Error)
   deriving Show
+
+instance Exception DownloadError
 
 renderDownloadError :: DownloadError -> Text
 renderDownloadError d =
@@ -145,6 +149,10 @@ renderDownloadError d =
       "Remove common prefix invariant: " <>
       "[" <> addressToText b <> "] is not a common prefix of " <>
       "[" <> addressToText a <> "]"
+    DownloadAws e ->
+      "AWS failure during 'download': " <> renderError e
+    DownloadRunError r ->
+      "Download error: " <> renderRunError r renderDownloadError
     MultipartError r ->
       "Multipart download error: " <> renderRunError r renderError
 
