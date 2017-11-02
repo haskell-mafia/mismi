@@ -104,12 +104,16 @@ prop_scale_in_invalid_state = once . testGroup $ \c g -> do
   conf <- conf' c
   createConfiguration conf
   createGroup $ group' c g 1
-  -- Allow ec2 instance to partially start up
-  liftIO . snooze $ seconds 10
-  d <- describeOrFail g
-  let is = scalingInstanceId <$> groupResultInstances d
+
+  let retryX action =
+        retrying
+          (constantDelay 2000000 <> limitRetries 20) {- 2 seconds -}
+          (const $ return . null)
+          (const action)
+
+  is <- retryX $ (fmap scalingInstanceId . groupResultInstances) <$> describeOrFail g
   r <- runEitherT $ lockInstances g is
-  pure $ r === Left InstanceProtectionInvalidState
+  pure $ (r, length is) === (Left InstanceProtectionInvalidState, 1)
 
 prop_scale_in = once . testGroup $ \c g -> do
   conf <- conf' c
