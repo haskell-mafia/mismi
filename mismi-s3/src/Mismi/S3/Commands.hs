@@ -66,6 +66,7 @@ module Mismi.S3.Commands (
   , grantReadAccess
   , hoistUploadError
   , hoistDownloadError
+  , chunkFilesBySize
   ) where
 
 import           Control.Arrow ((***))
@@ -122,7 +123,8 @@ import           System.IO.Error (IOError)
 import           System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import           System.FilePath (FilePath, (</>), takeDirectory)
 import           System.Posix.IO (OpenMode(..), openFd, closeFd, fdSeek, defaultFileFlags)
-import           System.Posix.Files (getFileStatus, isDirectory, isRegularFile)
+import           System.Posix.Files (fileSize, getFileStatus, isDirectory, isRegularFile)
+import           System.Posix.Types (FileOffset)
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
 import           System.Timeout.Lifted (timeout)
@@ -410,8 +412,7 @@ uploadWithMode m f a = do
   unlessM (liftIO $ doesFileExist f) . left $ UploadSourceMissing f
   s <- liftIO $ withFile f ReadMode $ \h ->
     hFileSize h
-  let chunk = 100 * 1024 * 1024
-  case s < chunk of
+  case s < bigChunkSize of
     True ->
       lift $ uploadSingle f a
     False ->
@@ -422,9 +423,15 @@ uploadWithMode m f a = do
       -- better default.
       case s > 1024 * 1024 * 1024 of
         True ->
-          multipartUpload f a s (2 * chunk) 20
+          multipartUpload f a s (2 * bigChunkSize) 20
         False ->
-          multipartUpload f a s chunk 20
+          multipartUpload f a s bigChunkSize 20
+
+
+
+bigChunkSize :: Integer
+bigChunkSize = 100 * 1024 * 1024
+
 
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
@@ -480,16 +487,37 @@ uploadRecursiveWithMode m src (Address buck ky) = do
   case es of
     Left _ -> left $ UploadSourceMissing src
     Right st -> unless (isDirectory st) . left $ UploadSourceNotDirectory src
-  files <- liftIO $ listRecursivelyLocal src
-  let prefixLen = L.length (src </> "a") - 1
-      outputAddrs = fmap (\fp -> Address buck (ky // Key (T.pack $ L.drop prefixLen fp))) files
+  files <- fmap fst <$> liftIO (listRecursivelyLocal src)
+  let outputAddrs = fmap (\fp -> Address buck (ky // Key (T.pack $ L.drop prefixLen fp))) files
   mapM_ (uncurry (uploadWithMode m)) $ L.zip files outputAddrs
+  where
+    prefixLen = L.length (src </> "a") - 1
+
+    -- uploadAddress :: FilePath -> Address
+    -- uploadAddress fp = Address buck (ky // Key (T.pack $ L.drop prefixLen fp))
+
+-- Take a list of files and their sizes, and return a list of list of files
+-- where the total size of of the files in the sub list is less than `bigChunkSize`
+-- and the length of the sub lists is <= `maxCount`.
+chunkFilesBySize :: Int -> Int64 -> [(FilePath, Int64)] -> [[FilePath]]
+chunkFilesBySize maxCount maxSize =
+  takeFiles 0 [] . L.sortOn snd
+  where
+    takeFiles :: Int64 -> [FilePath] -> [(FilePath, Int64)] -> [[FilePath]]
+    takeFiles _ acc [] = [acc]
+    takeFiles current acc ((x, s):xs) =
+      if current + s < maxSize && L.length acc < maxCount
+        then takeFiles (current + s) (x:acc) xs
+        else (x:acc) : takeFiles 0 [] xs
+
+-- bigChunkSize
 
 -- | Like `listRecursively` but for the local filesystem.
-listRecursivelyLocal :: MonadIO m => FilePath -> m [FilePath]
+-- Also returns
+listRecursivelyLocal :: MonadIO m => FilePath -> m [(FilePath, FileOffset)]
 listRecursivelyLocal topdir = do
   entries <- liftIO $ listDirectory topdir
-  (dirs, files) <- liftIO . partitionDirsFiles $ fmap (topdir </>) entries
+  (dirs, files) <- liftIO . partitionDirsFilesWithSizes $ fmap (topdir </>) entries
   others <- concatMapM listRecursivelyLocal dirs
   pure $ files <> others
 
@@ -502,15 +530,15 @@ listDirectory path =
     f filename =
       filename /= "." && filename /= ".."
 
-partitionDirsFiles :: MonadIO m => [FilePath] -> m ([FilePath], [FilePath])
-partitionDirsFiles =
+partitionDirsFilesWithSizes :: MonadIO m => [FilePath] -> m ([FilePath], [(FilePath, FileOffset)])
+partitionDirsFilesWithSizes =
   pworker ([], [])
   where
     pworker (dirs, files) [] = pure (dirs, files)
     pworker (dirs, files) (x:xs) = do
       xstat <- liftIO $ getFileStatus x
       pworker
-        (if isDirectory xstat then x : dirs else dirs, if isRegularFile xstat then x : files else files)
+        (if isDirectory xstat then x : dirs else dirs, if isRegularFile xstat then (x, fileSize xstat) : files else files)
         xs
 
 write :: Address -> Text -> AWS WriteResult

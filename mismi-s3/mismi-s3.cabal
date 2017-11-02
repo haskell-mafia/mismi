@@ -89,6 +89,7 @@ test-suite test
                      , ambiata-p
                      , ambiata-x-eithert
                      , conduit
+                     , containers                      == 0.5.*
                      , directory                       == 1.2.*
                      , exceptions
                      , filepath
