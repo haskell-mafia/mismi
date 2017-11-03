@@ -532,7 +532,7 @@ prop_upload_recursive = once . testAWS $ do
 
   addr <- withKey (// Key "top") <$> newAddress
 
-  eitherT (fail . show) pure $ uploadRecursive tmpdir addr
+  eitherT (fail . show) pure $ uploadRecursive tmpdir addr 2
 
   a <- read (withKey (// Key "a") addr)
   c <- read (withKey (// Key "b/c") addr)

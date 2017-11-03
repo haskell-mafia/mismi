@@ -47,7 +47,7 @@ prop_chunk_files_by_size =
   QC.forAll (QC.choose (1000, 10000)) $ \ maxChunkSize ->
   QC.forAll (fileNameSizePairs fileCount) $ \ pairs ->
     let chunks = chunkFilesBySize maxFilesPerChunk maxChunkSize pairs
-        chunkSizes = DL.map (multiChunkSum (DM.fromList pairs)) chunks
+        chunkSizes = DL.map (multiChunkSum (DM.fromList pairs) . DL.map fst) chunks
     in
       DL.filter (> maxChunkSize) chunkSizes === []
 
