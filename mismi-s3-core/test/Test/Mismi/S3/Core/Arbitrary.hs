@@ -3,26 +3,29 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Test.Mismi.S3.Core.Arbitrary where
 
-import           Data.Text as T
+import qualified Data.List as L
+import qualified Data.Text as T
 
-import           Disorder.Corpus
+import           Disorder.Corpus (simpsons, southpark)
 
 import           Mismi.S3.Core.Data
 
 import           P
 
-import           Test.QuickCheck
+import           Test.QuickCheck (Arbitrary (..), Gen)
+import qualified Test.QuickCheck as QC
 import           Test.QuickCheck.Instances ()
 
+import           System.FilePath (FilePath)
 
 instance Arbitrary WriteMode where
-  arbitrary = elements [Fail, Overwrite]
+  arbitrary = QC.elements [Fail, Overwrite]
 
 instance Arbitrary Bucket where
-  arbitrary = Bucket <$> elements southpark
+  arbitrary = Bucket <$> QC.elements southpark
 
 instance Arbitrary Address where
-  arbitrary = frequency [
+  arbitrary = QC.frequency [
       (9, Address <$> arbitrary <*> arbitrary)
     , (1, flip Address (Key "") <$> arbitrary)
     ]
@@ -32,8 +35,17 @@ instance Arbitrary Key where
   -- Unfortunately unicode characters aren't supported in the Haskell AWS library
   -- https://github.com/ambiata/vee/issues/7
   arbitrary =
-    let genPath = elements ["happy", "sad", ".", ":", "-"]
+    let genPath = QC.elements ["happy", "sad", ".", ":", "-"]
         path = do
-          sep <- elements ["-", "=", "#", ""]
-          T.take 256 . T.intercalate "/" <$> listOf1 (T.intercalate sep <$> listOf1 genPath)
-    in (Key . append "tests/") <$> path
+          sep <- QC.elements ["-", "=", "#", ""]
+          T.take 256 . T.intercalate "/" <$> QC.listOf1 (T.intercalate sep <$> QC.listOf1 genPath)
+    in (Key . T.append "tests/") <$> path
+
+
+fileNameSizePairs :: Int -> Gen [(FilePath, Int64)]
+fileNameSizePairs len = do
+  names <- QC.vectorOf len $ QC.elements simpsons
+  lengths <- QC.vectorOf len $ QC.choose (1, 1000000000)
+  pure $ L.zipWith3 zipper names [(0::Int) ..] lengths
+  where
+    zipper n i l = (n <> show i, l)

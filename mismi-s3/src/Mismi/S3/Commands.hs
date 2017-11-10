@@ -66,10 +66,11 @@ module Mismi.S3.Commands (
   , grantReadAccess
   , hoistUploadError
   , hoistDownloadError
+  , chunkFilesBySize
   ) where
 
 import           Control.Arrow ((***))
-
+import           Control.Concurrent.Async.Lifted (mapConcurrently_)
 import           Control.Exception (ioError)
 import qualified Control.Exception as CE
 import           Control.Lens ((.~), (^.), to, view)
@@ -122,7 +123,7 @@ import           System.IO.Error (IOError)
 import           System.Directory (createDirectoryIfMissing, doesFileExist, getDirectoryContents)
 import           System.FilePath (FilePath, (</>), takeDirectory)
 import           System.Posix.IO (OpenMode(..), openFd, closeFd, fdSeek, defaultFileFlags)
-import           System.Posix.Files (getFileStatus, isDirectory, isRegularFile)
+import           System.Posix.Files (fileSize, getFileStatus, isDirectory, isRegularFile)
 import qualified "unix-bytestring" System.Posix.IO.ByteString as UBS
 
 import           System.Timeout.Lifted (timeout)
@@ -370,13 +371,13 @@ upload :: FilePath -> Address -> EitherT UploadError AWS ()
 upload =
   uploadWithMode Fail
 
-uploadRecursive :: FilePath -> Address -> EitherT UploadError AWS ()
+uploadRecursive :: FilePath -> Address -> Int -> EitherT UploadError AWS ()
 uploadRecursive =
   uploadRecursiveWithMode Fail
 
-uploadRecursiveOrFail :: FilePath -> Address -> AWS ()
-uploadRecursiveOrFail f a =
-  eitherT hoistUploadError pure $ uploadRecursive f a
+uploadRecursiveOrFail :: FilePath -> Address -> Int -> AWS ()
+uploadRecursiveOrFail f a i =
+  eitherT hoistUploadError pure $ uploadRecursive f a i
 
 uploadOrFail :: FilePath -> Address -> AWS ()
 uploadOrFail f a =
@@ -386,9 +387,9 @@ uploadWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
 uploadWithModeOrFail w f a =
   eitherT hoistUploadError pure $ uploadWithMode w f a
 
-uploadRecursiveWithModeOrFail :: WriteMode -> FilePath -> Address -> AWS ()
-uploadRecursiveWithModeOrFail w f a =
-  eitherT hoistUploadError pure $ uploadRecursiveWithMode w f a
+uploadRecursiveWithModeOrFail :: WriteMode -> FilePath -> Address -> Int -> AWS ()
+uploadRecursiveWithModeOrFail w f a i =
+  eitherT hoistUploadError pure $ uploadRecursiveWithMode w f a i
 
 hoistUploadError :: UploadError -> AWS ()
 hoistUploadError e =
@@ -410,8 +411,7 @@ uploadWithMode m f a = do
   unlessM (liftIO $ doesFileExist f) . left $ UploadSourceMissing f
   s <- liftIO $ withFile f ReadMode $ \h ->
     hFileSize h
-  let chunk = 100 * 1024 * 1024
-  case s < chunk of
+  case s < bigChunkSize of
     True ->
       lift $ uploadSingle f a
     False ->
@@ -422,9 +422,15 @@ uploadWithMode m f a = do
       -- better default.
       case s > 1024 * 1024 * 1024 of
         True ->
-          multipartUpload f a s (2 * chunk) 20
+          multipartUpload f a s (2 * bigChunkSize) 20
         False ->
-          multipartUpload f a s chunk 20
+          multipartUpload f a s bigChunkSize 20
+
+
+
+bigChunkSize :: Integer
+bigChunkSize = 100 * 1024 * 1024
+
 
 uploadSingle :: FilePath -> Address -> AWS ()
 uploadSingle file a = do
@@ -432,11 +438,11 @@ uploadSingle file a = do
   void . send $ f' A.putObject a rq & A.poServerSideEncryption .~ pure sse
 
 multipartUpload :: FilePath -> Address -> Integer -> Integer -> Int -> EitherT UploadError AWS ()
-multipartUpload file a fileSize chunk fork = do
+multipartUpload file a fSize chunk fork = do
   e <- ask
   mpu <- lift $ createMultipartUpload a
 
-  let chunks = calculateChunksCapped (fromInteger fileSize) (fromInteger chunk) 4096 -- max 4096 prts returned
+  let chunks = calculateChunksCapped (fromInteger fSize) (fromInteger chunk) 4096 -- max 4096 prts returned
 
   r <- liftIO $
     consume (forM_ chunks . writeQueue) fork $ multipartUploadWorker e mpu file a
@@ -474,22 +480,49 @@ multipartUploadWorker e mpu file a (o, c, i) =
         pure $! Right $! PartResponse i m
 
 
-uploadRecursiveWithMode :: WriteMode -> FilePath -> Address -> EitherT UploadError AWS ()
-uploadRecursiveWithMode m src (Address buck ky) = do
+uploadRecursiveWithMode :: WriteMode -> FilePath -> Address -> Int -> EitherT UploadError AWS ()
+uploadRecursiveWithMode mode src (Address buck ky) fork = do
   es <- tryIO $ getFileStatus src
   case es of
     Left _ -> left $ UploadSourceMissing src
     Right st -> unless (isDirectory st) . left $ UploadSourceNotDirectory src
-  files <- liftIO $ listRecursivelyLocal src
-  let prefixLen = L.length (src </> "a") - 1
-      outputAddrs = fmap (\fp -> Address buck (ky // Key (T.pack $ L.drop prefixLen fp))) files
-  mapM_ (uncurry (uploadWithMode m)) $ L.zip files outputAddrs
+  files <- liftIO (listRecursivelyLocal src)
+  mapM_ uploadFiles $ chunkFilesBySize fork (fromIntegral bigChunkSize) files
+  where
+    uploadFiles :: [(FilePath, Int64)] -> EitherT UploadError AWS ()
+    uploadFiles [] = pure ()
+    uploadFiles [(f,s)]
+      | fromIntegral s < bigChunkSize = lift . uploadSingle f $ uploadAddress f
+      | otherwise = uploadWithMode mode f $ uploadAddress f
+    uploadFiles xs =
+      mapConcurrently_ (\ (f, _) -> lift . uploadSingle f $ uploadAddress f) xs
+
+
+    prefixLen = L.length (src </> "a") - 1
+
+    uploadAddress :: FilePath -> Address
+    uploadAddress fp = Address buck (ky // Key (T.pack $ L.drop prefixLen fp))
+
+-- Take a list of files and their sizes, and convert it to a list of tests
+-- where the total size of of the files in the sub list is less than `maxSize`
+-- and the length of the sub lists is <= `maxCount`.
+chunkFilesBySize :: Int -> Int64 -> [(FilePath, Int64)] -> [[(FilePath, Int64)]]
+chunkFilesBySize maxCount maxSize =
+  takeFiles 0 [] . L.sortOn snd
+  where
+    takeFiles :: Int64 -> [(FilePath, Int64)] -> [(FilePath, Int64)] -> [[(FilePath, Int64)]]
+    takeFiles _ acc [] = [acc]
+    takeFiles current acc ((x, s):xs) =
+      if current + s < maxSize && L.length acc < maxCount
+        then takeFiles (current + s) ((x, s):acc) xs
+        else ((x, s):acc) : takeFiles 0 [] xs
 
 -- | Like `listRecursively` but for the local filesystem.
-listRecursivelyLocal :: MonadIO m => FilePath -> m [FilePath]
+-- Also returns
+listRecursivelyLocal :: MonadIO m => FilePath -> m [(FilePath, Int64)]
 listRecursivelyLocal topdir = do
   entries <- liftIO $ listDirectory topdir
-  (dirs, files) <- liftIO . partitionDirsFiles $ fmap (topdir </>) entries
+  (dirs, files) <- liftIO . partitionDirsFilesWithSizes $ fmap (topdir </>) entries
   others <- concatMapM listRecursivelyLocal dirs
   pure $ files <> others
 
@@ -502,16 +535,17 @@ listDirectory path =
     f filename =
       filename /= "." && filename /= ".."
 
-partitionDirsFiles :: MonadIO m => [FilePath] -> m ([FilePath], [FilePath])
-partitionDirsFiles =
+partitionDirsFilesWithSizes :: MonadIO m => [FilePath] -> m ([FilePath], [(FilePath, Int64)])
+partitionDirsFilesWithSizes =
   pworker ([], [])
   where
     pworker (dirs, files) [] = pure (dirs, files)
     pworker (dirs, files) (x:xs) = do
       xstat <- liftIO $ getFileStatus x
-      pworker
-        (if isDirectory xstat then x : dirs else dirs, if isRegularFile xstat then x : files else files)
-        xs
+      let xsize = fromIntegral $ fileSize xstat
+          newDirs = if isDirectory xstat then x : dirs else dirs
+          newFiles = if isRegularFile xstat then (x, xsize) : files else files
+      pworker (newDirs, newFiles) xs
 
 write :: Address -> Text -> AWS WriteResult
 write =
