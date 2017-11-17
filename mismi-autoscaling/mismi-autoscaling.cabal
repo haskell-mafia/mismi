@@ -21,7 +21,7 @@ library
                      , ambiata-mismi-ec2-core
                      , ambiata-mismi-iam-core
                      , ambiata-x-eithert
-                     , amazonka-autoscaling            >= 1.3.6      && < 1.5
+                     , amazonka-autoscaling            >= 1.3.6      && < 1.6
                      , conduit                         == 1.2.*
                      , exceptions                      >= 0.6        && < 0.9
                      , lens                            >= 4.8        && < 4.16
