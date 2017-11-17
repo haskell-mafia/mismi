@@ -16,7 +16,7 @@ library
                        base                            >= 3          && < 6
                      , ambiata-p
                      , ambiata-mismi-core
-                     , amazonka-dynamodb               >= 1.4.0      && < 1.5
+                     , amazonka-dynamodb               >= 1.4.0      && < 1.6
                      , lens                            >= 4.8        && < 4.16
 
   ghc-options:
