@@ -18,6 +18,9 @@ data MismiRegion =
   | SingaporeRegion       -- ^ Asia Pacific / ap-southeast-1
   | SydneyRegion          -- ^ Asia Pacific / ap-southeast-2
   | MumbaiRegion          -- ^ Asia Pacific / ap-south-1
+  | MontrealRegion
+  | LondonRegion
+
   | BeijingRegion         -- ^ China / cn-north-1
   | NorthVirginiaRegion   -- ^ US / us-east-1
   | OhioRegion            -- ^ US / us-east-2
@@ -63,6 +66,10 @@ renderMismiRegion r =
       "fips-us-gov-west-1"
     SaoPauloRegion ->
       "sa-east-1"
+    MontrealRegion ->
+      "ca-central-1"
+    LondonRegion ->
+      "eu-west-2"
 
 parseMismiRegion :: Text -> Maybe MismiRegion
 parseMismiRegion t =
@@ -97,5 +104,9 @@ parseMismiRegion t =
       Just GovCloudFIPSRegion
     "sa-east-1" ->
       Just SaoPauloRegion
+    "eu-west-2" ->
+      Just LondonRegion
+    "ca-central-1" ->
+      Just MontrealRegion
     _ ->
       Nothing
