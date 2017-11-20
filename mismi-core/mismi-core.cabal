@@ -14,8 +14,8 @@ description:           mismi.
 library
   build-depends:
                        base                            >= 3          && < 6
-                     , amazonka                        == 1.4.5
-                     , amazonka-core                   == 1.4.5
+                     , amazonka                        >= 1.4        && < 1.6
+                     , amazonka-core                   >= 1.4        && < 1.6
                      , ambiata-mismi-kernel
                      , ambiata-p
                      , ambiata-x-eithert
