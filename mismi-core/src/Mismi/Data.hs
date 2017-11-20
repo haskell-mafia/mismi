@@ -43,6 +43,10 @@ fromMismiRegion r =
       Seoul
     MumbaiRegion ->
       Mumbai
+    MontrealRegion ->
+      Montreal
+    LondonRegion ->
+      London
 
 toMismiRegion :: Region -> MismiRegion
 toMismiRegion r =
@@ -77,3 +81,7 @@ toMismiRegion r =
       SeoulRegion
     Mumbai ->
       MumbaiRegion
+    Montreal ->
+      MontrealRegion
+    London ->
+      LondonRegion
