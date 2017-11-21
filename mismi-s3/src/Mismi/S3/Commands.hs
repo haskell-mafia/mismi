@@ -515,7 +515,7 @@ chunkFilesBySize maxCount maxSize =
     takeFiles current acc ((x, s):xs) =
       if current + s < maxSize && L.length acc < maxCount
         then takeFiles (current + s) ((x, s):acc) xs
-        else ((x, s):acc) : takeFiles 0 [] xs
+        else acc : takeFiles s [(x, s)] xs
 
 -- | Like `listRecursively` but for the local filesystem.
 -- Also returns
