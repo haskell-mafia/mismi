@@ -152,6 +152,61 @@ fromMismiInstanceType m =
       A.X1_16XLarge
     X1_32XLarge ->
       A.X1_32XLarge
+    C5_18XLarge ->
+      A.C5_18XLarge
+    C5_2XLarge ->
+      A.C5_2XLarge
+    C5_4XLarge ->
+      A.C5_4XLarge
+    C5_9XLarge ->
+      A.C5_9XLarge
+    C5_Large ->
+      A.C5_Large
+    C5_XLarge ->
+      A.C5_XLarge
+    G3_16XLarge ->
+      A.G3_16XLarge
+    G3_4XLarge ->
+      A.G3_4XLarge
+    G3_8XLarge ->
+      A.G3_8XLarge
+    I3_16XLarge ->
+      A.I3_16XLarge
+    I3_2XLarge ->
+      A.I3_2XLarge
+    I3_4XLarge ->
+      A.I3_4XLarge
+    I3_8XLarge ->
+      A.I3_8XLarge
+    I3_Large ->
+      A.I3_Large
+    I3_XLarge ->
+      A.I3_XLarge
+    P3_16XLarge ->
+      A.P3_16XLarge
+    P3_2XLarge ->
+      A.P3_2XLarge
+    P3_8XLarge ->
+      A.P3_8XLarge
+    R4_16XLarge ->
+      A.R4_16XLarge
+    R4_2XLarge ->
+      A.R4_2XLarge
+    R4_4XLarge ->
+      A.R4_4XLarge
+    R4_8XLarge ->
+      A.R4_8XLarge
+    R4_Large ->
+      A.R4_Large
+    R4_XLarge ->
+      A.R4_XLarge
+    T2_2XLarge ->
+      A.T2_2XLarge
+    T2_XLarge ->
+      A.T2_XLarge
+    X1e_32XLarge ->
+      A.X1e_32XLarge
+
 
 
 
@@ -284,6 +339,62 @@ toMismiInstanceType i =
       X1_16XLarge
     A.X1_32XLarge ->
       X1_32XLarge
+    A.C5_18XLarge ->
+      C5_18XLarge
+    A.C5_2XLarge ->
+      C5_2XLarge
+    A.C5_4XLarge ->
+      C5_4XLarge
+    A.C5_9XLarge ->
+      C5_9XLarge
+    A.C5_Large ->
+      C5_Large
+    A.C5_XLarge ->
+      C5_XLarge
+    A.G3_16XLarge ->
+      G3_16XLarge
+    A.G3_4XLarge ->
+      G3_4XLarge
+    A.G3_8XLarge ->
+      G3_8XLarge
+    A.I3_16XLarge ->
+      I3_16XLarge
+    A.I3_2XLarge ->
+      I3_2XLarge
+    A.I3_4XLarge ->
+      I3_4XLarge
+    A.I3_8XLarge ->
+      I3_8XLarge
+    A.I3_Large ->
+      I3_Large
+    A.I3_XLarge ->
+      I3_XLarge
+    A.P3_16XLarge ->
+      P3_16XLarge
+    A.P3_2XLarge ->
+      P3_2XLarge
+    A.P3_8XLarge ->
+      P3_8XLarge
+    A.R4_16XLarge ->
+      R4_16XLarge
+    A.R4_2XLarge ->
+      R4_2XLarge
+    A.R4_4XLarge ->
+      R4_4XLarge
+    A.R4_8XLarge ->
+      R4_8XLarge
+    A.R4_Large ->
+      R4_Large
+    A.R4_XLarge ->
+      R4_XLarge
+    A.T2_2XLarge ->
+      T2_2XLarge
+    A.T2_XLarge ->
+      T2_XLarge
+    A.X1e_32XLarge ->
+      X1e_32XLarge
+
+
 
 fromMismiVirtualizationType :: MismiVirtualizationType -> A.VirtualizationType
 fromMismiVirtualizationType v =
