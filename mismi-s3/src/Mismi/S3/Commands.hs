@@ -504,7 +504,7 @@ uploadRecursiveWithMode mode src (Address buck ky) fork = do
     uploadAddress fp = Address buck (ky // Key (T.pack $ L.drop prefixLen fp))
 
 -- Take a list of files and their sizes, and convert it to a list of tests
--- where the total size of of the files in the sub list is less than `maxSize`
+-- where the total size of the files in the sub list is less than `maxSize`
 -- and the length of the sub lists is <= `maxCount`.
 chunkFilesBySize :: Int -> Int64 -> [(FilePath, Int64)] -> [[(FilePath, Int64)]]
 chunkFilesBySize maxCount maxSize =
