@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE CPP #-}
 module Mismi.Data (
     module Mismi.Kernel.Data
   , fromMismiRegion
