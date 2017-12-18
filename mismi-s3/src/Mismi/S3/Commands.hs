@@ -476,7 +476,7 @@ multipartUploadWorker e mpu file a (o, c, i) =
         pure $! Left z
 
       Right z -> do
-        m <- fromMaybeM (throwM . Invariant $ "uprsETag") $ z ^. A.uprsETag
+        m <- fromMaybeM (throwM MissingETag) $ z ^. A.uprsETag
         pure $! Right $! PartResponse i m
 
 
