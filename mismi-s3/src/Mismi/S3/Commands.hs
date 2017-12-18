@@ -348,15 +348,16 @@ multipartCopyWorker e mpu dest (source, o, c, i) = do
       A.uploadPartCopy (BucketName db) (sb <> "/" <> sk) (ObjectKey dk) i mpu
         & A.upcCopySourceRange .~ (Just $ bytesRange o (o + c - 1))
 
-  r <- runEitherT . runAWS e $ send req
-  case r of
-    Left z ->
-      pure $! Left z
+  R.recovering (R.fullJitterBackoff 500000) [s3Condition] $ \_ -> do
+    r <- runEitherT . runAWS e $ send req
+    case r of
+      Left z ->
+        pure $! Left z
 
-    Right z -> do
-      pr <- fromMaybeM (throwM . Invariant $ "upcrsCopyPartResult") $ z ^. A.upcrsCopyPartResult
-      m <- fromMaybeM (throwM . Invariant $ "cprETag") $ pr ^. A.cprETag
-      pure $! Right $! PartResponse i m
+      Right z -> do
+        pr <- fromMaybeM (throwM . Invariant $ "upcrsCopyPartResult") $ z ^. A.upcrsCopyPartResult
+        m <- fromMaybeM (throwM . Invariant $ "cprETag") $ pr ^. A.cprETag
+        pure $! Right $! PartResponse i m
 
 createMultipartUpload :: Address -> AWS Text
 createMultipartUpload a = do
@@ -470,14 +471,6 @@ multipartUploadWorker e mpu file a (o, c, i) =
       b = XB.slurpHandle h (toInteger o) (Just $ toInteger c)
       cb = ChunkedBody cs cl b
       req' = f' A.uploadPart a i mpu $ Chunked cb
-
-      s3Condition s =
-        Handler $ \(ex :: S3Error) ->
-          pure $ case ex of
-            MissingETag ->
-              R.rsIterNumber s < 5
-            _ ->
-              False
     in
     R.recovering (R.fullJitterBackoff 500000) [s3Condition] $ \_ -> do
       r <- runEitherT . runAWS e $ send req'
@@ -488,6 +481,14 @@ multipartUploadWorker e mpu file a (o, c, i) =
           m <- fromMaybeM (throwM MissingETag) $ z ^. A.uprsETag
           pure $! Right $! PartResponse i m
 
+s3Condition :: Applicative a => R.RetryStatus -> Handler a Bool
+s3Condition s =
+  Handler $ \(ex :: S3Error) ->
+    pure $ case ex of
+      MissingETag ->
+        R.rsIterNumber s < 5
+      _ ->
+        False
 
 uploadRecursiveWithMode :: WriteMode -> FilePath -> Address -> Int -> EitherT UploadError AWS ()
 uploadRecursiveWithMode mode src (Address buck ky) fork = do
