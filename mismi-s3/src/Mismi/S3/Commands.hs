@@ -462,14 +462,14 @@ multipartUpload file a fSize chunk fork = do
 
 multipartUploadWorker :: Env -> Text -> FilePath -> Address -> (Int, Int, Int) -> IO (Either Error PartResponse)
 multipartUploadWorker e mpu file a (o, c, i) =
-  withFile file ReadMode $ \h -> do
-    req' <- liftIO $ do
-      let cs = (1024 * 1024) -- 1 mb
-          cl = toInteger c
-          b = XB.slurpHandle h (toInteger o) (Just $ toInteger c)
-          cb = ChunkedBody cs cl b
-      return . f' A.uploadPart a i mpu $ Chunked cb
-
+  withFile file ReadMode $ \h ->
+    let
+      cs = (1024 * 1024) -- 1 mb
+      cl = toInteger c
+      b = XB.slurpHandle h (toInteger o) (Just $ toInteger c)
+      cb = ChunkedBody cs cl b
+      req' = f' A.uploadPart a i mpu $ Chunked cb
+    in do
     r <- runEitherT . runAWS e $ send req'
     case r of
       Left z ->
