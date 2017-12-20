@@ -1,7 +1,9 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Mismi.Control (
     A.AWS
   , A.Error
@@ -30,6 +32,8 @@ module Mismi.Control (
   , handleServiceError
   , withRetries
   , withRetriesOf
+  , throwOrRetry
+  , throwOrRetryOf
   ) where
 
 import           Control.Exception (IOException)
@@ -37,7 +41,8 @@ import           Control.Lens ((.~), (^.), (^?), over)
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import           Control.Retry (RetryPolicyM, fullJitterBackoff, recovering, rsIterNumber)
+import           Control.Retry (RetryPolicyM, RetryStatus)
+import           Control.Retry (fullJitterBackoff, recovering, rsIterNumber, applyPolicy)
 
 import qualified Data.ByteString.Lazy as BL
 import           Data.ByteString.Builder
@@ -127,20 +132,66 @@ withRetries =
 
 withRetriesOf :: (MonadCatch m, MonadMask m, MonadIO m) => RetryPolicyM m -> Int -> m a -> m a
 withRetriesOf policy n action = do
-  let
-    httpCondition s =
-      Handler $ \(e :: HttpException) ->
-        pure $
-          if rsIterNumber s > n
-            then False
-            else checkException e False
-
-    ioCondition s =
-      Handler $ \(_ :: IOException) ->
-        pure $ rsIterNumber s < n
-
-  recovering policy [httpCondition, ioCondition] $ \_ ->
+  recovering policy [httpCondition n, ioCondition n] $ \_ ->
     action
+
+httpCondition :: Applicative m => Int -> RetryStatus -> Handler m Bool
+httpCondition n s =
+  Handler $ \(e :: HttpException) ->
+    pure $
+      if rsIterNumber s > n
+        then False
+        else checkException e False
+
+ioCondition :: Applicative m => Int -> RetryStatus -> Handler m Bool
+ioCondition n s =
+  Handler $ \(_ :: IOException) ->
+    pure $ rsIterNumber s < n
+
+throwOrRetry ::
+     (MonadCatch m, MonadMask m, MonadIO m)
+   => Int
+   -> SomeException
+   -> RetryStatus
+   -> m RetryStatus
+throwOrRetry =
+  throwOrRetryOf (fullJitterBackoff 500000)
+
+throwOrRetryOf ::
+     (MonadCatch m, MonadMask m, MonadIO m)
+   => RetryPolicyM m
+   -> Int
+   -> SomeException
+   -> RetryStatus
+   -> m RetryStatus
+throwOrRetryOf policy n ex0 s0 =
+  let
+    recover = \case
+      [] ->
+        throwM ex0
+
+      h0 : hs ->
+        case h0 s0 of
+          Handler h ->
+            case fromException ex0 of
+              Nothing ->
+                recover hs
+
+              Just ex -> do
+                ok <- h ex
+                if ok then do
+                  ms <- applyPolicy policy s0
+                  case ms of
+                    Nothing ->
+                      throwM ex
+
+                    Just s ->
+                      pure s
+
+                else
+                  throwM ex
+  in
+    recover [httpCondition n, ioCondition n]
 
 configureRetries :: Int -> Env -> Env
 configureRetries i e = e & envRetryCheck .~ err
