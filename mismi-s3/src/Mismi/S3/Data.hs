@@ -80,6 +80,7 @@ data S3Error =
   | AccessDenied Address
   | Invariant Text
   | Target Address Address
+  | MissingETag
   deriving (Eq, Typeable)
 
 instance Exception S3Error
@@ -111,6 +112,8 @@ s3ErrorRender s3err = "[Mismi internal error] - " <> case s3err of
     e
   Target a o ->
     "Can not copy [" <> addressToText a <> "] to [" <> addressToText o <> "]. Target file exists"
+  MissingETag ->
+    "missing ETag"
 
 data ErrorType =
     DownloadError
