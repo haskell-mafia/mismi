@@ -76,18 +76,22 @@ import qualified Control.Exception as CE
 import           Control.Lens ((.~), (^.), to, view)
 import           Control.Monad.Catch (Handler(..), throwM, onException)
 import           Control.Monad.Extra (concatMapM)
-import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Trans.Resource (ResourceT, allocate, runResourceT)
-import           Control.Monad.Reader (ask)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
-import qualified Control.Retry as R
+import           Control.Monad.Reader (ask)
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Resource (ResourceT, allocate, runResourceT, liftResourceT)
+import qualified Control.Retry as Retry
 
 import qualified Data.ByteString as BS
-import           Data.Conduit (Conduit, Source, ResumableSource)
 import           Data.Conduit ((=$=), ($$), ($$+-))
+import           Data.Conduit (Conduit, Source, ResumableSource)
 import           Data.Conduit (awaitForever)
+import qualified Data.Conduit as Conduit
+import qualified Data.Conduit.Internal as Conduit (ResumableSource(..), ConduitM(..), Pipe(..))
 import           Data.Conduit.Binary (sinkFile, sinkLbs)
 import qualified Data.Conduit.List as DC
+import           Data.IORef (IORef)
+import qualified Data.IORef as IORef
 
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NEL
@@ -105,8 +109,9 @@ import           Mismi.S3.Internal
 import qualified Mismi.S3.Patch.Network as N
 import qualified Mismi.S3.Patch.PutObjectACL as P
 
-import           Network.AWS.Data.Body (RqBody (..), RsBody (..), toBody)
+import qualified Network.AWS as A
 import           Network.AWS.Data.Body (ChunkedBody (..), ChunkSize (..))
+import           Network.AWS.Data.Body (RqBody (..), RsBody (..), toBody)
 import           Network.AWS.Data.Text (toText)
 import           Network.AWS.S3 (BucketName (..))
 import           Network.AWS.S3 (GetObjectResponse, HeadObjectResponse)
@@ -207,13 +212,88 @@ read a = withRetries 5 $ do
   z <- liftIO . sequence $ (runResourceT . ($$+- sinkLbs)) <$> r
   pure $ fmap (T.concat . TL.toChunks . TL.decodeUtf8) z
 
+countBytes ::
+      IORef Int64
+   -> Source (ResourceT IO) BS.ByteString
+   -> Source (ResourceT IO) BS.ByteString
+countBytes ref src =
+  let
+    loop = do
+      mbs <- Conduit.await
+      case mbs of
+        Nothing ->
+          pure ()
+        Just bs -> do
+          liftIO $ IORef.modifyIORef' ref (+ fromIntegral (BS.length bs))
+          Conduit.yield bs
+          loop
+  in
+    src =$= loop
+
+readRange ::
+     Int
+  -> Int
+  -> Address
+  -> AWS (Source (ResourceT IO) BS.ByteString, ResourceT IO ())
+readRange start end a = do
+  result <-
+    send $
+      f' A.getObject a
+        & A.goRange .~ Just (bytesRange start end)
+
+  liftResourceT . Conduit.unwrapResumable $
+    result ^. A.gorsBody . to _streamBody
+
+readRetry ::
+     Env
+  -> Retry.RetryStatus
+  -> IORef (ResourceT IO ())
+  -> IORef Int64
+  -> Int
+  -> Address
+  -> Source (ResourceT IO) BS.ByteString
+readRetry env status0 finalizerRef startRef end a = do
+  start <- fmap fromIntegral . liftIO $ IORef.readIORef startRef
+
+  (source, finalizer) <- A.runAWS env $ readRange start end a
+  liftIO $ IORef.writeIORef finalizerRef finalizer
+
+  Conduit.catchC (countBytes startRef source) $ \(err :: CE.SomeException) -> do
+    status <- liftIO $ throwOrRetry 5 err status0
+    readRetry env status finalizerRef startRef end a
+
+newResumableSource :: Source m a -> m () -> ResumableSource m a
+newResumableSource (Conduit.ConduitM source) final =
+  Conduit.ResumableSource (source Conduit.Done) final
+
 -- | WARNING : The returned @ResumableResource@ must be comsumed within the
 -- @AWS@ monad. Failure to do so can result in run time errors (recv on a bad
 -- file descriptor) when the @MonadResouce@ cleans up the socket.
 read' :: Address -> AWS (Maybe (ResumableSource (ResourceT IO) BS.ByteString))
 read' a = do
-  r <- getObject' a
-  pure $ fmap (^. A.gorsBody . to _streamBody) r
+  env <- ask
+  startRef <- liftIO $ IORef.newIORef 0
+  mend <- getSize a
+  case mend of
+    Nothing ->
+      pure Nothing
+
+    Just 0 ->
+      pure . Just $ newResumableSource mempty (pure ())
+
+    Just end -> do
+      finalizerRef <- liftIO $ IORef.newIORef (pure ())
+
+      let
+        source =
+          readRetry env Retry.defaultRetryStatus finalizerRef startRef end a
+
+        final = do
+          finalizer <- liftIO $ IORef.readIORef finalizerRef
+          finalizer
+
+      pure . Just $
+        newResumableSource source final
 
 concatMultipart :: WriteMode -> Int -> [Address] -> Address -> EitherT ConcatError AWS ()
 concatMultipart mode fork inputs dest = do
@@ -348,7 +428,7 @@ multipartCopyWorker e mpu dest (source, o, c, i) = do
       A.uploadPartCopy (BucketName db) (sb <> "/" <> sk) (ObjectKey dk) i mpu
         & A.upcCopySourceRange .~ (Just $ bytesRange o (o + c - 1))
 
-  R.recovering (R.fullJitterBackoff 500000) [s3Condition] $ \_ -> do
+  Retry.recovering (Retry.fullJitterBackoff 500000) [s3Condition] $ \_ -> do
     r <- runEitherT . runAWS e $ send req
     case r of
       Left z ->
@@ -472,7 +552,7 @@ multipartUploadWorker e mpu file a (o, c, i) =
       cb = ChunkedBody cs cl b
       req' = f' A.uploadPart a i mpu $ Chunked cb
     in
-    R.recovering (R.fullJitterBackoff 500000) [s3Condition] $ \_ -> do
+    Retry.recovering (Retry.fullJitterBackoff 500000) [s3Condition] $ \_ -> do
       r <- runEitherT . runAWS e $ send req'
       case r of
         Left z ->
@@ -481,12 +561,12 @@ multipartUploadWorker e mpu file a (o, c, i) =
           m <- fromMaybeM (throwM MissingETag) $ z ^. A.uprsETag
           pure $! Right $! PartResponse i m
 
-s3Condition :: Applicative a => R.RetryStatus -> Handler a Bool
+s3Condition :: Applicative a => Retry.RetryStatus -> Handler a Bool
 s3Condition s =
   Handler $ \(ex :: S3Error) ->
     pure $ case ex of
       MissingETag ->
-        R.rsIterNumber s < 5
+        Retry.rsIterNumber s < 5
       _ ->
         False
 
