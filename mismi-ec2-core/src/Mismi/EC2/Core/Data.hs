@@ -137,6 +137,7 @@ data MismiInstanceType =
   | M4_4XLarge
   | M4_Large
   | M4_XLarge
+  | M4_16XLarge
   | R3_2XLarge
   | R3_4XLarge
   | R3_8XLarge
@@ -148,6 +149,40 @@ data MismiInstanceType =
   | T2_Micro
   | T2_Nano
   | T2_Small
+  | P2_XLarge
+  | P2_8XLarge
+  | P2_16XLarge
+  | X1_16XLarge
+  | X1_32XLarge
+  | F1_2XLarge
+  | F1_16XLarge
+  | C5_18XLarge
+  | C5_2XLarge
+  | C5_4XLarge
+  | C5_9XLarge
+  | C5_Large
+  | C5_XLarge
+  | G3_16XLarge
+  | G3_4XLarge
+  | G3_8XLarge
+  | I3_16XLarge
+  | I3_2XLarge
+  | I3_4XLarge
+  | I3_8XLarge
+  | I3_Large
+  | I3_XLarge
+  | P3_16XLarge
+  | P3_2XLarge
+  | P3_8XLarge
+  | R4_16XLarge
+  | R4_2XLarge
+  | R4_4XLarge
+  | R4_8XLarge
+  | R4_Large
+  | R4_XLarge
+  | T2_2XLarge
+  | T2_XLarge
+  | X1e_32XLarge
     deriving (Eq, Show, Ord, Enum, Bounded)
 
 
@@ -283,6 +318,8 @@ virtualizationFor itype =
       HVM
     M4_10XLarge ->
       HVM
+    M4_16XLarge ->
+      HVM
     R3_2XLarge ->
       HVM
     R3_4XLarge ->
@@ -305,6 +342,75 @@ virtualizationFor itype =
       HVM
     T2_Nano ->
       HVM
+    P2_XLarge ->
+      HVM
+    P2_8XLarge ->
+      HVM
+    P2_16XLarge ->
+      HVM
+    X1_16XLarge ->
+      HVM
+    X1_32XLarge ->
+      HVM
+    F1_2XLarge ->
+      HVM -- Guess
+    F1_16XLarge ->
+      HVM -- Guess
+    C5_18XLarge ->
+      HVM
+    C5_2XLarge ->
+      HVM
+    C5_4XLarge ->
+      HVM
+    C5_9XLarge ->
+      HVM
+    C5_Large ->
+      HVM
+    C5_XLarge ->
+      HVM
+    G3_16XLarge ->
+      HVM
+    G3_4XLarge ->
+      HVM
+    G3_8XLarge ->
+      HVM
+    I3_16XLarge ->
+      HVM
+    I3_2XLarge ->
+      HVM
+    I3_4XLarge ->
+      HVM
+    I3_8XLarge ->
+      HVM
+    I3_Large ->
+      HVM
+    I3_XLarge ->
+      HVM
+    P3_16XLarge ->
+      HVM
+    P3_2XLarge ->
+      HVM
+    P3_8XLarge ->
+      HVM
+    R4_16XLarge ->
+      HVM
+    R4_2XLarge ->
+      HVM
+    R4_4XLarge ->
+      HVM
+    R4_8XLarge ->
+      HVM
+    R4_Large ->
+      HVM
+    R4_XLarge ->
+      HVM
+    T2_2XLarge ->
+      HVM
+    T2_XLarge ->
+      HVM
+    X1e_32XLarge ->
+      HVM
+
 
 renderMismiInstanceType :: MismiInstanceType -> Text
 renderMismiInstanceType m =
@@ -397,6 +503,8 @@ renderMismiInstanceType m =
       "m4.4xlarge"
     M4_10XLarge ->
       "m4.10xlarge"
+    M4_16XLarge ->
+      "m4.16xlarge"
     R3_2XLarge ->
       "r3.2xlarge"
     R3_4XLarge ->
@@ -419,6 +527,75 @@ renderMismiInstanceType m =
       "t2.small"
     T2_Nano ->
       "t2.nano"
+    P2_XLarge ->
+      "p2.xlarge"
+    P2_8XLarge ->
+      "p2.8xlarge"
+    P2_16XLarge ->
+      "p2.16xlarge"
+    X1_16XLarge ->
+      "x1.16xlarge"
+    X1_32XLarge ->
+      "x1.32xlarge"
+    F1_2XLarge ->
+      "f1.2xLarge"
+    F1_16XLarge ->
+      "f1.16xlarge"
+    C5_18XLarge ->
+      "c5.18xlarge"
+    C5_2XLarge ->
+      "c5.2xlarge"
+    C5_4XLarge ->
+      "c5.4xlarge"
+    C5_9XLarge ->
+      "c5.9xlarge"
+    C5_Large ->
+      "c5.large"
+    C5_XLarge ->
+      "c5.xlarge"
+    G3_16XLarge ->
+      "g3.16xlarge"
+    G3_4XLarge ->
+      "g3.4xlarge"
+    G3_8XLarge ->
+      "g3.8xlarge"
+    I3_16XLarge ->
+      "i3.16xlarge"
+    I3_2XLarge ->
+      "i3.2xlarge"
+    I3_4XLarge ->
+      "i3.4xlarge"
+    I3_8XLarge ->
+      "i3.8xlarge"
+    I3_Large ->
+      "i3.large"
+    I3_XLarge ->
+      "i3.xlarge"
+    P3_16XLarge ->
+      "p3.16xlarge"
+    P3_2XLarge ->
+      "p3.2xlarge"
+    P3_8XLarge ->
+      "p3.8xlarge"
+    R4_16XLarge ->
+      "r4.16xlarge"
+    R4_2XLarge ->
+      "r4.2xlarge"
+    R4_4XLarge ->
+      "r4.4xlarge"
+    R4_8XLarge ->
+      "r4.8xlarge"
+    R4_Large ->
+      "r4.large"
+    R4_XLarge ->
+      "r4.xlarge"
+    T2_2XLarge ->
+      "t2.2xlarge"
+    T2_XLarge ->
+      "t2.xlarge"
+    X1e_32XLarge ->
+      "x1e.32xlarge"
+
 
 parseMismiInstanceType :: Text -> Maybe MismiInstanceType
 parseMismiInstanceType m =
@@ -511,6 +688,8 @@ parseMismiInstanceType m =
       Just M4_4XLarge
     "m4.10xlarge" ->
       Just M4_10XLarge
+    "m4.16xlarge" ->
+      Just M4_16XLarge
     "r3.2xlarge" ->
       Just R3_2XLarge
     "r3.4xlarge" ->
@@ -533,5 +712,73 @@ parseMismiInstanceType m =
       Just T2_Small
     "t2.nano" ->
       Just T2_Nano
+    "p2.xlarge" ->
+      Just P2_XLarge
+    "p2.8xlarge" ->
+      Just P2_8XLarge
+    "p2.16xlarge" ->
+      Just P2_16XLarge
+    "x1.16xlarge" ->
+      Just X1_16XLarge
+    "x1.32xlarge" ->
+      Just X1_32XLarge
+    "f1.2xLarge" ->
+      Just F1_2XLarge
+    "f1.16xlarge" ->
+      Just F1_16XLarge
+    "c5.18xlarge" ->
+      Just C5_18XLarge
+    "c5.2xlarge" ->
+      Just C5_2XLarge
+    "c5.4xlarge" ->
+      Just C5_4XLarge
+    "c5.9xlarge" ->
+      Just C5_9XLarge
+    "c5.large" ->
+      Just C5_Large
+    "c5.xlarge" ->
+      Just C5_XLarge
+    "g3.16xlarge" ->
+      Just G3_16XLarge
+    "g3.4xlarge" ->
+      Just G3_4XLarge
+    "g3.8xlarge" ->
+      Just G3_8XLarge
+    "i3.16xlarge" ->
+      Just I3_16XLarge
+    "i3.2xlarge" ->
+      Just I3_2XLarge
+    "i3.4xlarge" ->
+      Just I3_4XLarge
+    "i3.8xlarge" ->
+      Just I3_8XLarge
+    "i3.large" ->
+      Just I3_Large
+    "i3.xlarge" ->
+      Just I3_XLarge
+    "p3.16xlarge" ->
+      Just P3_16XLarge
+    "p3.2xlarge" ->
+      Just P3_2XLarge
+    "p3.8xlarge" ->
+      Just P3_8XLarge
+    "r4.16xlarge" ->
+      Just R4_16XLarge
+    "r4.2xlarge" ->
+      Just R4_2XLarge
+    "r4.4xlarge" ->
+      Just R4_4XLarge
+    "r4.8xlarge" ->
+      Just R4_8XLarge
+    "r4.large" ->
+      Just R4_Large
+    "r4.xlarge" ->
+      Just R4_XLarge
+    "t2.2xlarge" ->
+      Just T2_2XLarge
+    "t2.xlarge" ->
+      Just T2_XLarge
+    "x1e.32xlarge" ->
+      Just X1e_32XLarge
     _ ->
       Nothing

@@ -382,7 +382,7 @@ copyWithMode mode s d = do
 copySingle :: Address -> Address -> AWS ()
 copySingle (Address (Bucket sb) (Key sk)) (Address (Bucket b) (Key dk)) =
   void . send $ A.copyObject (BucketName b) (sb <> "/" <> sk) (ObjectKey dk)
-     & A.coServerSideEncryption .~ Just sse & A.coMetadataDirective .~ Just Copy
+     & A.coServerSideEncryption .~ Just sse & A.coMetadataDirective .~ Just MDCopy
 
 copyMultipart :: Address -> Address -> Int -> Int -> Int -> EitherT CopyError AWS ()
 copyMultipart source dest sz chunk fork = do

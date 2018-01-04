@@ -56,7 +56,7 @@ import qualified Network.AWS as A
 import           Network.AWS.Data
 import           Network.AWS.Error
 
-import           Network.HTTP.Client (HttpException (..))
+import           Network.HTTP.Client (HttpException (..), HttpExceptionContent (..), responseTimeoutMicro, responseStatus)
 import           Network.HTTP.Client.Internal (mResponseTimeout)
 import           Network.HTTP.Types.Status
 
@@ -80,7 +80,7 @@ runAWSTWith run err action =
 
 runAWS :: (MonadIO m, MonadCatch m) => Env -> AWS a -> EitherT Error m a
 runAWS e'' =
-  let e' = over envManager (\m -> m { mResponseTimeout = Just 60000000 }) e''
+  let e' = over envManager (\m -> m { mResponseTimeout = responseTimeoutMicro 60000000 }) e''
       e = configureRetries 5 e'
   in EitherT . try . liftIO . rawRunAWS e
 
@@ -90,12 +90,13 @@ runAWSWithRegion r a = do
   runAWS e a
 
 newEnvFromCreds :: (Applicative m, MonadIO m, MonadCatch m) => Region -> AccessKey -> SecretKey -> Maybe SessionToken -> m Env
-newEnvFromCreds r ak sk st =
-  newEnv r $ case st of
-    Nothing ->
-      FromKeys ak sk
-    Just st' ->
-      FromSession ak sk st'
+newEnvFromCreds r ak sk st = do
+  e <- newEnv $ case st of
+                  Nothing ->
+                    FromKeys ak sk
+                  Just st' ->
+                    FromSession ak sk st'
+  pure $ e & envRegion .~ r
 
 rawRunAWS :: Env -> AWS a -> IO a
 rawRunAWS e =
@@ -203,30 +204,52 @@ configureRetries i e = e & envRetryCheck .~ err
 checkException :: HttpException -> Bool -> Bool
 checkException v f =
   case v of
-    NoResponseDataReceived ->
-      True
-    StatusCodeException status _ _ ->
-      status == status500 || status == status503
-    FailedConnectionException _ _ ->
-      True
-    FailedConnectionException2 _ _ _ _ ->
-      True
-    TlsException _ ->
-      True
-    InternalIOException _ ->
-      True
-    HandshakeFailed ->
-      True
-    ResponseTimeout ->
-      True
-    ResponseBodyTooShort _ _ ->
-      True
-#if MIN_VERSION_http_client(0, 4, 24)
-    TlsExceptionHostPort _ _ _ ->
-      True
-#endif
-    _ ->
-      f
+    InvalidUrlException _ _ -> False
+    HttpExceptionRequest _req content ->
+      case content of
+        NoResponseDataReceived ->
+          True
+        StatusCodeException resp _ ->
+          let status = responseStatus resp in
+          status == status500 || status == status503
+        ResponseTimeout ->
+          True
+        ConnectionTimeout ->
+          True
+        ConnectionFailure _ ->
+          True
+        ResponseBodyTooShort _ _ ->
+          True
+        InternalException _ ->
+          True
+        InvalidStatusLine _ ->
+          True
+        InvalidHeader _ ->
+          True
+        ProxyConnectException _ _ _ ->
+          True
+        WrongRequestBodyStreamSize _ _ ->
+          True
+        InvalidChunkHeaders ->
+          True
+        IncompleteHeaders ->
+          True
+        HttpZlibException _ ->
+          True
+
+        TooManyRedirects _ ->
+          False
+        OverlongHeaders ->
+          False
+        TlsNotSupported ->
+          False
+        InvalidDestinationHost _ ->
+          False
+        InvalidProxyEnvironmentVariable _ _ ->
+          False
+
+        _ ->
+          f
 
 handle404 :: AWS a -> AWS (Maybe a)
 handle404 =
