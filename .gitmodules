@@ -10,3 +10,6 @@
 [submodule "lib/twine"]
 	path = lib/twine
 	url = git@github.com:ambiata/twine
+[submodule "lib/amazonka"]
+	path = lib/amazonka
+	url = git@github.com:ambiata/amazonka

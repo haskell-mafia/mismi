@@ -14,6 +14,9 @@ instanceDeviceMappings T2_Micro = devices0
 instanceDeviceMappings T2_Small = devices0
 instanceDeviceMappings T2_Medium = devices0
 instanceDeviceMappings T2_Large = devices0
+instanceDeviceMappings T2_2XLarge = devices0
+instanceDeviceMappings T2_XLarge = devices0
+
 
 -- General Purpose - Current Generation
 instanceDeviceMappings M3_Medium = devices1
@@ -84,10 +87,54 @@ instanceDeviceMappings G2_8XLarge = devices2
 instanceDeviceMappings HI1_4XLarge = devices2
 
 instanceDeviceMappings M4_10XLarge = devices0
+instanceDeviceMappings M4_16XLarge = devices0
 instanceDeviceMappings M4_2XLarge = devices0
 instanceDeviceMappings M4_4XLarge = devices0
 instanceDeviceMappings M4_XLarge = devices0
 instanceDeviceMappings M4_Large = devices0
+
+instanceDeviceMappings P2_XLarge = devices0
+instanceDeviceMappings P2_8XLarge = devices0
+instanceDeviceMappings P2_16XLarge = devices0
+
+instanceDeviceMappings X1_16XLarge = devices24
+instanceDeviceMappings X1_32XLarge = devices24
+
+instanceDeviceMappings F1_2XLarge = devices0
+instanceDeviceMappings F1_16XLarge = devices0
+
+instanceDeviceMappings C5_18XLarge = devices0
+instanceDeviceMappings C5_2XLarge = devices0
+instanceDeviceMappings C5_4XLarge = devices0
+instanceDeviceMappings C5_9XLarge = devices0
+instanceDeviceMappings C5_Large = devices0
+instanceDeviceMappings C5_XLarge = devices0
+
+instanceDeviceMappings G3_16XLarge = devices0
+instanceDeviceMappings G3_4XLarge = devices0
+instanceDeviceMappings G3_8XLarge = devices0
+
+instanceDeviceMappings I3_16XLarge = devices0
+instanceDeviceMappings I3_2XLarge = devices0
+instanceDeviceMappings I3_4XLarge = devices0
+instanceDeviceMappings I3_8XLarge = devices0
+instanceDeviceMappings I3_Large = devices0
+instanceDeviceMappings I3_XLarge = devices0
+
+instanceDeviceMappings P3_16XLarge = devices0
+instanceDeviceMappings P3_2XLarge = devices0
+instanceDeviceMappings P3_8XLarge = devices0
+
+instanceDeviceMappings R4_16XLarge = devices0
+instanceDeviceMappings R4_2XLarge = devices0
+instanceDeviceMappings R4_4XLarge = devices0
+instanceDeviceMappings R4_8XLarge = devices0
+instanceDeviceMappings R4_Large = devices0
+instanceDeviceMappings R4_XLarge = devices0
+
+instanceDeviceMappings X1e_32XLarge = devices24
+
+
 
 devices0 :: [BlockDeviceMapping]
 devices0 = []

@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE CPP #-}
 module Mismi.Data (
     module Mismi.Kernel.Data
   , fromMismiRegion
@@ -37,6 +38,16 @@ fromMismiRegion r =
       GovCloudFIPS
     SaoPauloRegion ->
       SaoPaulo
+    OhioRegion ->
+      Ohio
+    SeoulRegion ->
+      Seoul
+    MumbaiRegion ->
+      Mumbai
+    MontrealRegion ->
+      Montreal
+    LondonRegion ->
+      London
 
 toMismiRegion :: Region -> MismiRegion
 toMismiRegion r =
@@ -65,3 +76,13 @@ toMismiRegion r =
       GovCloudFIPSRegion
     SaoPaulo ->
       SaoPauloRegion
+    Ohio ->
+      OhioRegion
+    Seoul ->
+      SeoulRegion
+    Mumbai ->
+      MumbaiRegion
+    Montreal ->
+      MontrealRegion
+    London ->
+      LondonRegion
