@@ -311,7 +311,7 @@ handleStatus s m =
   fmap Just m `catch` \(e :: Error) ->
     if e ^? httpStatus == Just s then return Nothing else throwM e
 
--- | return a result code depending on the HTTP status
+-- | Return a result code depending on the HTTP status
 onStatus :: (Status -> Maybe r) -> AWS a -> AWS (Either r a)
 onStatus f m =
   fmap Right m `catch` \(e :: Error) ->
@@ -321,7 +321,7 @@ onStatus f m =
       Nothing ->
         throwM e
 
--- | return a result code depending on the HTTP status
+-- | Return a result code depending on the HTTP status
 --   for an AWS action returning no value
 onStatus_ :: r -> (Status -> Maybe r) -> AWS () -> AWS r
 onStatus_ r f m =
