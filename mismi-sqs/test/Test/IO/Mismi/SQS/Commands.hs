@@ -82,6 +82,15 @@ prop_create_downgrade queue' (NonEmptyMessage b) =
     pure $ [Just b] === fmap (^. mBody) ms
 
 
+prop_create_queue :: Queue -> Property
+prop_create_queue queue =
+  Test.QuickCheck.once . testIO . runSQSWithQueue queue $ \_ -> do
+    _ <- onQueue queue (Just 8400) $ \_ ->
+      pure ()
+    _ <- onQueue queue (Just 8400) $ \_ ->
+      pure ()
+    pure $ property True
+
 return []
 tests :: IO Bool
 tests = $forAllProperties $ quickCheckWithResult (stdArgs { maxSuccess = 2 })
