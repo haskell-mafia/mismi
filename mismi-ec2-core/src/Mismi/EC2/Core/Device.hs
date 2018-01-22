@@ -86,6 +86,19 @@ instanceDeviceMappings G2_8XLarge = devices2
 
 instanceDeviceMappings HI1_4XLarge = devices2
 
+
+
+instanceDeviceMappings I3_16XLarge = devicesNVMe8
+instanceDeviceMappings I3_2XLarge = devicesNVMe1
+instanceDeviceMappings I3_4XLarge = devicesNVMe2
+instanceDeviceMappings I3_8XLarge = devicesNVMe4
+instanceDeviceMappings I3_Large = devicesNVMe1
+instanceDeviceMappings I3_XLarge = devicesNVMe1
+
+
+
+
+
 instanceDeviceMappings M4_10XLarge = devices0
 instanceDeviceMappings M4_16XLarge = devices0
 instanceDeviceMappings M4_2XLarge = devices0
@@ -97,11 +110,12 @@ instanceDeviceMappings P2_XLarge = devices0
 instanceDeviceMappings P2_8XLarge = devices0
 instanceDeviceMappings P2_16XLarge = devices0
 
-instanceDeviceMappings X1_16XLarge = devices24
-instanceDeviceMappings X1_32XLarge = devices24
+instanceDeviceMappings X1_16XLarge = devices1
+instanceDeviceMappings X1_32XLarge = devices2
+instanceDeviceMappings X1e_32XLarge = devices2
 
-instanceDeviceMappings F1_2XLarge = devices0
-instanceDeviceMappings F1_16XLarge = devices0
+instanceDeviceMappings F1_2XLarge = devicesNVMe1
+instanceDeviceMappings F1_16XLarge = devicesNVMe4
 
 instanceDeviceMappings C5_18XLarge = devices0
 instanceDeviceMappings C5_2XLarge = devices0
@@ -114,13 +128,6 @@ instanceDeviceMappings G3_16XLarge = devices0
 instanceDeviceMappings G3_4XLarge = devices0
 instanceDeviceMappings G3_8XLarge = devices0
 
-instanceDeviceMappings I3_16XLarge = devices0
-instanceDeviceMappings I3_2XLarge = devices0
-instanceDeviceMappings I3_4XLarge = devices0
-instanceDeviceMappings I3_8XLarge = devices0
-instanceDeviceMappings I3_Large = devices0
-instanceDeviceMappings I3_XLarge = devices0
-
 instanceDeviceMappings P3_16XLarge = devices0
 instanceDeviceMappings P3_2XLarge = devices0
 instanceDeviceMappings P3_8XLarge = devices0
@@ -132,7 +139,6 @@ instanceDeviceMappings R4_8XLarge = devices0
 instanceDeviceMappings R4_Large = devices0
 instanceDeviceMappings R4_XLarge = devices0
 
-instanceDeviceMappings X1e_32XLarge = devices24
 
 
 
@@ -144,10 +150,21 @@ devices1 = [
     BlockDeviceMapping "/dev/xvdb" "ephemeral0"
   ]
 
+devicesNVMe1 :: [BlockDeviceMapping]
+devicesNVMe1 = [
+    BlockDeviceMapping "/dev/nvme0n1" "ephemeral0"
+  ]
+
 devices2 :: [BlockDeviceMapping]
 devices2 = [
     BlockDeviceMapping "/dev/xvdb" "ephemeral0"
   , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
+  ]
+
+devicesNVMe2 :: [BlockDeviceMapping]
+devicesNVMe2 = [
+    BlockDeviceMapping "/dev/nvme0n1" "ephemeral0"
+  , BlockDeviceMapping "/dev/nvme1n1" "ephemeral1"
   ]
 
 devices3 :: [BlockDeviceMapping]
@@ -163,6 +180,14 @@ devices4 = [
   , BlockDeviceMapping "/dev/xvdc" "ephemeral1"
   , BlockDeviceMapping "/dev/xvdd" "ephemeral2"
   , BlockDeviceMapping "/dev/xvde" "ephemeral3"
+  ]
+
+devicesNVMe4 :: [BlockDeviceMapping]
+devicesNVMe4 = [
+    BlockDeviceMapping "/dev/nvme0n1" "ephemeral0"
+  , BlockDeviceMapping "/dev/nvme1n1" "ephemeral1"
+  , BlockDeviceMapping "/dev/nvme2n1" "ephemeral2"
+  , BlockDeviceMapping "/dev/nvme3n1" "ephemeral3"
   ]
 
 devices6 :: [BlockDeviceMapping]
@@ -185,6 +210,18 @@ devices8 = [
   , BlockDeviceMapping "/dev/xvdg" "ephemeral5"
   , BlockDeviceMapping "/dev/xvdh" "ephemeral6"
   , BlockDeviceMapping "/dev/xvdi" "ephemeral7"
+  ]
+
+devicesNVMe8 :: [BlockDeviceMapping]
+devicesNVMe8 = [
+    BlockDeviceMapping "/dev/nvme0n1" "ephemeral0"
+  , BlockDeviceMapping "/dev/nvme1n1" "ephemeral1"
+  , BlockDeviceMapping "/dev/nvme2n1" "ephemeral2"
+  , BlockDeviceMapping "/dev/nvme3n1" "ephemeral3"
+  , BlockDeviceMapping "/dev/nvme4n1" "ephemeral4"
+  , BlockDeviceMapping "/dev/nvme5n1" "ephemeral5"
+  , BlockDeviceMapping "/dev/nvme6n1" "ephemeral6"
+  , BlockDeviceMapping "/dev/nvme7n1" "ephemeral7"
   ]
 
 devices12 :: [BlockDeviceMapping]
