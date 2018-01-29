@@ -35,7 +35,7 @@ library
                      , retry                           == 0.7.*
                      , template-haskell
                      , text                            == 1.2.*
-                     , time                            >= 1.4        && < 1.7
+                     , time                            >= 1.4        && < 1.9
                      , transformers                    >= 0.3.1      && < 0.6
                      , semigroups                      >= 0.16       && < 0.19
 
