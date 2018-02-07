@@ -30,7 +30,7 @@ import           P
 -- | Create a queue, which may be in a different region than our global/current one (which will be ignored)
 onQueue :: Queue -> Maybe Int -> (QueueUrl -> AWS a) -> AWS a
 onQueue (Queue q r) v action =
-  within (fromMismiRegion r) (action =<< createQueue q v)
+  within (fromMismiRegion r) (action =<< getQueueByName q v)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
 createQueue :: QueueName -> Maybe Int -> AWS QueueUrl
@@ -44,10 +44,20 @@ createQueue q v = do
     (pure . QueueUrl)
     (res ^. cqrsQueueURL)
   where
-    -- If queue alsready exists (and has different VisibilityTimeout)
+    -- If queue already exists (and has different VisibilityTimeout)
     handleExists = handling _QueueNameExists $ \_ ->
       -- Get existing queue (using default parameters)
       send $ A.createQueue (renderQueueName q)
+
+
+getQueueByName :: QueueName -> Maybe Int -> AWS QueueUrl
+getQueueByName q v = do
+  res <- send $ listQueues & lqQueueNamePrefix .~ Just (renderQueueName q)
+  maybe
+    (createQueue q v)
+    (pure . QueueUrl)
+    (listToMaybe . P.filter (== renderQueueName q) $ res ^. lqrsQueueURLs)
+
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html
 deleteQueue :: QueueUrl -> AWS ()
