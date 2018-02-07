@@ -5,6 +5,7 @@
 module Mismi.SQS.Commands (
     onQueue
   , createQueue
+  , createQueueRaw
   , deleteQueue
   , readMessages
   , writeMessage
@@ -30,11 +31,11 @@ import           P
 -- | Create a queue, which may be in a different region than our global/current one (which will be ignored)
 onQueue :: Queue -> Maybe Int -> (QueueUrl -> AWS a) -> AWS a
 onQueue (Queue q r) v action =
-  within (fromMismiRegion r) (action =<< getQueueByName q v)
+  within (fromMismiRegion r) (action =<< createQueue q v)
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html
-createQueue :: QueueName -> Maybe Int -> AWS QueueUrl
-createQueue q v = do
+createQueueRaw :: QueueName -> Maybe Int -> AWS QueueUrl
+createQueueRaw q v = do
   res <- handleExists . send $ A.createQueue (renderQueueName q) &
            cqAttributes .~
              (M.fromList . maybeToList
@@ -49,12 +50,13 @@ createQueue q v = do
       -- Get existing queue (using default parameters)
       send $ A.createQueue (renderQueueName q)
 
-
-getQueueByName :: QueueName -> Maybe Int -> AWS QueueUrl
-getQueueByName q v = do
+-- | Returns the QueueUrl if the Queue already exists and if it doesn't.
+-- calls `createQueueRaw` to create the Queue.
+createQueue :: QueueName -> Maybe Int -> AWS QueueUrl
+createQueue q v = do
   res <- send $ listQueues & lqQueueNamePrefix .~ Just (renderQueueName q)
   maybe
-    (createQueue q v)
+    (createQueueRaw q v)
     (pure . QueueUrl)
     (listToMaybe . P.filter (== renderQueueName q) $ res ^. lqrsQueueURLs)
 
