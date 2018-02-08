@@ -16,7 +16,8 @@ import           Control.Lens ((^.), (.~))
 import           Control.Exception.Lens
 import           Control.Monad.Catch
 
-import           Data.Text as T
+import qualified Data.List as DL
+import qualified Data.Text as T
 import qualified Data.HashMap.Strict as M
 
 import           Mismi
@@ -41,7 +42,7 @@ createQueueRaw q v = do
              (M.fromList . maybeToList
                 $ ((QANVisibilityTimeout,) <$> ((T.pack . show) <$> v)))
   maybe
-    (throwM . Invariant $ "Failed to create new queue: " <> (pack . show) q)
+    (throwM . Invariant $ "Failed to create new queue: " <> (T.pack . show) q)
     (pure . QueueUrl)
     (res ^. cqrsQueueURL)
   where
@@ -58,7 +59,15 @@ createQueue q v = do
   maybe
     (createQueueRaw q v)
     (pure . QueueUrl)
-    (listToMaybe . P.filter (== renderQueueName q) $ res ^. lqrsQueueURLs)
+    (listToMaybe . filter isMatchingQueueName $ res ^. lqrsQueueURLs)
+  where
+    isMatchingQueueName url =
+      case T.split (== '/') url of
+        [] -> False
+        xs -> if DL.last xs == renderQueueName q
+                then True
+                else False
+
 
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html
