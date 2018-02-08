@@ -4,7 +4,7 @@
   sha1 = "09aa2a97367596116e8d12112bf68464919d4815"
 
 [global]
-  CACHE = "true"
+  CACHE = "false"
 
 [build.dist-7-10]
   HADDOCK = "true"
