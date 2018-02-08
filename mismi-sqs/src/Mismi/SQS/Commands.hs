@@ -15,6 +15,7 @@ module Mismi.SQS.Commands (
 import           Control.Lens ((^.), (.~))
 import           Control.Exception.Lens
 import           Control.Monad.Catch
+import           Control.Monad.IO.Class (liftIO)
 
 import           Data.Text as T
 import qualified Data.HashMap.Strict as M
@@ -26,7 +27,9 @@ import qualified Mismi.SQS.Amazonka as A
 import           Mismi.SQS.Data
 
 import           P
+import qualified Prelude as Savage
 
+import qualified System.IO as IO
 
 -- | Create a queue, which may be in a different region than our global/current one (which will be ignored)
 onQueue :: Queue -> Maybe Int -> (QueueUrl -> AWS a) -> AWS a
@@ -55,11 +58,10 @@ createQueueRaw q v = do
 createQueue :: QueueName -> Maybe Int -> AWS QueueUrl
 createQueue q v = do
   res <- send $ listQueues & lqQueueNamePrefix .~ Just (renderQueueName q)
-  maybe
-    (createQueueRaw q v)
-    (pure . QueueUrl)
-    (listToMaybe . P.filter (== renderQueueName q) $ res ^. lqrsQueueURLs)
-
+  let m = listToMaybe . P.filter (== renderQueueName q) $ res ^. lqrsQueueURLs
+  liftIO . IO.putStrLn . show $ m
+  liftIO . IO.putStrLn . show $ res ^. lqrsQueueURLs
+  maybe (createQueueRaw q v) (pure . QueueUrl) m
 
 -- http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html
 deleteQueue :: QueueUrl -> AWS ()
