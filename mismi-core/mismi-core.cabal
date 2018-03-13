@@ -22,7 +22,12 @@ library
                      , ambiata-x-exception
                      , bifunctors                      >= 4.2        && < 5.3
                      , bytestring                      == 0.10.*
-                     , connection                      == 0.2.8
+                     -- Verison 0.2.6 of the connection package switched from Handles
+                     -- to sockets which produced all kinds of odd effects. See
+                     -- https://github.com/erikd-ambiata/test-warp-wai/issues/1#issuecomment-244351172
+                     -- Version 0.2.8 has very rare connection leak issue that
+                     -- results in errors passing returned ByteStrings around to c libs.
+                     , connection                      == 0.2.5
                      , conduit-extra                   >= 1.1.15     && < 1.2
                      , exceptions                      >= 0.6        && < 0.9
                      , ini                             == 0.3.5
