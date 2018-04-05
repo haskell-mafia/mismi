@@ -37,7 +37,7 @@ library
                      , mtl                             >= 2.1        && < 2.3
                      , profunctors                     >= 4          && < 5.3
                      , resourcet                       == 1.1.*
-                     , retry                           == 0.7.*
+                     , retry                           >= 0.7.5      && < 0.8
                      , template-haskell
                      , text                            == 1.2.*
                      , time                            >= 1.4        && < 1.9
