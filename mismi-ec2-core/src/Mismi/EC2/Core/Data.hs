@@ -115,6 +115,10 @@ data MismiInstanceType =
   | D2_XLarge
   | G2_2XLarge
   | G2_8XLarge
+  | H1_16XLarge
+  | H1_2XLarge
+  | H1_4XLarge
+  | H1_8XLarge
   | HI1_4XLarge
   | HS1_8XLarge
   | I2_2XLarge
@@ -138,6 +142,12 @@ data MismiInstanceType =
   | M4_Large
   | M4_XLarge
   | M4_16XLarge
+  | M5_12XLarge
+  | M5_24XLarge
+  | M5_2XLarge
+  | M5_4XLarge
+  | M5_Large
+  | M5_XLarge
   | R3_2XLarge
   | R3_4XLarge
   | R3_8XLarge
@@ -182,7 +192,12 @@ data MismiInstanceType =
   | R4_XLarge
   | T2_2XLarge
   | T2_XLarge
+  | X1e_16XLarge
+  | X1e_2XLarge
   | X1e_32XLarge
+  | X1e_4XLarge
+  | X1e_8XLarge
+  | X1e_XLarge
     deriving (Eq, Show, Ord, Enum, Bounded)
 
 
@@ -320,6 +335,18 @@ virtualizationFor itype =
       HVM
     M4_16XLarge ->
       HVM
+    M5_12XLarge ->
+      HVM
+    M5_24XLarge ->
+      HVM
+    M5_2XLarge ->
+      HVM
+    M5_4XLarge ->
+      HVM
+    M5_Large ->
+      HVM
+    M5_XLarge ->
+      HVM
     R3_2XLarge ->
       HVM
     R3_4XLarge ->
@@ -408,7 +435,25 @@ virtualizationFor itype =
       HVM
     T2_XLarge ->
       HVM
+    X1e_16XLarge ->
+      HVM
+    X1e_2XLarge ->
+      HVM
     X1e_32XLarge ->
+      HVM
+    X1e_4XLarge ->
+      HVM
+    X1e_8XLarge ->
+      HVM
+    X1e_XLarge ->
+      HVM
+    H1_16XLarge ->
+      HVM
+    H1_2XLarge ->
+      HVM
+    H1_4XLarge ->
+      HVM
+    H1_8XLarge ->
       HVM
 
 
@@ -505,6 +550,18 @@ renderMismiInstanceType m =
       "m4.10xlarge"
     M4_16XLarge ->
       "m4.16xlarge"
+    M5_12XLarge ->
+      "m5.12xlarge"
+    M5_24XLarge ->
+      "m5.24xlarge"
+    M5_2XLarge ->
+      "m5.2xlarge"
+    M5_4XLarge ->
+      "m5.4xlarge"
+    M5_Large ->
+      "m5.large"
+    M5_XLarge ->
+      "m5.xlarge"      
     R3_2XLarge ->
       "r3.2xlarge"
     R3_4XLarge ->
@@ -593,8 +650,26 @@ renderMismiInstanceType m =
       "t2.2xlarge"
     T2_XLarge ->
       "t2.xlarge"
+    X1e_16XLarge ->
+      "x1e.16xlarge"
+    X1e_2XLarge ->
+      "x1e.2xlarge"
     X1e_32XLarge ->
       "x1e.32xlarge"
+    X1e_4XLarge ->
+      "x1e.4xlarge"
+    X1e_8XLarge ->
+      "x1e.8xlarge"
+    X1e_XLarge ->
+      "x1e.xlarge"
+    H1_16XLarge ->
+      "h1.16xlarge"
+    H1_2XLarge ->
+      "h1.2xlarge"
+    H1_4XLarge ->
+      "h1.4xlarge"
+    H1_8XLarge ->
+      "h1.8xlarge"
 
 
 parseMismiInstanceType :: Text -> Maybe MismiInstanceType
@@ -689,7 +764,19 @@ parseMismiInstanceType m =
     "m4.10xlarge" ->
       Just M4_10XLarge
     "m4.16xlarge" ->
-      Just M4_16XLarge
+      Just M4_16XLarge    
+    "m5.large" ->
+      Just M5_Large
+    "m5.xlarge" ->
+      Just M5_XLarge
+    "m5.2xlarge" ->
+      Just M5_2XLarge
+    "m5.4xlarge" ->
+      Just M5_4XLarge
+    "m5.12xlarge" ->
+      Just M5_12XLarge
+    "m5.24xlarge" ->
+      Just M5_24XLarge
     "r3.2xlarge" ->
       Just R3_2XLarge
     "r3.4xlarge" ->
@@ -778,7 +865,25 @@ parseMismiInstanceType m =
       Just T2_2XLarge
     "t2.xlarge" ->
       Just T2_XLarge
+    "x1e.16xlarge" ->
+      Just X1e_16XLarge
+    "x1e.2xlarge" ->
+      Just X1e_2XLarge
     "x1e.32xlarge" ->
       Just X1e_32XLarge
+    "x1e.4xlarge" ->
+      Just X1e_4XLarge
+    "x1e.8xlarge" ->
+      Just X1e_8XLarge
+    "x1e.xlarge" ->
+      Just X1e_XLarge
+    "h1.16xlarge" ->
+      Just H1_16XLarge
+    "h1.2xlarge" ->
+      Just H1_2XLarge
+    "h1.4xlarge" ->
+      Just H1_4XLarge
+    "h1.8xlarge" ->
+      Just H1_8XLarge
     _ ->
       Nothing
