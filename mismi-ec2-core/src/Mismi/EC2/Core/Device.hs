@@ -140,6 +140,13 @@ instanceDeviceMappings C5_9XLarge = devices0
 instanceDeviceMappings C5_Large = devices0
 instanceDeviceMappings C5_XLarge = devices0
 
+instanceDeviceMappings C5d_Large = devices1
+instanceDeviceMappings C5d_XLarge = devices1
+instanceDeviceMappings C5d_2XLarge = devices1
+instanceDeviceMappings C5d_4XLarge = devices1
+instanceDeviceMappings C5d_9XLarge = devices1
+instanceDeviceMappings C5d_18XLarge = devices2
+
 instanceDeviceMappings G3_16XLarge = devices0
 instanceDeviceMappings G3_4XLarge = devices0
 instanceDeviceMappings G3_8XLarge = devices0

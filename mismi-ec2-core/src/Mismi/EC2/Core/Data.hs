@@ -172,6 +172,12 @@ data MismiInstanceType =
   | C5_9XLarge
   | C5_Large
   | C5_XLarge
+  | C5d_Large
+  | C5d_XLarge
+  | C5d_2XLarge
+  | C5d_4XLarge
+  | C5d_9XLarge
+  | C5d_18XLarge
   | G3_16XLarge
   | G3_4XLarge
   | G3_8XLarge
@@ -395,6 +401,18 @@ virtualizationFor itype =
       HVM
     C5_XLarge ->
       HVM
+    C5d_Large ->
+      HVM
+    C5d_XLarge ->
+      HVM
+    C5d_2XLarge ->
+      HVM
+    C5d_4XLarge ->
+      HVM
+    C5d_9XLarge ->
+      HVM
+    C5d_18XLarge ->
+      HVM
     G3_16XLarge ->
       HVM
     G3_4XLarge ->
@@ -610,6 +628,18 @@ renderMismiInstanceType m =
       "c5.large"
     C5_XLarge ->
       "c5.xlarge"
+    C5d_Large ->
+      "c5d.large"
+    C5d_XLarge ->
+      "c5d.xlarge"
+    C5d_2XLarge ->
+      "c5d.2xlarge"
+    C5d_4XLarge ->
+      "c5d.4xlarge"
+    C5d_9XLarge ->
+      "c5d.9xlarge"
+    C5d_18XLarge ->
+      "c5d.18xlarge"
     G3_16XLarge ->
       "g3.16xlarge"
     G3_4XLarge ->
@@ -825,6 +855,18 @@ parseMismiInstanceType m =
       Just C5_Large
     "c5.xlarge" ->
       Just C5_XLarge
+    "c5d.large" ->
+      Just C5d_Large
+    "c5d.xlarge" ->
+      Just C5d_XLarge
+    "c5d.2xlarge" ->
+      Just C5d_2XLarge
+    "c5d.4xlarge" ->
+      Just C5d_4XLarge
+    "c5d.9xlarge" -> 
+      Just C5d_9XLarge
+    "c5d.18xlarge" -> 
+      Just C5d_18XLarge
     "g3.16xlarge" ->
       Just G3_16XLarge
     "g3.4xlarge" ->

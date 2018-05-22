@@ -176,6 +176,18 @@ fromMismiInstanceType m =
       A.C5_Large
     C5_XLarge ->
       A.C5_XLarge
+    C5d_Large ->
+      A.C5d_Large
+    C5d_XLarge ->
+      A.C5d_XLarge
+    C5d_2XLarge ->
+      A.C5d_2XLarge
+    C5d_4XLarge ->
+      A.C5d_4XLarge
+    C5d_9XLarge ->
+      A.C5d_9XLarge
+    C5d_18XLarge ->
+      A.C5d_18XLarge
     G3_16XLarge ->
       A.G3_16XLarge
     G3_4XLarge ->
@@ -391,6 +403,18 @@ toMismiInstanceType i =
       C5_Large
     A.C5_XLarge ->
       C5_XLarge
+    A.C5d_Large ->
+      C5d_Large
+    A.C5d_XLarge ->
+      C5d_XLarge
+    A.C5d_2XLarge ->
+      C5d_2XLarge
+    A.C5d_4XLarge ->
+      C5d_4XLarge
+    A.C5d_9XLarge ->
+      C5d_9XLarge
+    A.C5d_18XLarge ->
+      C5d_18XLarge
     A.G3_16XLarge ->
       G3_16XLarge
     A.G3_4XLarge ->
