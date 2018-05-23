@@ -86,6 +86,10 @@ instanceDeviceMappings G2_8XLarge = devices2
 
 instanceDeviceMappings HI1_4XLarge = devices2
 
+instanceDeviceMappings H1_2XLarge = devices1
+instanceDeviceMappings H1_4XLarge = devices2
+instanceDeviceMappings H1_8XLarge = devices4
+instanceDeviceMappings H1_16XLarge = devices8
 
 instanceDeviceMappings I3_16XLarge = devices0
 instanceDeviceMappings I3_2XLarge = devices0
@@ -105,13 +109,26 @@ instanceDeviceMappings M4_4XLarge = devices0
 instanceDeviceMappings M4_XLarge = devices0
 instanceDeviceMappings M4_Large = devices0
 
+instanceDeviceMappings M5_12XLarge = devices0
+instanceDeviceMappings M5_24XLarge = devices0
+instanceDeviceMappings M5_2XLarge = devices0
+instanceDeviceMappings M5_4XLarge = devices0
+instanceDeviceMappings M5_Large = devices0
+instanceDeviceMappings M5_XLarge = devices0
+
 instanceDeviceMappings P2_XLarge = devices0
 instanceDeviceMappings P2_8XLarge = devices0
 instanceDeviceMappings P2_16XLarge = devices0
 
 instanceDeviceMappings X1_16XLarge = devices1
 instanceDeviceMappings X1_32XLarge = devices2
+
+instanceDeviceMappings X1e_16XLarge = devices1
+instanceDeviceMappings X1e_2XLarge = devices1
 instanceDeviceMappings X1e_32XLarge = devices2
+instanceDeviceMappings X1e_4XLarge = devices1
+instanceDeviceMappings X1e_8XLarge = devices1
+instanceDeviceMappings X1e_XLarge = devices1
 
 instanceDeviceMappings F1_2XLarge = devices0
 instanceDeviceMappings F1_16XLarge = devices0
@@ -122,6 +139,13 @@ instanceDeviceMappings C5_4XLarge = devices0
 instanceDeviceMappings C5_9XLarge = devices0
 instanceDeviceMappings C5_Large = devices0
 instanceDeviceMappings C5_XLarge = devices0
+
+instanceDeviceMappings C5d_Large = devices1
+instanceDeviceMappings C5d_XLarge = devices1
+instanceDeviceMappings C5d_2XLarge = devices1
+instanceDeviceMappings C5d_4XLarge = devices1
+instanceDeviceMappings C5d_9XLarge = devices1
+instanceDeviceMappings C5d_18XLarge = devices2
 
 instanceDeviceMappings G3_16XLarge = devices0
 instanceDeviceMappings G3_4XLarge = devices0

@@ -13,3 +13,4 @@
 [submodule "lib/amazonka"]
 	path = lib/amazonka
 	url = git@github.com:ambiata/amazonka
+	branch = ambiata

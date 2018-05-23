@@ -114,6 +114,18 @@ fromMismiInstanceType m =
       A.M4_Large
     M4_XLarge ->
       A.M4_XLarge
+    M5_12XLarge ->
+      A.M5_12XLarge
+    M5_24XLarge ->
+      A.M5_24XLarge
+    M5_2XLarge ->
+      A.M5_2XLarge
+    M5_4XLarge ->
+      A.M5_4XLarge
+    M5_Large ->
+      A.M5_Large
+    M5_XLarge ->
+      A.M5_XLarge
     R3_2XLarge ->
       A.R3_2XLarge
     R3_4XLarge ->
@@ -164,6 +176,18 @@ fromMismiInstanceType m =
       A.C5_Large
     C5_XLarge ->
       A.C5_XLarge
+    C5d_Large ->
+      A.C5d_Large
+    C5d_XLarge ->
+      A.C5d_XLarge
+    C5d_2XLarge ->
+      A.C5d_2XLarge
+    C5d_4XLarge ->
+      A.C5d_4XLarge
+    C5d_9XLarge ->
+      A.C5d_9XLarge
+    C5d_18XLarge ->
+      A.C5d_18XLarge
     G3_16XLarge ->
       A.G3_16XLarge
     G3_4XLarge ->
@@ -204,10 +228,26 @@ fromMismiInstanceType m =
       A.T2_2XLarge
     T2_XLarge ->
       A.T2_XLarge
+    X1e_16XLarge ->
+      A.X1e_16XLarge
+    X1e_2XLarge ->
+      A.X1e_2XLarge
     X1e_32XLarge ->
       A.X1e_32XLarge
-
-
+    X1e_4XLarge ->
+      A.X1e_4XLarge
+    X1e_8XLarge ->
+      A.X1e_8XLarge
+    X1e_XLarge ->
+      A.X1e_XLarge
+    H1_16XLarge ->
+      A.H1_16XLarge
+    H1_2XLarge ->
+      A.H1_2XLarge
+    H1_4XLarge ->
+      A.H1_4XLarge
+    H1_8XLarge ->
+      A.H1_8XLarge
 
 
 toMismiInstanceType :: A.InstanceType -> MismiInstanceType
@@ -301,6 +341,18 @@ toMismiInstanceType i =
       M4_Large
     A.M4_XLarge ->
       M4_XLarge
+    A.M5_12XLarge ->
+      M5_12XLarge
+    A.M5_24XLarge ->
+      M5_24XLarge
+    A.M5_2XLarge ->
+      M5_2XLarge
+    A.M5_4XLarge ->
+      M5_4XLarge
+    A.M5_Large ->
+      M5_Large
+    A.M5_XLarge ->
+      M5_XLarge
     A.R3_2XLarge ->
       R3_2XLarge
     A.R3_4XLarge ->
@@ -351,6 +403,18 @@ toMismiInstanceType i =
       C5_Large
     A.C5_XLarge ->
       C5_XLarge
+    A.C5d_Large ->
+      C5d_Large
+    A.C5d_XLarge ->
+      C5d_XLarge
+    A.C5d_2XLarge ->
+      C5d_2XLarge
+    A.C5d_4XLarge ->
+      C5d_4XLarge
+    A.C5d_9XLarge ->
+      C5d_9XLarge
+    A.C5d_18XLarge ->
+      C5d_18XLarge
     A.G3_16XLarge ->
       G3_16XLarge
     A.G3_4XLarge ->
@@ -391,9 +455,26 @@ toMismiInstanceType i =
       T2_2XLarge
     A.T2_XLarge ->
       T2_XLarge
+    A.X1e_16XLarge ->
+      X1e_16XLarge
+    A.X1e_2XLarge ->
+      X1e_2XLarge
     A.X1e_32XLarge ->
       X1e_32XLarge
-
+    A.X1e_4XLarge ->
+      X1e_4XLarge
+    A.X1e_8XLarge ->
+      X1e_8XLarge
+    A.X1e_XLarge ->
+      X1e_XLarge
+    A.H1_16XLarge ->
+      H1_16XLarge
+    A.H1_2XLarge ->
+      H1_2XLarge
+    A.H1_4XLarge ->
+      H1_4XLarge
+    A.H1_8XLarge ->
+      H1_8XLarge
 
 
 fromMismiVirtualizationType :: MismiVirtualizationType -> A.VirtualizationType
