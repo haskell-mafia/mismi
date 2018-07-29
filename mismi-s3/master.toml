@@ -29,12 +29,12 @@
   CABAL_VERSION = "1.24.0.0"
 
 [build.dist-8-0]
-  GHC_VERSION = "8.0.1"
-  CABAL_VERSION = "1.24.0.0"
+  GHC_VERSION = "8.0.2"
+  CABAL_VERSION = "1.24.0.2"
 
 [build.branches-8-0]
-  GHC_VERSION = "8.0.1"
-  CABAL_VERSION = "1.24.0.0"
+  GHC_VERSION = "8.0.2"
+  CABAL_VERSION = "1.24.0.2"
 
 [build.dist-7-10-cabal-test]
   GHC_VERSION = "7.10.2"
@@ -49,13 +49,13 @@
   CABAL_TEST = "true"
 
 [build.dist-8-0-cabal-test]
-  GHC_VERSION = "8.0.1"
-  CABAL_VERSION = "1.24.0.0"
+  GHC_VERSION = "8.0.2"
+  CABAL_VERSION = "1.24.0.2"
   TEST = "false"
   CABAL_TEST = "true"
 
 [build.branches-8-0-cabal-test]
-  GHC_VERSION = "8.0.1"
-  CABAL_VERSION = "1.24.0.0"
+  GHC_VERSION = "8.0.2"
+  CABAL_VERSION = "1.24.0.2"
   TEST = "false"
   CABAL_TEST = "true"

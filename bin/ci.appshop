@@ -1,8 +1,8 @@
 #!/bin/sh -exu
 
-$(dirname $0)/ci.common mismi-s3
+$(dirname $0)/ci.common mismi-cli
 
-VERSION=$(cat $(dirname $0)/../mismi-s3/gen/version.txt)
-aws s3 --region=ap-southeast-2 cp mismi-s3/dist/build/s3/s3 s3://ambiata-app/s3/$VERSION/s3-$VERSION
-aws s3 --region=ap-southeast-2 cp mismi-s3/s3-completion.bash s3://ambiata-app/s3/$VERSION/s3-$VERSION-completion.bash
-aws s3 --region=ap-southeast-2 cp mismi-s3/_s3.zsh s3://ambiata-app/s3/$VERSION/_s3-${VERSION}.zsh
+VERSION=$(cat $(dirname $0)/../mismi-cli/gen/version.txt)
+aws s3 --region=ap-southeast-2 cp mismi-cli/dist/build/s3/s3 s3://ambiata-app/s3/$VERSION/s3-$VERSION
+aws s3 --region=ap-southeast-2 cp mismi-cli/s3-completion.bash s3://ambiata-app/s3/$VERSION/s3-$VERSION-completion.bash
+aws s3 --region=ap-southeast-2 cp mismi-cli/_s3.zsh s3://ambiata-app/s3/$VERSION/_s3-${VERSION}.zsh
