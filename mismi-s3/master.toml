@@ -1,7 +1,7 @@
 [master]
-  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20170724213527-c4b2de4/master-haskell-20170724213527-c4b2de4"
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20181122052716-977567b/master-haskell-20181122052716-977567b"
   version = 1
-  sha1 = "09aa2a97367596116e8d12112bf68464919d4815"
+sha1 = "b5434adb04dd0f7dee53b030f3c4cf1fed941c66"
 
 [global]
   CACHE = "false"
@@ -29,12 +29,12 @@
   CABAL_VERSION = "1.24.0.0"
 
 [build.dist-8-0]
-  GHC_VERSION = "8.0.1"
-  CABAL_VERSION = "1.24.0.0"
+  GHC_VERSION = "8.0.2"
+  CABAL_VERSION = "1.24.0.2"
 
 [build.branches-8-0]
-  GHC_VERSION = "8.0.1"
-  CABAL_VERSION = "1.24.0.0"
+  GHC_VERSION = "8.0.2"
+  CABAL_VERSION = "1.24.0.2"
 
 [build.dist-7-10-cabal-test]
   GHC_VERSION = "7.10.2"
@@ -49,13 +49,13 @@
   CABAL_TEST = "true"
 
 [build.dist-8-0-cabal-test]
-  GHC_VERSION = "8.0.1"
-  CABAL_VERSION = "1.24.0.0"
+  GHC_VERSION = "8.0.2"
+  CABAL_VERSION = "1.24.0.2"
   TEST = "false"
   CABAL_TEST = "true"
 
 [build.branches-8-0-cabal-test]
-  GHC_VERSION = "8.0.1"
-  CABAL_VERSION = "1.24.0.0"
+  GHC_VERSION = "8.0.2"
+  CABAL_VERSION = "1.24.0.2"
   TEST = "false"
   CABAL_TEST = "true"
