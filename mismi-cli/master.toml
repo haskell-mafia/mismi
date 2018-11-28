@@ -4,7 +4,7 @@
   sha1 = "b5434adb04dd0f7dee53b030f3c4cf1fed941c66"
 
 [global]
-  CACHE = "false"
+  CACHE = "true"
 
 [build.dist-7-10]
   GHC_VERSION = "7.10.2"
