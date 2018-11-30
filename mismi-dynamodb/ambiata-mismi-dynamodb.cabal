@@ -1,5 +1,5 @@
 name:                  ambiata-mismi-dynamodb
-version:               0.0.1
+version:               0.1.6
 license:               Apache-2.0
 license-file:          LICENSE
 author:                Ambiata <info@ambiata.com>
