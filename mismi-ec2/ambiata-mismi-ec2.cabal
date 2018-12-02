@@ -18,9 +18,9 @@ library
                      , ambiata-mismi-core
                      , ambiata-mismi-ec2-core
                      , ambiata-x-eithert
-                     , amazonka                        >= 1.4.0      && < 1.6
-                     , amazonka-core                   >= 1.4.0      && < 1.6
-                     , amazonka-ec2                    >= 1.4.0      && < 1.6
+                     , amazonka                        >= 1.6        && < 1.7
+                     , amazonka-core                   >= 1.6        && < 1.7
+                     , amazonka-ec2                    >= 1.6        && < 1.7
                      , bytestring                      == 0.10.*
                      , exceptions                      == 0.8.*
                      , http-conduit                    >= 2.1.5      && < 2.3
