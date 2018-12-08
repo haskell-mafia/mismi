@@ -1,5 +1,5 @@
 name:                  ambiata-mismi-autoscaling
-version:               0.0.1
+version:               0.1.5
 license:               Apache-2.0
 license-file:          LICENSE
 author:                Ambiata <info@ambiata.com>
@@ -25,7 +25,7 @@ library
                      , conduit                         == 1.2.*
                      , exceptions                      >= 0.6        && < 0.9
                      , lens                            >= 4.8        && < 4.16
-                     , http-types                      == 0.8.*
+                     , http-types                      >= 0.8        && < 0.10
                      , retry                           == 0.7.*
                      , text                            == 1.2.*
 
