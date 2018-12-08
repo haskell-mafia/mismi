@@ -1,5 +1,5 @@
 name:                  ambiata-mismi-ec2
-version:               0.0.1
+version:               0.1.5
 license:               Apache-2.0
 license-file:          LICENSE
 author:                Ambiata <info@ambiata.com>
@@ -20,7 +20,7 @@ library
                      , ambiata-x-eithert
                      , amazonka                        >= 1.4.0      && < 1.6
                      , amazonka-core                   >= 1.4.0      && < 1.6
-                     , amazonka-ec2                    >= 1.4.0      && < 1.6
+                     , amazonka-ec2                    >= 1.5        && < 1.6
                      , bytestring                      == 0.10.*
                      , exceptions                      == 0.8.*
                      , http-conduit                    >= 2.1.5      && < 2.3

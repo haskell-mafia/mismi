@@ -1,5 +1,5 @@
 name:                  ambiata-mismi-core
-version:               0.0.1
+version:               0.1.5
 license:               Apache-2.0
 license-file:          LICENSE
 author:                Ambiata <info@ambiata.com>
@@ -14,7 +14,7 @@ description:           mismi.
 library
   build-depends:
                        base                            >= 3          && < 6
-                     , amazonka                        >= 1.4        && < 1.6
+                     , amazonka                        >= 1.5        && < 1.6
                      , amazonka-core                   >= 1.4        && < 1.6
                      , ambiata-mismi-kernel
                      , ambiata-p
