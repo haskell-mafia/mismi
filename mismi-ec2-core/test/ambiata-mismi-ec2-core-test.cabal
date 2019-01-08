@@ -11,7 +11,7 @@ library
                      , ambiata-p
                      , ambiata-mismi-ec2-core
                      , text
-                     , QuickCheck                      >= 2.7        && < 2.10
+                     , QuickCheck                      >= 2.7        && < 2.12
                      , quickcheck-instances            == 0.3.*
 
 

@@ -46,5 +46,5 @@ test-suite test
                      , semigroups                      >= 0.16       && < 0.19
                      , text
                      , time
-                     , QuickCheck                      >= 2.7        && < 2.10
+                     , QuickCheck                      >= 2.7        && < 2.12
                      , quickcheck-instances            == 0.3.*
