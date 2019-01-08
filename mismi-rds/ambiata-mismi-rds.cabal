@@ -41,5 +41,5 @@ test-suite test
                      , ambiata-disorder-core
                      , ambiata-mismi-core
                      , ambiata-mismi-rds
-                     , QuickCheck                      >= 2.7        && < 2.10
+                     , QuickCheck                      >= 2.7        && < 2.12
                      , quickcheck-instances            == 0.3.*
