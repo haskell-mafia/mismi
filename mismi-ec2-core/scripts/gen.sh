@@ -11,4 +11,4 @@ function str_type() {
 
 ./gen-ec2.sh > ec2-Data.hs
 
-./gen-ec2-core.sh > ec2-core-Data.hs
+./gen-ec2-core.sh > ../src/Mismi/EC2/Core/Ec2Types.hs

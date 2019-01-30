@@ -91,16 +91,13 @@ instanceDeviceMappings H1_4XLarge = devices2
 instanceDeviceMappings H1_8XLarge = devices4
 instanceDeviceMappings H1_16XLarge = devices8
 
+instanceDeviceMappings I3_Metal = devices8
 instanceDeviceMappings I3_16XLarge = devices0
 instanceDeviceMappings I3_2XLarge = devices0
 instanceDeviceMappings I3_4XLarge = devices0
 instanceDeviceMappings I3_8XLarge = devices0
 instanceDeviceMappings I3_Large = devices0
 instanceDeviceMappings I3_XLarge = devices0
-
-
-
-
 
 instanceDeviceMappings M4_10XLarge = devices0
 instanceDeviceMappings M4_16XLarge = devices0
@@ -115,6 +112,13 @@ instanceDeviceMappings M5_2XLarge = devices0
 instanceDeviceMappings M5_4XLarge = devices0
 instanceDeviceMappings M5_Large = devices0
 instanceDeviceMappings M5_XLarge = devices0
+
+instanceDeviceMappings M5d_12XLarge = devices2
+instanceDeviceMappings M5d_24XLarge = devices4
+instanceDeviceMappings M5d_2XLarge = devices1
+instanceDeviceMappings M5d_4XLarge = devices2
+instanceDeviceMappings M5d_Large = devices1
+instanceDeviceMappings M5d_XLarge = devices1
 
 instanceDeviceMappings P2_XLarge = devices0
 instanceDeviceMappings P2_8XLarge = devices0
@@ -162,8 +166,32 @@ instanceDeviceMappings R4_8XLarge = devices0
 instanceDeviceMappings R4_Large = devices0
 instanceDeviceMappings R4_XLarge = devices0
 
+instanceDeviceMappings R5_12XLarge = devices0
+instanceDeviceMappings R5_16XLarge = devices0
+instanceDeviceMappings R5_24XLarge = devices0
+instanceDeviceMappings R5_2XLarge = devices0
+instanceDeviceMappings R5_4XLarge = devices0
+instanceDeviceMappings R5_8XLarge = devices0
+instanceDeviceMappings R5_Large = devices0
+instanceDeviceMappings R5_Metal = devices0
+instanceDeviceMappings R5_XLarge = devices0
 
+instanceDeviceMappings R5d_12XLarge = devices2
+instanceDeviceMappings R5d_16XLarge = devices0 -- not a valid type..?
+instanceDeviceMappings R5d_24XLarge = devices4
+instanceDeviceMappings R5d_2XLarge = devices1
+instanceDeviceMappings R5d_4XLarge = devices2
+instanceDeviceMappings R5d_8XLarge = devices0 -- not a valid type..?
+instanceDeviceMappings R5d_Large = devices1
+instanceDeviceMappings R5d_Metal = devices0 -- not a valid type..?
+instanceDeviceMappings R5d_XLarge = devices1
 
+instanceDeviceMappings Z1d_12XLarge = devices2
+instanceDeviceMappings Z1d_2XLarge = devices1
+instanceDeviceMappings Z1d_3XLarge = devices1
+instanceDeviceMappings Z1d_6XLarge = devices1
+instanceDeviceMappings Z1d_Large = devices1
+instanceDeviceMappings Z1d_XLarge = devices1
 
 devices0 :: [BlockDeviceMapping]
 devices0 = []

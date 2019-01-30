@@ -27,7 +27,9 @@ library
 
   exposed-modules:
                        Mismi.EC2.Core.Data
+                       Mismi.EC2.Core.Ec2Types
                        Mismi.EC2.Core.Device
+                       Mismi.EC2.Core.MismiTypes
 
 test-suite test
   type:                exitcode-stdio-1.0

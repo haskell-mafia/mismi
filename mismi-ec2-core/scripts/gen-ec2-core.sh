@@ -19,8 +19,23 @@ function virt_type() {
   fi
 }
 
+cat <<EOF
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+module Mismi.EC2.Core.Ec2Types (
+    MismiInstanceType(..)
+  , virtualizationFor
+  , renderMismiInstanceType
+  , parseMismiInstanceType
+  ) where
 
-echo '-- | Mismi''s view of available EC2 instance types.
+import           Mismi.EC2.Core.MismiTypes
+
+import           P
+
+EOF
+
+echo '-- | Mismi'"'"'s view of available EC2 instance types.
 data MismiInstanceType ='
 for T in $EC2_TYPES; do
   echo "  | $T"
