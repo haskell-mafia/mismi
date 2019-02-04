@@ -1,18 +1,18 @@
 [master]
-  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20181122052716-977567b/master-haskell-20181122052716-977567b"
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20190117000143-201595f/master-haskell-20190117000143-201595f"
   version = 1
-  sha1 = "b5434adb04dd0f7dee53b030f3c4cf1fed941c66"
+  sha1 = "3ba53248015b00824f90ca497b5d3bcce5699608"
 
 [global]
   CACHE = "true"
 
 [build.dist-7-10]
   GHC_VERSION = "7.10.2"
-  CABAL_VERSION = "1.24.0.0"
+  CABAL_VERSION = "1.24.0.2"
 
 [build.branches-7-10]
   GHC_VERSION = "7.10.2"
-  CABAL_VERSION = "1.24.0.0"
+  CABAL_VERSION = "1.24.0.2"
 
 [build.dist-8-0]
   GHC_VERSION = "8.0.2"

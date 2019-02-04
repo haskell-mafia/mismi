@@ -7,10 +7,14 @@ maintainer:            Ambiata <info@ambiata.com>
 copyright:             (c) 2015 Ambiata
 synopsis:              AWS library
 category:              AWS
-cabal-version:         >= 1.8
+cabal-version:         >= 1.24
 build-type:            Custom
 description:           mismi-s3.
 
+custom-setup
+  setup-depends:
+                       base
+                     , Cabal                           < 2.1          && >= 1.24
 executable s3
   main-is:             ../main/s3.hs
   ghc-options:         -Wall -threaded -O2
