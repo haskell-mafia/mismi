@@ -34,6 +34,7 @@ module Mismi.S3.Commands (
   , writeOrFail
   , writeWithMode
   , writeWithModeOrFail
+  , writeBinary
   , getObjects
   , getObjectsRecursively
   , listObjects
@@ -114,7 +115,7 @@ import           Network.AWS.Data.Body (ChunkedBody (..), ChunkSize (..))
 import           Network.AWS.Data.Body (RqBody (..), RsBody (..), toBody)
 import           Network.AWS.Data.Text (toText)
 import           Network.AWS.S3 (BucketName (..))
-import           Network.AWS.S3 (GetObjectResponse, HeadObjectResponse)
+import           Network.AWS.S3 (GetObjectResponse, HeadObjectResponse, PutObjectResponse)
 import           Network.AWS.S3 (ListObjects, ListObjectsResponse)
 import           Network.AWS.S3 (MetadataDirective (..))
 import           Network.AWS.S3 (MultipartUpload, Part)
@@ -671,6 +672,16 @@ writeWithMode w a t = eitherT pure (const $ pure WriteOk) $ do
     Fail -> whenM (lift $ exists a) . left $ WriteDestinationExists a
     Overwrite -> return ()
   void . lift . send $ f' A.putObject a (toBody . T.encodeUtf8 $ t) & A.poServerSideEncryption .~ Just sse
+
+-- moved from blizzard-submit-batch
+writeBinary :: Address -> BS.ByteString -> AWS PutObjectResponse
+writeBinary (Address b k) v =
+  send $
+    A.putObject
+        (BucketName . unBucket $ b)
+        (ObjectKey . unKey $ k)
+        (toBody v)
+      & A.poServerSideEncryption .~ Just sse
 
 -- pair of prefixs and keys
 getObjects :: Address -> AWS ([Key], [Key])

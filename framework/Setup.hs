@@ -21,7 +21,7 @@ import           Distribution.Verbosity
 #endif
 
 #if MIN_VERSION_Cabal(2,0,0)
-import           Distribution.Types.PackageName (PackageName, unPackageName)
+import           Distribution.Types.PackageName (unPackageName)
 import           Distribution.Simple.BuildPaths (autogenPackageModulesDir)
 import           Distribution.Version (Version, versionNumbers)
 
@@ -32,7 +32,7 @@ autogenModulesDirCompat :: LocalBuildInfo -> String
 autogenModulesDirCompat = autogenPackageModulesDir
 
 #else
-import           Distribution.Simple (PackageName, unPackageName)
+import           Distribution.Simple (unPackageName)
 import           Distribution.Simple.BuildPaths (autogenModulesDir)
 import           Data.Version (showVersion)
 
@@ -47,22 +47,22 @@ main =
    in defaultMainWithHooks hooks {
      preConf = \args flags -> do
        createDirectoryIfMissingVerbose silent True "gen"
-       (preConf hooks) args flags
-   , sDistHook  = \pd mlbi uh flags -> do
+       preConf hooks args flags
+   , sDistHook = \pd mlbi uh flags -> do
        genBuildInfo silent pd
-       (sDistHook hooks) pd mlbi uh flags
+       sDistHook hooks pd mlbi uh flags
    , buildHook = \pd lbi uh flags -> do
        genBuildInfo (fromFlag $ buildVerbosity flags) pd
        genDependencyInfo (fromFlag $ buildVerbosity flags) pd lbi
-       (buildHook hooks) pd lbi uh flags
+       buildHook hooks pd lbi uh flags
    , replHook = \pd lbi uh flags args -> do
        genBuildInfo (fromFlag $ replVerbosity flags) pd
        genDependencyInfo (fromFlag $ replVerbosity flags) pd lbi
-       (replHook hooks) pd lbi uh flags args
+       replHook hooks pd lbi uh flags args
    , testHook = \args pd lbi uh flags -> do
        genBuildInfo (fromFlag $ testVerbosity flags) pd
        genDependencyInfo (fromFlag $ testVerbosity flags) pd lbi
-       (testHook hooks) args pd lbi uh flags
+       testHook hooks args pd lbi uh flags
    }
 
 genBuildInfo :: Verbosity -> PackageDescription -> IO ()
@@ -70,7 +70,7 @@ genBuildInfo verbosity pkg = do
   createDirectoryIfMissingVerbose verbosity True "gen"
   let pname = unPackageName . pkgName . package $ pkg
       version = pkgVersion . package $ pkg
-      name = "BuildInfo_" ++ (map (\c -> if c == '-' then '_' else c) pname)
+      name = "BuildInfo_" ++ map (\c -> if c == '-' then '_' else c) pname
       targetHs = "gen/" ++ name ++ ".hs"
       targetText = "gen/version.txt"
   t <- timestamp verbosity
@@ -92,7 +92,7 @@ genDependencyInfo :: Verbosity -> PackageDescription -> LocalBuildInfo -> IO ()
 genDependencyInfo verbosity pkg info = do
   let
     pname = unPackageName . pkgName . package $ pkg
-    name = "DependencyInfo_" ++ (map (\c -> if c == '-' then '_' else c) pname)
+    name = "DependencyInfo_" ++ map (\c -> if c == '-' then '_' else c) pname
     targetHs = autogenModulesDirCompat info ++ "/" ++ name ++ ".hs"
     render p =
       let
@@ -122,8 +122,8 @@ timestamp :: Verbosity -> IO String
 timestamp verbosity =
   rawSystemStdout verbosity "date" ["+%Y%m%d%H%M%S"] >>= \s ->
     case splitAt 14 s of
-      (d, n : []) ->
-        if (length d == 14 && filter isDigit d == d)
+      (d, [_]) ->
+        if length d == 14 && filter isDigit d == d
           then return d
           else fail $ "date has failed to produce the correct format [" <> s <> "]."
       _ ->
