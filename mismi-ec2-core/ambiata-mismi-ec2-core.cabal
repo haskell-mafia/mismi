@@ -30,6 +30,7 @@ library
                        Mismi.EC2.Core.Ec2Types
                        Mismi.EC2.Core.Device
                        Mismi.EC2.Core.MismiTypes
+                       Mismi.EC2.Core.InstTypeToZone
 
 test-suite test
   type:                exitcode-stdio-1.0

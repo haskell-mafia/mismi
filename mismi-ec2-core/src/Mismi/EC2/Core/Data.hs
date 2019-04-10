@@ -22,7 +22,9 @@ module Mismi.EC2.Core.Data (
   , virtualizationFor
   , renderMismiInstanceType
   , parseMismiInstanceType
+  , sydAzForInstanceType
   ) where
 
 import           Mismi.EC2.Core.Ec2Types
 import           Mismi.EC2.Core.MismiTypes
+import           Mismi.EC2.Core.InstTypeToZone
