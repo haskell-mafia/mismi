@@ -2,196 +2,177 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Mismi.EC2.Core.Device (
     instanceDeviceMappings
+  , instanceStorage
   ) where
 
 import           Mismi.EC2.Core.Data
+import           Mismi.EC2.Core.MismiTypes
 
 -- http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html#instance-store-volumes
 instanceDeviceMappings :: MismiInstanceType -> [BlockDeviceMapping]
-instanceDeviceMappings T1_Micro = devices0
-instanceDeviceMappings T2_Nano = devices0
-instanceDeviceMappings T2_Micro = devices0
-instanceDeviceMappings T2_Small = devices0
-instanceDeviceMappings T2_Medium = devices0
-instanceDeviceMappings T2_Large = devices0
-instanceDeviceMappings T2_2XLarge = devices0
-instanceDeviceMappings T2_XLarge = devices0
+instanceDeviceMappings t =
+  case instanceStorage t of
+    NoStorage -> devices0
+    (InstanceStore _ _ _ NVMeSSD) -> devices0 -- nvme doesn't require mapping
+    (InstanceStore d _ _ _) -> 
+      case d of
+        1 -> devices1
+        2 -> devices2
+        3 -> devices3
+        4 -> devices4
+        6 -> devices6
+        8 -> devices8
+        12 -> devices12
+        24 -> devices24
+        _ -> devices0
 
+instanceStorage :: MismiInstanceType -> InstanceStorage
+instanceStorage C1_Medium = InstanceStore 1 350 350 HDD
+instanceStorage C1_XLarge = InstanceStore 4 420 1680 HDD
+instanceStorage C3_2XLarge = InstanceStore 2 80 160 SSD
+instanceStorage C3_4XLarge = InstanceStore 2 160 320 SSD
+instanceStorage C3_8XLarge = InstanceStore 2 320 640 SSD
+instanceStorage C3_Large = InstanceStore 2 16 32 SSD
+instanceStorage C3_XLarge = InstanceStore 2 40 80 SSD
+instanceStorage C4_2XLarge = NoStorage
+instanceStorage C4_4XLarge = NoStorage
+instanceStorage C4_8XLarge = NoStorage
+instanceStorage C4_Large = NoStorage
+instanceStorage C4_XLarge = NoStorage
+instanceStorage C5_18XLarge = NoStorage
+instanceStorage C5_2XLarge = NoStorage
+instanceStorage C5_4XLarge = NoStorage
+instanceStorage C5_9XLarge = NoStorage
+instanceStorage C5_Large = NoStorage
+instanceStorage C5_XLarge = NoStorage
+instanceStorage C5d_18XLarge = InstanceStore 2 900 1800 NVMeSSD
+instanceStorage C5d_2XLarge = InstanceStore 1 200 200 NVMeSSD
+instanceStorage C5d_4XLarge = InstanceStore 1 400 400 NVMeSSD
+instanceStorage C5d_9XLarge = InstanceStore 1 900 900 NVMeSSD
+instanceStorage C5d_Large = InstanceStore 1 50 50 NVMeSSD
+instanceStorage C5d_XLarge = InstanceStore 1 100 100 NVMeSSD
+instanceStorage CC1_4XLarge = NoStorage
+instanceStorage CC2_8XLarge = NoStorage
+instanceStorage CG1_4XLarge = NoStorage
+instanceStorage CR1_8XLarge = NoStorage
+instanceStorage D2_2XLarge = InstanceStore 6 2000 12000 HDD
+instanceStorage D2_4XLarge = InstanceStore 12 2000 24000 HDD
+instanceStorage D2_8XLarge = InstanceStore 24 2000 48000 HDD
+instanceStorage D2_XLarge = InstanceStore 3 2000 6000 HDD
+instanceStorage F1_16XLarge = NoStorage
+instanceStorage F1_2XLarge = NoStorage
+instanceStorage G2_2XLarge = InstanceStore 1 60 60 SSD
+instanceStorage G2_8XLarge = InstanceStore 2 120 240 SSD
+instanceStorage G3_16XLarge = NoStorage
+instanceStorage G3_4XLarge = NoStorage
+instanceStorage G3_8XLarge = NoStorage
+instanceStorage H1_16XLarge = NoStorage
+instanceStorage H1_2XLarge = NoStorage
+instanceStorage H1_4XLarge = NoStorage
+instanceStorage H1_8XLarge = NoStorage
+instanceStorage HI1_4XLarge = NoStorage
+instanceStorage HS1_8XLarge = InstanceStore 24 2000 48000 HDD
+instanceStorage I2_2XLarge = InstanceStore 2 800 1600 SSD
+instanceStorage I2_4XLarge = InstanceStore 4 800 3200 SSD
+instanceStorage I2_8XLarge = InstanceStore 8 800 6400 SSD
+instanceStorage I2_XLarge = InstanceStore 1 800 800 SSD
+instanceStorage I3_16XLarge = InstanceStore 8 1900 15200 NVMeSSD
+instanceStorage I3_2XLarge = InstanceStore 1 1900 1900 NVMeSSD
+instanceStorage I3_4XLarge = InstanceStore 2 1900 3800 NVMeSSD
+instanceStorage I3_8XLarge = InstanceStore 4 1900 7600 NVMeSSD
+instanceStorage I3_Large = InstanceStore 1 475 475 NVMeSSD
+instanceStorage I3_Metal = NoStorage
+instanceStorage I3_XLarge = InstanceStore 1 950 950 NVMeSSD
+instanceStorage M1_Large = InstanceStore 2 420 840 HDD
+instanceStorage M1_Medium = InstanceStore 1 410 410 HDD
+instanceStorage M1_Small = InstanceStore 1 160 160 HDD
+instanceStorage M1_XLarge = InstanceStore 4 420 1680 HDD
+instanceStorage M2_2XLarge = InstanceStore 1 850 850 HDD
+instanceStorage M2_4XLarge = InstanceStore 2 840 1680 HDD
+instanceStorage M2_XLarge = InstanceStore 1 420 420 HDD
+instanceStorage M3_2XLarge = InstanceStore 2 80 160 SSD
+instanceStorage M3_Large = InstanceStore 1 32 32 SSD
+instanceStorage M3_Medium = InstanceStore 1 4 4 SSD
+instanceStorage M3_XLarge = InstanceStore 2 40 80 SSD
+instanceStorage M4_10XLarge = NoStorage
+instanceStorage M4_16XLarge = NoStorage
+instanceStorage M4_2XLarge = NoStorage
+instanceStorage M4_4XLarge = NoStorage
+instanceStorage M4_Large = NoStorage
+instanceStorage M4_XLarge = NoStorage
+instanceStorage M5_12XLarge = NoStorage
+instanceStorage M5_24XLarge = NoStorage
+instanceStorage M5_2XLarge = NoStorage
+instanceStorage M5_4XLarge = NoStorage
+instanceStorage M5_Large = NoStorage
+instanceStorage M5_XLarge = NoStorage
+instanceStorage M5d_12XLarge = InstanceStore 2 900 1800 NVMeSSD
+instanceStorage M5d_24XLarge = InstanceStore 4 900 3600 NVMeSSD
+instanceStorage M5d_2XLarge = InstanceStore 1 300 300 NVMeSSD
+instanceStorage M5d_4XLarge = InstanceStore 2 300 600 NVMeSSD
+instanceStorage M5d_Large = InstanceStore 1 75 75 NVMeSSD
+instanceStorage M5d_XLarge = InstanceStore 1 150 150 NVMeSSD
+instanceStorage P2_16XLarge = NoStorage
+instanceStorage P2_8XLarge = NoStorage
+instanceStorage P2_XLarge = NoStorage
+instanceStorage P3_16XLarge = NoStorage
+instanceStorage P3_2XLarge = NoStorage
+instanceStorage P3_8XLarge = NoStorage
+instanceStorage R3_2XLarge = InstanceStore 1 160 160 SSD
+instanceStorage R3_4XLarge = InstanceStore 1 320 320 SSD
+instanceStorage R3_8XLarge = InstanceStore 2 320 640 SSD
+instanceStorage R3_Large = InstanceStore 1 32 32 SSD
+instanceStorage R3_XLarge = InstanceStore 1 80 80 SSD
+instanceStorage R4_16XLarge = NoStorage
+instanceStorage R4_2XLarge = NoStorage
+instanceStorage R4_4XLarge = NoStorage
+instanceStorage R4_8XLarge = NoStorage
+instanceStorage R4_Large = NoStorage
+instanceStorage R4_XLarge = NoStorage
+instanceStorage R5_12XLarge = NoStorage
+instanceStorage R5_16XLarge = NoStorage
+instanceStorage R5_24XLarge = NoStorage
+instanceStorage R5_2XLarge = NoStorage
+instanceStorage R5_4XLarge = NoStorage
+instanceStorage R5_8XLarge = NoStorage
+instanceStorage R5_Large = NoStorage
+instanceStorage R5_Metal = NoStorage
+instanceStorage R5_XLarge = NoStorage
+instanceStorage R5d_12XLarge = InstanceStore 2 900 1800 NVMeSSD
+instanceStorage R5d_16XLarge = NoStorage
+instanceStorage R5d_24XLarge = InstanceStore 4 900 3600 NVMeSSD
+instanceStorage R5d_2XLarge = InstanceStore 1 300 300 NVMeSSD
+instanceStorage R5d_4XLarge = InstanceStore 2 300 600 NVMeSSD
+instanceStorage R5d_8XLarge = NoStorage
+instanceStorage R5d_Large = InstanceStore 1 75 75 NVMeSSD
+instanceStorage R5d_Metal = NoStorage
+instanceStorage R5d_XLarge = InstanceStore 1 150 150 NVMeSSD
+instanceStorage T1_Micro = NoStorage
+instanceStorage T2_2XLarge = NoStorage
+instanceStorage T2_Large = NoStorage
+instanceStorage T2_Medium = NoStorage
+instanceStorage T2_Micro = NoStorage
+instanceStorage T2_Nano = NoStorage
+instanceStorage T2_Small = NoStorage
+instanceStorage T2_XLarge = NoStorage
+instanceStorage X1_16XLarge = InstanceStore 1 1920 1920 SSD
+instanceStorage X1_32XLarge = InstanceStore 2 1920 3840 SSD
+instanceStorage X1e_16XLarge = InstanceStore 1 1920 1920 SSD
+instanceStorage X1e_2XLarge = InstanceStore 1 240 240 SSD
+instanceStorage X1e_32XLarge = InstanceStore 2 1920 3840 SSD
+instanceStorage X1e_4XLarge = InstanceStore 1 480 480 SSD
+instanceStorage X1e_8XLarge = InstanceStore 1 960 960 SSD
+instanceStorage X1e_XLarge = InstanceStore 1 120 120 SSD
+instanceStorage Z1d_12XLarge = InstanceStore 2 900 1800 NVMeSSD
+instanceStorage Z1d_2XLarge = InstanceStore 1 300 300 NVMeSSD
+instanceStorage Z1d_3XLarge = InstanceStore 1 450 450 NVMeSSD
+instanceStorage Z1d_6XLarge = InstanceStore 1 900 900 NVMeSSD
+instanceStorage Z1d_Large = InstanceStore 1 75 75 NVMeSSD
+instanceStorage Z1d_XLarge = InstanceStore 1 150 150 NVMeSSD
 
--- General Purpose - Current Generation
-instanceDeviceMappings M3_Medium = devices1
-instanceDeviceMappings M3_Large = devices1
-instanceDeviceMappings M3_XLarge = devices2
-instanceDeviceMappings M3_2XLarge = devices2
+-- fallback
+-- instanceStorage _ = NoStorage
 
--- General Purpose - Previous Generation
-instanceDeviceMappings M1_Small = devices1
-instanceDeviceMappings M1_Medium = devices1
-instanceDeviceMappings M1_Large = devices2
-instanceDeviceMappings M1_XLarge = devices2
-
--- Compute Optimised - Current Generation
-instanceDeviceMappings C3_Large = devices2
-instanceDeviceMappings C3_XLarge = devices2
-instanceDeviceMappings C3_2XLarge = devices2
-instanceDeviceMappings C3_4XLarge = devices2
-instanceDeviceMappings C3_8XLarge = devices2
-
--- Compute Optimised - Previous Generation
-instanceDeviceMappings C1_Medium = devices1
-instanceDeviceMappings C1_XLarge = devices4
-
--- Memory Optimised - Current Generation
-instanceDeviceMappings R3_Large = devices1
-instanceDeviceMappings R3_XLarge = devices1
-instanceDeviceMappings R3_2XLarge = devices1
-instanceDeviceMappings R3_4XLarge = devices1
-instanceDeviceMappings R3_8XLarge = devices2
-
--- Memory Optimised - Previous Generation
-instanceDeviceMappings M2_XLarge = devices1
-instanceDeviceMappings M2_2XLarge = devices1
-instanceDeviceMappings M2_4XLarge = devices2
-
--- High Storage Density
-instanceDeviceMappings HS1_8XLarge = devices24
-
--- Storage Optimised
-instanceDeviceMappings I2_XLarge = devices1
-instanceDeviceMappings I2_2XLarge = devices2
-instanceDeviceMappings I2_4XLarge = devices4
-instanceDeviceMappings I2_8XLarge = devices8
-
--- Extra
-instanceDeviceMappings C4_Large = devices0
-instanceDeviceMappings C4_XLarge = devices0
-instanceDeviceMappings C4_2XLarge = devices0
-instanceDeviceMappings C4_4XLarge = devices0
-instanceDeviceMappings C4_8XLarge = devices0
-
-instanceDeviceMappings CC1_4XLarge = devices0
-instanceDeviceMappings CC2_8XLarge = devices4
-
-instanceDeviceMappings CG1_4XLarge = devices2
-
-instanceDeviceMappings CR1_8XLarge = devices2
-
-instanceDeviceMappings D2_2XLarge = devices6
-instanceDeviceMappings D2_4XLarge = devices12
-instanceDeviceMappings D2_8XLarge = devices24
-instanceDeviceMappings D2_XLarge = devices3
-
-instanceDeviceMappings G2_2XLarge = devices1
-instanceDeviceMappings G2_8XLarge = devices2
-
-instanceDeviceMappings HI1_4XLarge = devices2
-
-instanceDeviceMappings H1_2XLarge = devices1
-instanceDeviceMappings H1_4XLarge = devices2
-instanceDeviceMappings H1_8XLarge = devices4
-instanceDeviceMappings H1_16XLarge = devices8
-
-instanceDeviceMappings I3_Metal = devices8
-instanceDeviceMappings I3_16XLarge = devices0
-instanceDeviceMappings I3_2XLarge = devices0
-instanceDeviceMappings I3_4XLarge = devices0
-instanceDeviceMappings I3_8XLarge = devices0
-instanceDeviceMappings I3_Large = devices0
-instanceDeviceMappings I3_XLarge = devices0
-
-instanceDeviceMappings M4_10XLarge = devices0
-instanceDeviceMappings M4_16XLarge = devices0
-instanceDeviceMappings M4_2XLarge = devices0
-instanceDeviceMappings M4_4XLarge = devices0
-instanceDeviceMappings M4_XLarge = devices0
-instanceDeviceMappings M4_Large = devices0
-
-instanceDeviceMappings M5_12XLarge = devices0
-instanceDeviceMappings M5_24XLarge = devices0
-instanceDeviceMappings M5_2XLarge = devices0
-instanceDeviceMappings M5_4XLarge = devices0
-instanceDeviceMappings M5_Large = devices0
-instanceDeviceMappings M5_XLarge = devices0
-
-instanceDeviceMappings M5d_12XLarge = devices2
-instanceDeviceMappings M5d_24XLarge = devices4
-instanceDeviceMappings M5d_2XLarge = devices1
-instanceDeviceMappings M5d_4XLarge = devices2
-instanceDeviceMappings M5d_Large = devices1
-instanceDeviceMappings M5d_XLarge = devices1
-
-instanceDeviceMappings P2_XLarge = devices0
-instanceDeviceMappings P2_8XLarge = devices0
-instanceDeviceMappings P2_16XLarge = devices0
-
-instanceDeviceMappings X1_16XLarge = devices1
-instanceDeviceMappings X1_32XLarge = devices2
-
-instanceDeviceMappings X1e_16XLarge = devices1
-instanceDeviceMappings X1e_2XLarge = devices1
-instanceDeviceMappings X1e_32XLarge = devices2
-instanceDeviceMappings X1e_4XLarge = devices1
-instanceDeviceMappings X1e_8XLarge = devices1
-instanceDeviceMappings X1e_XLarge = devices1
-
-instanceDeviceMappings F1_2XLarge = devices0
-instanceDeviceMappings F1_16XLarge = devices0
-
-instanceDeviceMappings C5_18XLarge = devices0
-instanceDeviceMappings C5_2XLarge = devices0
-instanceDeviceMappings C5_4XLarge = devices0
-instanceDeviceMappings C5_9XLarge = devices0
-instanceDeviceMappings C5_Large = devices0
-instanceDeviceMappings C5_XLarge = devices0
-
-instanceDeviceMappings C5d_Large = devices1
-instanceDeviceMappings C5d_XLarge = devices1
-instanceDeviceMappings C5d_2XLarge = devices1
-instanceDeviceMappings C5d_4XLarge = devices1
-instanceDeviceMappings C5d_9XLarge = devices1
-instanceDeviceMappings C5d_18XLarge = devices2
-
-instanceDeviceMappings G3_16XLarge = devices0
-instanceDeviceMappings G3_4XLarge = devices0
-instanceDeviceMappings G3_8XLarge = devices0
-
-instanceDeviceMappings P3_16XLarge = devices0
-instanceDeviceMappings P3_2XLarge = devices0
-instanceDeviceMappings P3_8XLarge = devices0
-
-instanceDeviceMappings R4_16XLarge = devices0
-instanceDeviceMappings R4_2XLarge = devices0
-instanceDeviceMappings R4_4XLarge = devices0
-instanceDeviceMappings R4_8XLarge = devices0
-instanceDeviceMappings R4_Large = devices0
-instanceDeviceMappings R4_XLarge = devices0
-
-instanceDeviceMappings R5_12XLarge = devices0
-instanceDeviceMappings R5_16XLarge = devices0
-instanceDeviceMappings R5_24XLarge = devices0
-instanceDeviceMappings R5_2XLarge = devices0
-instanceDeviceMappings R5_4XLarge = devices0
-instanceDeviceMappings R5_8XLarge = devices0
-instanceDeviceMappings R5_Large = devices0
-instanceDeviceMappings R5_Metal = devices0
-instanceDeviceMappings R5_XLarge = devices0
-
-instanceDeviceMappings R5d_12XLarge = devices2
-instanceDeviceMappings R5d_16XLarge = devices0 -- not a valid type..?
-instanceDeviceMappings R5d_24XLarge = devices4
-instanceDeviceMappings R5d_2XLarge = devices1
-instanceDeviceMappings R5d_4XLarge = devices2
-instanceDeviceMappings R5d_8XLarge = devices0 -- not a valid type..?
-instanceDeviceMappings R5d_Large = devices1
-instanceDeviceMappings R5d_Metal = devices0 -- not a valid type..?
-instanceDeviceMappings R5d_XLarge = devices1
-
-instanceDeviceMappings Z1d_12XLarge = devices2
-instanceDeviceMappings Z1d_2XLarge = devices1
-instanceDeviceMappings Z1d_3XLarge = devices1
-instanceDeviceMappings Z1d_6XLarge = devices1
-instanceDeviceMappings Z1d_Large = devices1
-instanceDeviceMappings Z1d_XLarge = devices1
 
 devices0 :: [BlockDeviceMapping]
 devices0 = []

@@ -1,5 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Mismi.EC2.Core.MismiTypes (
     InstanceId (..)
   , UserData (..)
@@ -12,7 +14,12 @@ module Mismi.EC2.Core.MismiTypes (
   , MismiSpotInstanceType (..)
   , EC2Tag (..)
   , BlockDeviceMapping (..)
+  , InstanceStorage (..)
+  , InstanceStorageType (..)
   , MismiVirtualizationType (..)
+  , InstDiskCount (..)
+  , InstDiskSizeGB (..)
+  , InstTotalStorageGB (..)
   , encodeUserData
   , decodeUserData
   , renderVirtualization
@@ -23,6 +30,8 @@ module Mismi.EC2.Core.MismiTypes (
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+
+import           GHC.Generics (Generic)
 
 import           P
 
@@ -100,6 +109,21 @@ data BlockDeviceMapping =
     , blockDeviceMappingVirtualName :: Text
     } deriving (Eq, Show)
 
+newtype InstDiskCount = InstDiskCount Int deriving (Eq, Show, Ord, Generic, Num, Enum, Real, Integral)
+newtype InstDiskSizeGB = InstDiskSizeGB Int deriving (Eq, Show, Ord, Generic, Num, Enum, Real, Integral)
+newtype InstTotalStorageGB = InstTotalStorageGB Int deriving (Eq, Show, Ord, Generic, Num, Enum, Real, Integral)
+
+data InstanceStorage =
+    NoStorage
+  | InstanceStore InstDiskCount InstDiskSizeGB InstTotalStorageGB InstanceStorageType
+    deriving (Eq, Show)
+
+data InstanceStorageType =
+    HDD
+  | SSD
+  | NVMeSSD
+    deriving (Eq, Show, Enum, Bounded)
+  
 renderVirtualization :: MismiVirtualizationType -> Text
 renderVirtualization v =
   case v of
