@@ -7,6 +7,7 @@
 module Test.IO.Mismi.Autoscaling.Commands where
 
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Concurrent (threadDelay)
 
 import           Control.Retry (retrying, limitRetries, constantDelay)
 
@@ -88,6 +89,7 @@ prop_update_tags = forAll ((,) <$> elements simpsons <*> elements boats) $ \(k, 
     conf <- conf' c
     createConfiguration conf
     createGroup $ group' c g 0
+    liftIO $ threadDelay 1000000
     let tag = GroupTag (EC2Tag k v) Propagate
     updateTags g [tag]
     m <- runEitherT $ describeGroup g
@@ -105,6 +107,7 @@ prop_scale_in_invalid_state = once . testGroup $ \c g -> do
   conf <- conf' c
   createConfiguration conf
   createGroup $ group' c g 1
+  liftIO $ threadDelay 1000000
 
   let retryX action =
         retrying

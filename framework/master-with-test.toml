@@ -1,51 +1,44 @@
 [master]
-  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20190117000143-201595f/master-haskell-20190117000143-201595f"
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20190522002346-e28326d/master-haskell-20190522002346-e28326d"
   version = 1
-  sha1 = "3ba53248015b00824f90ca497b5d3bcce5699608"
+  sha1 = "8736bd36b35b88909893e565f97ae5f91c009fd1"
 
 [global]
   CACHE = "true"
+  CABAL_VERSION = "1.24.0.2"
 
 [build.dist-7-10]
   HADDOCK = "true"
   HADDOCK_S3 = "$AMBIATA_HADDOCK_MASTER"
   GHC_VERSION = "7.10.2"
-  CABAL_VERSION = "1.24.0.2"
 
 [build.branches-7-10]
   HADDOCK = "true"
   HADDOCK_S3 = "$AMBIATA_HADDOCK_BRANCHES"
   GHC_VERSION = "7.10.2"
-  CABAL_VERSION = "1.24.0.2"
 
 [build.dist-8-0]
   GHC_VERSION = "8.0.2"
-  CABAL_VERSION = "1.24.0.2"
 
 [build.branches-8-0]
   GHC_VERSION = "8.0.2"
-  CABAL_VERSION = "1.24.0.2"
 
 [build.dist-7-10-cabal-test]
   GHC_VERSION = "7.10.2"
-  CABAL_VERSION = "1.24.0.2"
   TEST = "false"
   CABAL_TEST = "true"
 
 [build.branches-7-10-cabal-test]
   GHC_VERSION = "7.10.2"
-  CABAL_VERSION = "1.24.0.2"
   TEST = "false"
   CABAL_TEST = "true"
 
 [build.dist-8-0-cabal-test]
   GHC_VERSION = "8.0.2"
-  CABAL_VERSION = "1.24.0.2"
   TEST = "false"
   CABAL_TEST = "true"
 
 [build.branches-8-0-cabal-test]
   GHC_VERSION = "8.0.2"
-  CABAL_VERSION = "1.24.0.2"
   TEST = "false"
   CABAL_TEST = "true"
