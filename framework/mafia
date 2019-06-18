@@ -45,13 +45,13 @@ enable_version() {
     else
         MAFIA_VERSION="$1"
     fi
-    [ -x "$MAFIA_HOME/versions/mafia-$MAFIA_VERSION" ] || build_version "$MAFIA_VERSION"
-    ln -sf "$MAFIA_HOME/versions/mafia-$MAFIA_VERSION" "$MAFIA_HOME/versions/mafia"
+    [ -x "${MAFIA_VERSIONS}/mafia-$MAFIA_VERSION" ] || build_version "$MAFIA_VERSION"
+    ln -sf "${MAFIA_VERSIONS}/mafia-$MAFIA_VERSION" "${MAFIA_VERSIONS}/mafia"
 }
 
 exec_mafia () {
-    [ -x "$MAFIA_HOME/versions/mafia" ] || enable_version
-    "$MAFIA_HOME/versions/mafia" "$@"
+    [ -x "${MAFIA_VERSIONS}/mafia" ] || enable_version
+    "${MAFIA_VERSIONS}/mafia" "$@"
 }
 
 #
