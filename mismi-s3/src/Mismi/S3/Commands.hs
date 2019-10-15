@@ -763,6 +763,12 @@ hoistDownloadError e =
       throwM $ DestinationNotDirectory f
     DownloadInvariant a b ->
       throwM $ Invariant (renderDownloadError $ DownloadInvariant a b)
+    DownloadAws a ->
+      throwM a
+    DownloadRunError (WorkerError a) ->
+      throwM a
+    DownloadRunError (BlowUpError a) ->
+      throwM a
     MultipartError (WorkerError a) ->
       throwM a
     MultipartError (BlowUpError a) ->
@@ -844,14 +850,16 @@ downloadRecursiveWithMode mode src dest = do
     Left _ -> pure ()
     Right st -> unless (isDirectory st) . left $ DownloadDestinationNotDirectory dest
   -- Real business starts here.
-  addrs <- lift $ listRecursively src
-  mapM_ drWorker addrs
+  e <- ask
+  bimapEitherT DownloadRunError id . void . newEitherT . liftIO $
+    (consume (sinkQueue e (listRecursively' src)) 1 (drWorker e))
   where
-    drWorker :: Address -> EitherT DownloadError AWS ()
-    drWorker addr = do
+    drWorker :: Env -> Address -> IO (Either DownloadError ())
+    drWorker env addr = runEitherT . runAWST env DownloadAws $ do
       fpdest <- hoistMaybe (DownloadInvariant addr src) $
                     ((</>) dest) . T.unpack . unKey <$> removeCommonPrefix src addr
       downloadWithMode mode addr fpdest
+
 
 downloadRecursive :: Address -> FilePath -> EitherT DownloadError AWS ()
 downloadRecursive =
